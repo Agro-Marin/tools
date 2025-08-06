@@ -1,0 +1,13 @@
+
+python-dotenv
+sqlalchemy
+psycopg2-binary
+google-generativeai>=0.3.0
+
+langchain
+langchain-google-genai
+langchain-community
+
+fastapi
+uvicorn
+

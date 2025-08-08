@@ -32,14 +32,45 @@ def create_sql_agent_chain(domain_config: dict, model_config: dict):
     # Log del table_info cuando DEBUG está activado
     if config.DEBUG:
         table_info = db.get_table_info()
-        print(f"📊 Table Info para tablas {domain_config['tables']}:")
-        print(f"{table_info[:500]}..." if len(table_info) > 500 else table_info)
-        print("-" * 50)
     
     prompt_template = PromptTemplate.from_template(domain_config["prompt_template"])
     
-    # Cadena para generar la consulta SQL
-    sql_query_chain = create_sql_query_chain(llm, db, prompt=prompt_template)
+    # Cadena personalizada para generar SQL + ORM
+    def generate_sql_and_orm(inputs):
+        """Genera tanto SQL como ORM usando el prompt personalizado"""
+        formatted_prompt = prompt_template.format(
+            table_info=db.get_table_info(),
+            top_k=config.DEFAULT_TOP_K,
+            input=inputs["input"]
+        )
+        response = llm.invoke(formatted_prompt)
+        
+        # Extraer SQL y ORM de la respuesta
+        full_response = response.content
+        
+        if "--- ORM ---" in full_response:
+            sql_part = full_response.split("--- ORM ---")[0].strip()
+            orm_part = full_response.split("--- ORM ---")[1].strip()
+        else:
+            # Fallback: usar solo la parte SQL
+            sql_part = full_response
+            orm_part = "# No se generó equivalente ORM"
+            
+        # Extraer SQL limpio para ejecución
+        import re
+        sql_match = re.search(r"```(?:sql)?\n(.*?)\n```", sql_part, re.DOTALL)
+        clean_sql = sql_match.group(1).strip() if sql_match else sql_part.strip()
+        
+        # Mostrar ambas versiones si DEBUG está activado
+        if config.DEBUG:
+            print(f"⚙️ SQL Ejecutando:\n{clean_sql}\n")
+            print(f"🐍 Equivalente ORM:\n{orm_part}\n")
+        
+        return {
+            "sql_query": clean_sql,
+            "orm_query": orm_part,
+            "full_response": full_response
+        }
 
     # Cadena para dar formato a la respuesta final en lenguaje natural
     answer_prompt = PromptTemplate.from_template(config.FINAL_RESPONSE_PROMPT)
@@ -48,7 +79,9 @@ def create_sql_agent_chain(domain_config: dict, model_config: dict):
     # Cadena completa que maneja el flujo de datos
     chain = (
         RunnablePassthrough.assign(question=lambda x: x["input"])
-        .assign(sql_query=sql_query_chain)
+        .assign(generated=generate_sql_and_orm)
+        .assign(sql_query=lambda x: x["generated"]["sql_query"])
+        .assign(orm_query=lambda x: x["generated"]["orm_query"])
         .assign(result=lambda x: run_query(x["sql_query"]))
         | answer_chain
     )

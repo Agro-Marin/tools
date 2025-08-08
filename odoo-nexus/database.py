@@ -46,34 +46,86 @@ def extract_sql_from_markdown(text: str) -> str:
     return text.strip()
 
 
-def validate_sql(sql: str) -> bool:
-    """Valida que la consulta sea un SELECT seguro."""
+def validate_sql(sql: str) -> tuple[bool, str]:
+    """
+    Valida que la consulta sea un SELECT seguro.
+    
+    Returns:
+        tuple[bool, str]: (es_válida, mensaje_error)
+    """
     sql_clean = sql.strip().lower()
-    if not sql_clean.startswith("select"):
-        print("🚨 Fallo de validación: La consulta no comienza con SELECT.")
-        return False
+    
+    # Verificar que comience con SELECT o WITH (para CTEs)
+    if not (sql_clean.startswith("select") or sql_clean.startswith("with")):
+        return False, "🚨 Fallo de validación: La consulta debe comenzar con SELECT o WITH."
 
     forbidden_keywords = [
-        "insert",
-        "update",
-        "delete",
-        "drop",
-        "alter",
-        "create",
-        "truncate",
-        "grant",
-        "revoke",
-        "commit",
-        "rollback",
+        "insert", "update", "delete", "drop", "alter", "create", "truncate",
+        "grant", "revoke", "commit", "rollback", "execute", "call"
     ]
-    # Usamos split() para evitar falsos positivos en nombres de tablas/columnas
-    if any(kw in sql_clean.split() for kw in forbidden_keywords):
-        print(
-            f"🚨 Fallo de validación: La consulta contiene una palabra clave prohibida."
-        )
-        return False
+    
+    # Verificar palabras clave prohibidas
+    sql_words = sql_clean.split()
+    for keyword in forbidden_keywords:
+        if keyword in sql_words:
+            return False, f"🚨 Fallo de validación: La consulta contiene '{keyword}' que está prohibido."
+    
+    # Verificar uso correcto de operadores JSONB
+    if "->>" in sql and "jsonb" not in sql_clean:
+        # Buscar patrones potencialmente problemáticos
+        import re
+        jsonb_pattern = r"(\w+)\s*->>\s*'[^']+'"
+        matches = re.findall(jsonb_pattern, sql)
+        
+        warning_tables = ["stock_warehouse", "stock_location"]
+        for match in matches:
+            table_hint = match.lower()
+            if any(wt in table_hint for wt in warning_tables):
+                return False, f"🚨 Posible error: Campo '{match}' puede no ser JSONB. Usa el campo directamente."
+    
+    # Verificar columnas ambiguas en JOINs
+    if " join " in sql_clean and "select " in sql_clean:
+        import re
+        # Buscar SELECT seguido de nombres de columna sin alias
+        select_pattern = r"select\s+([^from]+)"
+        select_match = re.search(select_pattern, sql_clean)
+        if select_match:
+            select_fields = select_match.group(1)
+            # Buscar campos comunes que suelen ser ambiguos
+            common_fields = ["name", "id", "active", "create_date", "write_date"]
+            for field in common_fields:
+                if f" {field} " in f" {select_fields} " or select_fields.strip() == field:
+                    return False, f"🚨 Columna ambigua: '{field}' necesita alias de tabla (ej: sl.{field}, sw.{field})"
+    
+    # Validación adicional: límite de filas si no está especificado
+    if "limit" not in sql_clean and "count(" not in sql_clean:
+        if config.DEBUG:
+            print("⚠️  Advertencia: La consulta no tiene LIMIT. Se aplicará el límite por defecto.")
+    
+    return True, "✅ Consulta válida"
 
-    return True
+
+def get_column_type(table_name: str, column_name: str) -> str:
+    """
+    Obtiene el tipo de datos de una columna específica.
+    Útil para determinar si un campo es JSONB o VARCHAR.
+    """
+    if not engine:
+        return "unknown"
+    
+    query = """
+    SELECT data_type 
+    FROM information_schema.columns 
+    WHERE table_name = %s AND column_name = %s
+    """
+    
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(text(query), (table_name, column_name))
+            row = result.fetchone()
+            return row[0] if row else "unknown"
+    except:
+        return "unknown"
 
 
 def run_query(sql_query: str):
@@ -85,7 +137,10 @@ def run_query(sql_query: str):
 
     clean_sql = extract_sql_from_markdown(sql_query)
 
-    if not validate_sql(clean_sql):
+    # Usar la nueva validación que devuelve tuple
+    is_valid, validation_message = validate_sql(clean_sql)
+    if not is_valid:
+        print(validation_message)
         raise ValueError("Consulta SQL no válida o insegura.")
 
     if config.DEBUG:

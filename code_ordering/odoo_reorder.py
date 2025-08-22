@@ -488,7 +488,7 @@ class ReorganizerConfig:
         self.black_mode = black.Mode(
             target_versions={black.TargetVersion.PY311},
             line_length=self.line_length,
-            string_normalization=True,
+            string_normalization=False,  # Preserve original string quotes (triple quotes, etc.)
             is_pyi=False,
         )
 
@@ -1728,10 +1728,33 @@ class PythonFileProcessor(FileHandler):
     def _format_with_black(self, content: str, filepath: Path) -> str:
         """Format content with Black."""
         try:
-            return black.format_str(content, mode=self.config.black_mode)
+            formatted = black.format_str(content, mode=self.config.black_mode)
+            # Post-process to fix triple quotes that were converted to escaped strings
+            return self._fix_triple_quotes(formatted)
         except black.InvalidInput as e:
             ErrorHandler.handle_warning(f"Black formatting failed for {filepath}: {e}")
             return content
+
+    def _fix_triple_quotes(self, content: str) -> str:
+        """Fix strings with newline escapes back to triple quotes where appropriate."""
+        import re
+
+        # Pattern to find strings with multiple newlines that should be triple quotes
+        # This pattern looks for strings that start and end with \n and contain multiple \n
+        pattern = r'(domain\s*=\s*lambda\s+\w+:\s*)"(\\n\s*.*?\\n\s*)"(\.format\(|,|\))'
+
+        def replace_with_triple_quotes(match):
+            prefix = match.group(1)
+            string_content = match.group(2)
+            suffix = match.group(3)
+
+            # Convert escaped newlines back to actual newlines
+            unescaped = string_content.replace("\\n", "\n")
+
+            # Use triple quotes
+            return f'{prefix}"""{unescaped}"""{suffix}'
+
+        return re.sub(pattern, replace_with_triple_quotes, content, flags=re.DOTALL)
 
     def _extract_components(self, content: str, tree: ast.Module) -> FileComponents:
         """Extract components from parsed file."""

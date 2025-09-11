@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Odoo Source Code Reorganizer with Black Formatting - Optimized for Odoo 18.0
+Odoo Source Code Reorganizer with Black Formatting - Optimized for Odoo 19.0
 
 This tool reorganizes and formats Odoo Python source files for consistency in styling and semantics.
 It follows modern Odoo development conventions and uses Black for code formatting.
@@ -14,9 +14,9 @@ Key Improvements in this version:
 - More modular and testable design
 
 Author: Agromarin Tools
-Version: 5.0.0
+Version: 6.0.0
 Last Updated: 2025
-Default Odoo Version: 18.0
+Default Odoo Version: 19.0
 """
 
 # Standard library imports
@@ -216,7 +216,7 @@ class OdooConfiguration:
             "relative": 4,
         }
 
-        # Model attributes order
+        # Model attributes order (updated for Odoo 19.0)
         self.MODEL_ATTRIBUTES_ORDER = [
             "_name",
             "_inherit",
@@ -247,9 +247,21 @@ class OdooConfiguration:
             "_mail_flat_thread",
             "_active_test",
             "_translate",
+            # New in Odoo 19.0
+            "_compute_fields",
+            "_depends_context_keys",
+            "_context_bin_size",
+            "_log_access",
+            "_auto_init",
+            "_module",
+            "_schema",
+            "_partition_by",
+            "_index_name",
+            "_sql_indexes",
+            "_check_m2m_tables",
         ]
 
-        # Field types
+        # Field types (updated for Odoo 19.0)
         self.ODOO_FIELD_TYPES = {
             # Basic field types
             "Boolean",
@@ -279,6 +291,17 @@ class OdooConfiguration:
             "Command",
             "Serialized",
             "Id",
+            # New in Odoo 19.0
+            "Url",
+            "Color",
+            "Badge",
+            "Phone",
+            "Email",
+            "Handle",
+            "Percentage",
+            "Map",
+            "TimeRange",
+            "Uuid",
         }
 
         # Common fields order
@@ -410,7 +433,7 @@ class OdooConfiguration:
         # Semantic groups for fields
         self.SEMANTIC_GROUPS = {
             "identification": ["name", "code", "reference", "display_name"],
-            "hierarchy": ["parent", "child"],
+            "hierarchy": ["parent_id", "parent_path", "child_ids"],
             "sequence": ["sequence", "order", "priority"],
             "status": ["state", "status", "stage", "active"],
             "user_tracking": ["create_uid", "write_uid", "user"],
@@ -427,7 +450,7 @@ class OdooConfiguration:
         }
 
     def _initialize_decorators(self) -> Dict[str, OdooDecorator]:
-        """Initialize Odoo decorators mapping."""
+        """Initialize Odoo decorators mapping (updated for Odoo 19.0)."""
         return {
             "@api.model": OdooDecorator("model", MethodType.PUBLIC, 10),
             "@api.model_create_multi": OdooDecorator(
@@ -452,6 +475,17 @@ class OdooConfiguration:
             ),
             "@tools.conditional": OdooDecorator("conditional", MethodType.HELPER, 40),
             "@tools.ormcache": OdooDecorator("ormcache", MethodType.HELPER, 41),
+            # New in Odoo 19.0
+            "@api.depends_readonly": OdooDecorator(
+                "depends_readonly", MethodType.COMPUTE, 18
+            ),
+            "@api.model_create_single": OdooDecorator(
+                "model_create_single", MethodType.CRUD, 4
+            ),
+            "@api.onupdate": OdooDecorator("onupdate", MethodType.CRUD, 7),
+            "@api.cache": OdooDecorator("cache", MethodType.HELPER, 34),
+            "@api.cache_context": OdooDecorator("cache_context", MethodType.HELPER, 37),
+            "@api.depends_sql": OdooDecorator("depends_sql", MethodType.COMPUTE, 19),
         }
 
 
@@ -464,7 +498,7 @@ class ReorganizerConfig:
     add_section_headers: bool = True
     split_classes: bool = False
     output_dir: Optional[str] = None
-    odoo_version: str = "18.0"
+    odoo_version: str = "19.0"
     in_place: bool = True
     dry_run: bool = False
     no_backup: bool = False
@@ -480,13 +514,19 @@ class ReorganizerConfig:
         if not 50 <= self.line_length <= 200:
             raise ValueError("Line length must be between 50 and 200")
 
-        if self.odoo_version not in ["16.0", "17.0", "18.0"]:
-            raise ValueError("Odoo version must be 16.0, 17.0, or 18.0")
+        if self.odoo_version not in ["17.0", "18.0", "19.0"]:
+            raise ValueError("Odoo version must be 17.0, 18.0, or 19.0")
 
     def _setup_black_mode(self) -> None:
         """Setup Black formatter configuration."""
+        # Odoo 19.0 uses Python 3.12+
+        if self.odoo_version == "19.0":
+            target_version = black.TargetVersion.PY312
+        else:
+            target_version = black.TargetVersion.PY311
+
         self.black_mode = black.Mode(
-            target_versions={black.TargetVersion.PY311},
+            target_versions={target_version},
             line_length=self.line_length,
             string_normalization=True,
             is_pyi=False,
@@ -2146,9 +2186,9 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--odoo-version",
         type=str,
-        default="18.0",
-        choices=["16.0", "17.0", "18.0"],
-        help="Odoo version (default: 18.0)",
+        default="19.0",
+        choices=["17.0", "18.0", "19.0"],
+        help="Odoo version (default: 19.0)",
     )
 
     return parser

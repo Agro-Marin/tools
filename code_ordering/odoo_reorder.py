@@ -1733,6 +1733,834 @@ class CodeGenerator:
 
 
 # =============================================================================
+# ORDER EXPORT/IMPORT
+# =============================================================================
+
+
+class OrderExportType(Enum):
+    """Types of order exports."""
+
+    FILE = "file"
+    MODULE = "module"
+    DIRECTORY = "directory"
+
+
+@dataclass
+class ClassOrder:
+    """Order information for a class."""
+
+    name: str
+    model_attributes: List[str] = field(default_factory=list)
+    fields: List[str] = field(default_factory=list)
+    sql_constraints: List[str] = field(default_factory=list)
+    model_indexes: List[str] = field(default_factory=list)
+    methods: Dict[str, List[str]] = field(default_factory=dict)
+    section_headers: Dict[str, str] = field(
+        default_factory=dict
+    )  # Maps section name to header text
+
+    def to_dict(self) -> Dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "name": self.name,
+            "model_attributes": self.model_attributes,
+            "fields": self.fields,
+            "sql_constraints": self.sql_constraints,
+            "model_indexes": self.model_indexes,
+            "methods": self.methods,
+            "section_headers": self.section_headers,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> "ClassOrder":
+        """Create from dictionary."""
+        return cls(
+            name=data["name"],
+            model_attributes=data.get("model_attributes", []),
+            fields=data.get("fields", []),
+            sql_constraints=data.get("sql_constraints", []),
+            model_indexes=data.get("model_indexes", []),
+            methods=data.get("methods", {}),
+            section_headers=data.get("section_headers", {}),
+        )
+
+
+@dataclass
+class FileOrder:
+    """Order information for a file."""
+
+    filepath: str
+    import_groups: List[str] = field(default_factory=list)
+    import_statements: List[str] = field(default_factory=list)
+    classes: List[ClassOrder] = field(default_factory=list)
+    functions: List[str] = field(default_factory=list)
+    module_level_vars: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "filepath": self.filepath,
+            "import_groups": self.import_groups,
+            "import_statements": self.import_statements,
+            "classes": [cls.to_dict() for cls in self.classes],
+            "functions": self.functions,
+            "module_level_vars": self.module_level_vars,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> "FileOrder":
+        """Create from dictionary."""
+        return cls(
+            filepath=data["filepath"],
+            import_groups=data.get("import_groups", []),
+            import_statements=data.get("import_statements", []),
+            classes=[ClassOrder.from_dict(c) for c in data.get("classes", [])],
+            functions=data.get("functions", []),
+            module_level_vars=data.get("module_level_vars", []),
+        )
+
+
+@dataclass
+class OrderExport:
+    """Complete order export data."""
+
+    version: str = "1.0"
+    odoo_version: str = "19.0"
+    export_date: str = field(default_factory=lambda: datetime.now().isoformat())
+    export_type: OrderExportType = OrderExportType.FILE
+    name: str = ""
+    files: Dict[str, FileOrder] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "version": self.version,
+            "odoo_version": self.odoo_version,
+            "export_date": self.export_date,
+            "type": self.export_type.value,
+            "name": self.name,
+            "files": {k: v.to_dict() for k, v in self.files.items()},
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> "OrderExport":
+        """Create from dictionary."""
+        return cls(
+            version=data.get("version", "1.0"),
+            odoo_version=data.get("odoo_version", "19.0"),
+            export_date=data.get("export_date", datetime.now().isoformat()),
+            export_type=OrderExportType(data.get("type", "file")),
+            name=data.get("name", ""),
+            files={k: FileOrder.from_dict(v) for k, v in data.get("files", {}).items()},
+        )
+
+
+class OrderExporter:
+    """Exports the current order of code elements."""
+
+    def __init__(self):
+        self.config = OdooConfiguration()
+        self.field_analyzer = FieldAnalyzer()
+        self.method_classifier = MethodClassifier()
+
+    def export_file(self, filepath: Path, odoo_version: str = "19.0") -> OrderExport:
+        """Export the current order of a single Python file."""
+        try:
+            content = FileUtils.read_file(filepath)
+            if not content.strip():
+                raise ValueError(f"File {filepath} is empty")
+
+            tree = ast.parse(content)
+            file_order = self._extract_file_order(filepath, tree, content)
+
+            export = OrderExport(
+                odoo_version=odoo_version,
+                export_type=OrderExportType.FILE,
+                name=str(filepath),
+                files={str(filepath): file_order},
+            )
+
+            return export
+
+        except Exception as e:
+            logger.error(f"Failed to export order from {filepath}: {e}")
+            raise
+
+    def export_module(
+        self, module_path: Path, odoo_version: str = "19.0"
+    ) -> OrderExport:
+        """Export the current order of an entire Odoo module."""
+        if not module_path.is_dir():
+            raise ValueError(f"{module_path} is not a directory")
+
+        # Check if it's an Odoo module
+        manifest_files = ["__manifest__.py", "__openerp__.py"]
+        if not any((module_path / f).exists() for f in manifest_files):
+            raise ValueError(f"{module_path} is not an Odoo module")
+
+        export = OrderExport(
+            odoo_version=odoo_version,
+            export_type=OrderExportType.MODULE,
+            name=module_path.name,
+            files={},
+        )
+
+        # Process Python directories
+        for dir_name in self.config.PYTHON_DIRS:
+            dir_path = module_path / dir_name
+            if dir_path.exists():
+                self._process_directory_for_export(dir_path, module_path, export)
+
+        # Process root __init__.py
+        root_init = module_path / "__init__.py"
+        if root_init.exists():
+            relative_path = str(root_init.relative_to(module_path))
+            content = FileUtils.read_file(root_init)
+            if content.strip():
+                tree = ast.parse(content)
+                export.files[relative_path] = self._extract_file_order(
+                    root_init, tree, content
+                )
+
+        return export
+
+    def export_directory(
+        self, dir_path: Path, odoo_version: str = "19.0"
+    ) -> OrderExport:
+        """Export the current order of all Python files in a directory."""
+        if not dir_path.is_dir():
+            raise ValueError(f"{dir_path} is not a directory")
+
+        export = OrderExport(
+            odoo_version=odoo_version,
+            export_type=OrderExportType.DIRECTORY,
+            name=str(dir_path),
+            files={},
+        )
+
+        # Find all Python files
+        for py_file in dir_path.rglob("*.py"):
+            if not FileUtils.should_skip(py_file, self.config.SKIP_DIRS):
+                relative_path = str(py_file.relative_to(dir_path))
+                content = FileUtils.read_file(py_file)
+                if content.strip():
+                    tree = ast.parse(content)
+                    export.files[relative_path] = self._extract_file_order(
+                        py_file, tree, content
+                    )
+
+        return export
+
+    def save_order(self, order_export: OrderExport, output_path: Path) -> None:
+        """Save order export to JSON file."""
+        try:
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(order_export.to_dict(), f, indent=2, ensure_ascii=False)
+            logger.info(f"Order exported to {output_path}")
+        except Exception as e:
+            logger.error(f"Failed to save order to {output_path}: {e}")
+            raise
+
+    def _process_directory_for_export(
+        self, dir_path: Path, base_path: Path, export: OrderExport
+    ) -> None:
+        """Process a directory for export."""
+        for py_file in dir_path.glob("*.py"):
+            relative_path = str(py_file.relative_to(base_path))
+            content = FileUtils.read_file(py_file)
+            if content.strip():
+                tree = ast.parse(content)
+                export.files[relative_path] = self._extract_file_order(
+                    py_file, tree, content
+                )
+
+    def _extract_file_order(
+        self, filepath: Path, tree: ast.Module, content: str
+    ) -> FileOrder:
+        """Extract the order of elements from a parsed file."""
+        file_order = FileOrder(filepath=str(filepath))
+
+        # Extract imports order
+        imports = [
+            node for node in tree.body if isinstance(node, (ast.Import, ast.ImportFrom))
+        ]
+        for imp in imports:
+            file_order.import_statements.append(ast.unparse(imp))
+
+        # Extract import groups
+        import_organizer = ImportOrganizer()
+        grouped_imports = import_organizer.organize_imports(imports)
+        file_order.import_groups = list(grouped_imports.keys())
+
+        # Extract classes
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef):
+                class_order = self._extract_class_order(node, content)
+                file_order.classes.append(class_order)
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                file_order.functions.append(node.name)
+            elif isinstance(node, ast.Assign) and not isinstance(node, ast.AnnAssign):
+                # Module-level variables
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        file_order.module_level_vars.append(target.id)
+
+        return file_order
+
+    def _extract_class_order(
+        self, class_node: ast.ClassDef, content: str
+    ) -> ClassOrder:
+        """Extract the order of elements from a class."""
+        class_order = ClassOrder(name=class_node.name)
+
+        # Extract section headers from the source content
+        section_headers = self._extract_section_headers(class_node, content)
+        class_order.section_headers = section_headers
+
+        # Group methods by type
+        methods_by_type = {}
+
+        for node in class_node.body:
+            if isinstance(node, ast.Assign):
+                # Check if it's a model attribute
+                if node.targets and isinstance(node.targets[0], ast.Name):
+                    attr_name = node.targets[0].id
+
+                    if attr_name in self.config.MODEL_ATTRIBUTES_ORDER:
+                        class_order.model_attributes.append(attr_name)
+                    elif attr_name == "_sql_constraints":
+                        class_order.sql_constraints.append(attr_name)
+                    elif attr_name.endswith("_index") or attr_name == "_sql_indexes":
+                        # Handle model indexes
+                        class_order.model_indexes.append(attr_name)
+                    elif self.field_analyzer.is_odoo_field(node):
+                        class_order.fields.append(attr_name)
+
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                method_type = self.method_classifier.classify_method(node)
+                type_name = method_type.name
+
+                if type_name not in methods_by_type:
+                    methods_by_type[type_name] = []
+                methods_by_type[type_name].append(node.name)
+
+        class_order.methods = methods_by_type
+        return class_order
+
+    def _extract_section_headers(
+        self, class_node: ast.ClassDef, content: str
+    ) -> Dict[str, str]:
+        """Extract section headers from the class source code."""
+        section_headers = {}
+
+        # Get the source lines for the class
+        lines = content.split("\n")
+
+        # Find section headers (pattern: # ---- followed by # SECTION_NAME followed by # ----)
+        import re
+
+        header_pattern = re.compile(r"^\s*# -+$")
+
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            # Check if this is a header divider
+            if header_pattern.match(line):
+                # Check if next line contains the section name
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1]
+                    if next_line.strip().startswith("#"):
+                        # Extract section name
+                        section_name = next_line.strip().lstrip("#").strip()
+                        # Check if there's another divider after
+                        if i + 2 < len(lines) and header_pattern.match(lines[i + 2]):
+                            # Store the complete header (3 lines)
+                            header_text = "\n".join([line, next_line, lines[i + 2]])
+                            section_headers[section_name] = header_text
+                            i += 3
+                            continue
+            i += 1
+
+        return section_headers
+
+
+class OrderImporter:
+    """Imports and applies a previously exported order."""
+
+    def __init__(self):
+        self.config = OdooConfiguration()
+        self.field_analyzer = FieldAnalyzer()
+        self.method_classifier = MethodClassifier()
+        self.class_reorganizer = ClassReorganizer()
+
+    def load_order(self, order_file: Path) -> OrderExport:
+        """Load order from JSON file."""
+        try:
+            with open(order_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return OrderExport.from_dict(data)
+        except Exception as e:
+            logger.error(f"Failed to load order from {order_file}: {e}")
+            raise
+
+    def apply_order_to_file(
+        self, order_data: OrderExport, filepath: Path
+    ) -> Tuple[str, bool]:
+        """Apply saved order to a single file."""
+        if not filepath.exists():
+            raise FileNotFoundError(f"File not found: {filepath}")
+
+        # Find the order for this file
+        file_order = None
+        for file_path, order in order_data.files.items():
+            if Path(file_path).name == filepath.name:
+                file_order = order
+                break
+
+        # If no exact match, use the first available order (for cross-version ordering)
+        if not file_order and order_data.files:
+            # Use the first (and typically only) order in the file
+            file_order = list(order_data.files.values())[0]
+            logger.info(
+                f"Using order from {list(order_data.files.keys())[0]} for {filepath}"
+            )
+
+        if not file_order:
+            raise ValueError(f"No order found in the order file")
+
+        content = FileUtils.read_file(filepath)
+        tree = ast.parse(content)
+
+        # Apply the order
+        new_content = self._apply_order(tree, file_order, content)
+
+        # Format with Black
+        try:
+            config = ReorganizerConfig(odoo_version=order_data.odoo_version)
+            formatted = black.format_str(new_content, mode=config.black_mode)
+            new_content = self._fix_triple_quotes(formatted)
+        except:
+            pass
+
+        changed = new_content != content
+        return new_content, changed
+
+    def apply_order_to_module(
+        self, order_data: OrderExport, module_path: Path
+    ) -> ProcessingStats:
+        """Apply saved order to an entire module."""
+        if order_data.export_type != OrderExportType.MODULE:
+            raise ValueError("Order file is not for a module")
+
+        stats = ProcessingStats()
+
+        for file_path, file_order in order_data.files.items():
+            full_path = module_path / file_path
+            if full_path.exists():
+                try:
+                    new_content, changed = self._apply_file_order(
+                        full_path, file_order, order_data.odoo_version
+                    )
+                    if changed:
+                        FileUtils.create_backup(full_path)
+                        FileUtils.write_file(full_path, new_content)
+                        stats.changed += 1
+                        logger.info(f"Applied order to {full_path}")
+                    stats.processed += 1
+                except Exception as e:
+                    logger.error(f"Failed to apply order to {full_path}: {e}")
+                    stats.errors += 1
+            else:
+                logger.warning(f"File {full_path} not found, skipping")
+
+        return stats
+
+    def _apply_order(
+        self, tree: ast.Module, file_order: FileOrder, content: str
+    ) -> str:
+        """Apply order to AST and generate new content."""
+        # Extract components
+        components = self._extract_components_with_order(tree, file_order, content)
+
+        # Generate new content
+        lines = []
+
+        # Add header if exists
+        header = self._extract_header(content)
+        if header:
+            lines.extend(header)
+            lines.append("")
+
+        # Add module docstring if exists
+        if tree.body and ASTUtils.is_docstring(tree.body[0]):
+            docstring = ast.get_docstring(tree, clean=False)
+            if docstring:
+                lines.append('"""' + docstring + '"""')
+                lines.append("")
+
+        # Add imports in order
+        if components["imports"]:
+            for imp in components["imports"]:
+                lines.append(ast.unparse(imp))
+            lines.extend(["", ""])
+
+        # Add module-level variables in order
+        if components["module_vars"]:
+            for var in components["module_vars"]:
+                lines.append(ast.unparse(var))
+            lines.extend(["", ""])
+
+        # Add functions in order
+        if components["functions"]:
+            for i, func in enumerate(components["functions"]):
+                if i > 0:
+                    lines.extend(["", ""])
+                lines.append(ast.unparse(func))
+
+        # Add classes in order
+        if components["classes"]:
+            if lines:
+                lines.extend(["", ""])
+
+            for i, cls in enumerate(components["classes"]):
+                if i > 0:
+                    lines.extend(["", ""])
+
+                # Apply order to class internals
+                self._apply_class_order(cls, file_order)
+                # Use the rewriter to generate class with headers
+                if hasattr(cls, "_odoo_sections"):
+                    class_code = self._generate_class_with_headers(cls)
+                    lines.append(class_code)
+                else:
+                    lines.append(ast.unparse(cls))
+
+        # Add other statements
+        if components["other"]:
+            lines.extend(["", ""])
+            for stmt in components["other"]:
+                lines.append(ast.unparse(stmt))
+
+        return "\n".join(lines)
+
+    def _apply_file_order(
+        self, filepath: Path, file_order: FileOrder, odoo_version: str
+    ) -> Tuple[str, bool]:
+        """Apply order to a file."""
+        content = FileUtils.read_file(filepath)
+        tree = ast.parse(content)
+
+        new_content = self._apply_order(tree, file_order, content)
+
+        # Format with Black
+        try:
+            config = ReorganizerConfig(odoo_version=odoo_version)
+            formatted = black.format_str(new_content, mode=config.black_mode)
+            new_content = self._fix_triple_quotes(formatted)
+        except:
+            pass
+
+        changed = new_content != content
+        return new_content, changed
+
+    def _extract_components_with_order(
+        self, tree: ast.Module, file_order: FileOrder, content: str
+    ) -> Dict:
+        """Extract components and organize them according to the saved order."""
+        components = {
+            "imports": [],
+            "module_vars": [],
+            "functions": [],
+            "classes": [],
+            "other": [],
+        }
+
+        # Create lookup maps
+        import_map = {}
+        var_map = {}
+        func_map = {}
+        class_map = {}
+
+        # Skip docstring if present
+        skip_first = tree.body and ASTUtils.is_docstring(tree.body[0])
+
+        for i, node in enumerate(tree.body):
+            if skip_first and i == 0:
+                continue
+
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                import_str = ast.unparse(node)
+                import_map[import_str] = node
+            elif isinstance(node, ast.ClassDef):
+                class_map[node.name] = node
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                func_map[node.name] = node
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        var_map[target.id] = node
+                        break
+            else:
+                components["other"].append(node)
+
+        # Order imports according to saved order
+        for import_str in file_order.import_statements:
+            if import_str in import_map:
+                components["imports"].append(import_map.pop(import_str))
+
+        # Add any new imports not in the order
+        components["imports"].extend(import_map.values())
+
+        # Order module variables
+        for var_name in file_order.module_level_vars:
+            if var_name in var_map:
+                components["module_vars"].append(var_map.pop(var_name))
+
+        # Add any new variables
+        components["module_vars"].extend(var_map.values())
+
+        # Order functions
+        for func_name in file_order.functions:
+            if func_name in func_map:
+                components["functions"].append(func_map.pop(func_name))
+
+        # Add any new functions
+        components["functions"].extend(func_map.values())
+
+        # Order classes
+        for class_order in file_order.classes:
+            if class_order.name in class_map:
+                components["classes"].append(class_map.pop(class_order.name))
+
+        # Add any new classes
+        components["classes"].extend(class_map.values())
+
+        return components
+
+    def _apply_class_order(
+        self, class_node: ast.ClassDef, file_order: FileOrder
+    ) -> None:
+        """Apply order to class internals."""
+        # Find the class order
+        class_order = None
+        for co in file_order.classes:
+            if co.name == class_node.name:
+                class_order = co
+                break
+
+        if not class_order:
+            return
+
+        # Organize class body elements
+        new_body = []
+        elements = {
+            "docstring": None,
+            "model_attrs": {},
+            "fields": {},
+            "sql_constraints": {},
+            "model_indexes": {},
+            "methods": {},
+            "other": [],
+        }
+
+        # Categorize elements
+        for node in class_node.body:
+            if ASTUtils.is_docstring(node):
+                elements["docstring"] = node
+            elif isinstance(node, ast.Assign):
+                if node.targets and isinstance(node.targets[0], ast.Name):
+                    attr_name = node.targets[0].id
+
+                    if attr_name in self.config.MODEL_ATTRIBUTES_ORDER:
+                        elements["model_attrs"][attr_name] = node
+                    elif attr_name == "_sql_constraints":
+                        elements["sql_constraints"][attr_name] = node
+                    elif attr_name.endswith("_index") or attr_name == "_sql_indexes":
+                        # Handle model indexes
+                        elements["model_indexes"][attr_name] = node
+                    elif self.field_analyzer.is_odoo_field(node):
+                        elements["fields"][attr_name] = node
+                    else:
+                        elements["other"].append(node)
+                else:
+                    elements["other"].append(node)
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                method_type = self.method_classifier.classify_method(node)
+                type_name = method_type.name
+
+                if type_name not in elements["methods"]:
+                    elements["methods"][type_name] = {}
+                elements["methods"][type_name][node.name] = node
+            else:
+                elements["other"].append(node)
+
+        # Rebuild body in order with section headers
+        sections = []
+
+        # Docstring section
+        if elements["docstring"]:
+            sections.append((None, [elements["docstring"]]))
+
+        # Model attributes
+        model_attrs_list = []
+        for attr_name in class_order.model_attributes:
+            if attr_name in elements["model_attrs"]:
+                model_attrs_list.append(elements["model_attrs"].pop(attr_name))
+        model_attrs_list.extend(elements["model_attrs"].values())
+        if model_attrs_list:
+            sections.append((None, model_attrs_list))
+
+        # Fields section with header
+        fields_list = []
+        for field_name in class_order.fields:
+            if field_name in elements["fields"]:
+                fields_list.append(elements["fields"].pop(field_name))
+        fields_list.extend(elements["fields"].values())
+        if fields_list:
+            header_name = "FIELDS" if "FIELDS" in class_order.section_headers else None
+            sections.append((header_name, fields_list))
+
+        # SQL constraints
+        if elements["sql_constraints"]:
+            sections.append((None, list(elements["sql_constraints"].values())))
+
+        # Model indexes section with header
+        indexes_list = []
+        for index_name in class_order.model_indexes:
+            if index_name in elements["model_indexes"]:
+                indexes_list.append(elements["model_indexes"].pop(index_name))
+        indexes_list.extend(elements["model_indexes"].values())
+        if indexes_list:
+            header_name = (
+                "INDEXES" if "INDEXES" in class_order.section_headers else None
+            )
+            sections.append((header_name, indexes_list))
+
+        # Methods sections with headers
+        # Map method types to their section headers
+        method_section_map = {
+            "CONSTRAINT_METHODS": "CONSTRAINT METHODS",
+            "DEFAULT_METHODS": "DEFAULT METHODS",
+            "COMPUTE_METHODS": "COMPUTE METHODS",
+            "ONCHANGE_METHODS": "ONCHANGE METHODS",
+            "CRUD_METHODS": "CRUD METHODS",
+            "ACTION_METHODS": "ACTION METHODS",
+            "BUSINESS_METHODS": "BUSINESS METHODS",
+            "HELPER_METHODS": "HELPER METHODS",
+            "INIT_METHODS": "INIT METHODS",
+            "OTHER_METHODS": "OTHER METHODS",
+        }
+
+        for method_type, method_names in class_order.methods.items():
+            method_list = []
+            if method_type in elements["methods"]:
+                type_methods = elements["methods"][method_type]
+
+                # Add in saved order
+                for method_name in method_names:
+                    if method_name in type_methods:
+                        method_list.append(type_methods.pop(method_name))
+
+                # Add any remaining methods of this type
+                method_list.extend(type_methods.values())
+
+                # Remove this type from elements so we don't add them again
+                del elements["methods"][method_type]
+
+            if method_list:
+                # Check if we have a header for this method type
+                header_name = None
+                for header_key in class_order.section_headers:
+                    if header_key == method_section_map.get(method_type, method_type):
+                        header_name = header_key
+                        break
+                sections.append((header_name, method_list))
+
+        # Add any remaining methods not in order
+        for type_methods in elements["methods"].values():
+            if type_methods:
+                sections.append((None, list(type_methods.values())))
+
+        # Add other elements
+        if elements["other"]:
+            sections.append((None, elements["other"]))
+
+        # Store sections in class node for rewriter to use
+        class_node._odoo_sections = sections
+
+        # Clear body as it will be regenerated by the rewriter
+        class_node.body = []
+
+    def _extract_header(self, content: str) -> List[str]:
+        """Extract file header lines."""
+        lines = content.split("\n")
+        header = []
+
+        for line in lines:
+            if any(pattern in line.lower() for pattern in self.config.HEADER_PATTERNS):
+                header.append(line)
+            elif line.strip() and not line.startswith("#"):
+                break
+
+        return header
+
+    def _fix_triple_quotes(self, content: str) -> str:
+        """Fix strings with newline escapes back to triple quotes where appropriate."""
+        import re
+
+        pattern = r'(domain\s*=\s*lambda\s+\w+:\s*)"(\\n\s*.*?\\n\s*)"(\.format\(|,|\))'
+
+        def replace_with_triple_quotes(match):
+            prefix = match.group(1)
+            string_content = match.group(2)
+            suffix = match.group(3)
+
+            unescaped = string_content.replace("\\n", "\n")
+            return f'{prefix}"""{unescaped}"""{suffix}'
+
+        return re.sub(pattern, replace_with_triple_quotes, content, flags=re.DOTALL)
+
+    def _generate_class_with_headers(self, cls: ast.ClassDef) -> str:
+        """Generate class code with section headers."""
+        lines = []
+
+        # Class definition
+        class_def = f"class {cls.name}"
+        if cls.bases:
+            base_names = [ast.unparse(base) for base in cls.bases]
+            class_def += f"({', '.join(base_names)})"
+        class_def += ":"
+        lines.append(class_def)
+
+        # Sections
+        if hasattr(cls, "_odoo_sections"):
+            for header_name, items in cls._odoo_sections:
+                if not items:
+                    continue
+
+                if header_name:
+                    # Add section header
+                    divider = "    # " + "-" * 60
+                    header = f"    # {header_name}"
+                    lines.extend([divider, header, divider])
+
+                # Add items
+                for item in items:
+                    item_code = ast.unparse(item)
+                    for line in item_code.split("\n"):
+                        lines.append(f"    {line}" if line.strip() else "")
+
+                # Add spacing after section
+                lines.append("")
+
+        # Clean trailing lines
+        while lines and not lines[-1].strip():
+            lines.pop()
+
+        return "\n".join(lines)
+
+
+# =============================================================================
 # FILE PROCESSORS
 # =============================================================================
 
@@ -2230,7 +3058,332 @@ def create_argument_parser() -> argparse.ArgumentParser:
         help="Odoo version (default: 19.0)",
     )
 
+    # Order export/import arguments
+    parser.add_argument(
+        "--export-order",
+        action="store_true",
+        help="Export the current order of the file/module to a JSON file",
+    )
+    parser.add_argument(
+        "--apply-order",
+        type=str,
+        metavar="ORDER_FILE",
+        help="Apply order from a JSON file to reorganize the code",
+    )
+    parser.add_argument(
+        "-o",
+        "--order-output",
+        type=str,
+        default="order.json",
+        help="Output file for order export (default: order.json)",
+    )
+    parser.add_argument(
+        "--validate",
+        type=str,
+        metavar="BACKUP_FILE",
+        help="Validate reordering by comparing with backup file",
+    )
+
     return parser
+
+
+def validate_reordering(
+    original_file: Path, reordered_file: Path, order_file: Optional[Path] = None
+) -> Dict[str, Any]:
+    """
+    Validate that a reordered file contains all elements from the original file.
+
+    Args:
+        original_file: Path to the original/backup file
+        reordered_file: Path to the reordered file
+        order_file: Optional path to the order JSON file used
+
+    Returns:
+        Dictionary with validation results including:
+        - is_valid: Boolean indicating if all elements are preserved
+        - original_elements: Dict of all elements in original
+        - reordered_elements: Dict of all elements in reordered
+        - missing_elements: Any elements in original but not in reordered
+        - added_elements: Any elements in reordered but not in original
+        - order_changes: Details about ordering changes
+    """
+    logger.info(f"Validating reordering: {original_file} vs {reordered_file}")
+
+    result = {
+        "is_valid": True,
+        "original_elements": {},
+        "reordered_elements": {},
+        "missing_elements": {},
+        "added_elements": {},
+        "order_changes": {},
+        "errors": [],
+    }
+
+    try:
+        # Parse both files
+        original_content = FileUtils.read_file(original_file)
+        reordered_content = FileUtils.read_file(reordered_file)
+
+        original_tree = ast.parse(original_content)
+        reordered_tree = ast.parse(reordered_content)
+
+        # Extract all elements from both files
+        processor = PythonFileProcessor(ReorganizerConfig())
+
+        # Extract from original
+        original_components = processor._extract_components(
+            original_content, original_tree
+        )
+
+        # Extract from reordered
+        reordered_components = processor._extract_components(
+            reordered_content, reordered_tree
+        )
+
+        # Compare imports
+        original_imports = set()
+        reordered_imports = set()
+
+        for imp in original_components.imports:
+            original_imports.add(ast.unparse(imp))
+
+        for imp in reordered_components.imports:
+            reordered_imports.add(ast.unparse(imp))
+
+        result["original_elements"]["imports"] = sorted(original_imports)
+        result["reordered_elements"]["imports"] = sorted(reordered_imports)
+
+        missing_imports = original_imports - reordered_imports
+        added_imports = reordered_imports - original_imports
+
+        if missing_imports:
+            result["missing_elements"]["imports"] = sorted(missing_imports)
+            result["is_valid"] = False
+            result["errors"].append(f"Missing imports: {missing_imports}")
+
+        if added_imports:
+            result["added_elements"]["imports"] = sorted(added_imports)
+            # Added imports are not necessarily invalid
+
+        # Compare classes
+        original_classes = {cls.name: cls for cls in original_components.classes}
+        reordered_classes = {cls.name: cls for cls in reordered_components.classes}
+
+        result["original_elements"]["classes"] = sorted(original_classes.keys())
+        result["reordered_elements"]["classes"] = sorted(reordered_classes.keys())
+
+        missing_classes = set(original_classes.keys()) - set(reordered_classes.keys())
+        added_classes = set(reordered_classes.keys()) - set(original_classes.keys())
+
+        if missing_classes:
+            result["missing_elements"]["classes"] = sorted(missing_classes)
+            result["is_valid"] = False
+            result["errors"].append(f"Missing classes: {missing_classes}")
+
+        if added_classes:
+            result["added_elements"]["classes"] = sorted(added_classes)
+
+        # For each class, compare fields and methods
+        for class_name in original_classes:
+            if class_name not in reordered_classes:
+                continue
+
+            orig_class = original_classes[class_name]
+            reord_class = reordered_classes[class_name]
+
+            # Compare fields - fields are stored in the class body
+            orig_fields = set()
+            reord_fields = set()
+
+            for node in orig_class.body:
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            orig_fields.add(target.id)
+
+            for node in reord_class.body:
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            reord_fields.add(target.id)
+
+            missing_fields = orig_fields - reord_fields
+            added_fields = reord_fields - orig_fields
+
+            if missing_fields:
+                if "fields" not in result["missing_elements"]:
+                    result["missing_elements"]["fields"] = {}
+                result["missing_elements"]["fields"][class_name] = sorted(
+                    missing_fields
+                )
+                result["is_valid"] = False
+                result["errors"].append(
+                    f"Missing fields in {class_name}: {missing_fields}"
+                )
+
+            if added_fields:
+                if "fields" not in result["added_elements"]:
+                    result["added_elements"]["fields"] = {}
+                result["added_elements"]["fields"][class_name] = sorted(added_fields)
+
+            # Compare methods - methods are functions in the class body
+            orig_methods = set()
+            reord_methods = set()
+
+            for node in orig_class.body:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    orig_methods.add(node.name)
+
+            for node in reord_class.body:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    reord_methods.add(node.name)
+
+            missing_methods = orig_methods - reord_methods
+            added_methods = reord_methods - orig_methods
+
+            if missing_methods:
+                if "methods" not in result["missing_elements"]:
+                    result["missing_elements"]["methods"] = {}
+                result["missing_elements"]["methods"][class_name] = sorted(
+                    missing_methods
+                )
+                result["is_valid"] = False
+                result["errors"].append(
+                    f"Missing methods in {class_name}: {missing_methods}"
+                )
+
+            if added_methods:
+                if "methods" not in result["added_elements"]:
+                    result["added_elements"]["methods"] = {}
+                result["added_elements"]["methods"][class_name] = sorted(added_methods)
+
+            # Track field order changes
+            if orig_fields == reord_fields and len(orig_fields) > 0:
+                orig_field_order = []
+                reord_field_order = []
+
+                for node in orig_class.body:
+                    if isinstance(node, ast.Assign):
+                        for target in node.targets:
+                            if isinstance(target, ast.Name):
+                                orig_field_order.append(target.id)
+
+                for node in reord_class.body:
+                    if isinstance(node, ast.Assign):
+                        for target in node.targets:
+                            if isinstance(target, ast.Name):
+                                reord_field_order.append(target.id)
+
+                if orig_field_order != reord_field_order:
+                    if "fields" not in result["order_changes"]:
+                        result["order_changes"]["fields"] = {}
+                    result["order_changes"]["fields"][class_name] = {
+                        "original": orig_field_order[:10],  # First 10 for brevity
+                        "reordered": reord_field_order[:10],
+                    }
+
+            # Track method order changes
+            if orig_methods == reord_methods and len(orig_methods) > 0:
+                orig_method_order = []
+                reord_method_order = []
+
+                for node in orig_class.body:
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        orig_method_order.append(node.name)
+
+                for node in reord_class.body:
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        reord_method_order.append(node.name)
+
+                if orig_method_order != reord_method_order:
+                    if "methods" not in result["order_changes"]:
+                        result["order_changes"]["methods"] = {}
+                    result["order_changes"]["methods"][class_name] = {
+                        "original": orig_method_order[:10],  # First 10 for brevity
+                        "reordered": reord_method_order[:10],
+                    }
+
+        # Compare functions
+        orig_functions = {func.name for func in original_components.functions}
+        reord_functions = {func.name for func in reordered_components.functions}
+
+        result["original_elements"]["functions"] = sorted(orig_functions)
+        result["reordered_elements"]["functions"] = sorted(reord_functions)
+
+        missing_functions = orig_functions - reord_functions
+        added_functions = reord_functions - orig_functions
+
+        if missing_functions:
+            result["missing_elements"]["functions"] = sorted(missing_functions)
+            result["is_valid"] = False
+            result["errors"].append(f"Missing functions: {missing_functions}")
+
+        if added_functions:
+            result["added_elements"]["functions"] = sorted(added_functions)
+
+        # Compare module-level variables
+        orig_vars = set()
+        reord_vars = set()
+
+        # Extract module-level variables from other_statements
+        for stmt in original_components.other_statements:
+            if isinstance(stmt, ast.Assign):
+                for target in stmt.targets:
+                    if isinstance(target, ast.Name):
+                        orig_vars.add(target.id)
+
+        for stmt in reordered_components.other_statements:
+            if isinstance(stmt, ast.Assign):
+                for target in stmt.targets:
+                    if isinstance(target, ast.Name):
+                        reord_vars.add(target.id)
+
+        result["original_elements"]["module_vars"] = sorted(orig_vars)
+        result["reordered_elements"]["module_vars"] = sorted(reord_vars)
+
+        missing_vars = orig_vars - reord_vars
+        added_vars = reord_vars - orig_vars
+
+        if missing_vars:
+            result["missing_elements"]["module_vars"] = sorted(missing_vars)
+            result["is_valid"] = False
+            result["errors"].append(f"Missing module variables: {missing_vars}")
+
+        if added_vars:
+            result["added_elements"]["module_vars"] = sorted(added_vars)
+
+        # Summary
+        if result["is_valid"]:
+            logger.info("✅ Validation PASSED: All elements preserved")
+        else:
+            logger.error("❌ Validation FAILED: Missing elements detected")
+            for error in result["errors"]:
+                logger.error(f"  - {error}")
+
+        # Log statistics
+        logger.info(f"Original file elements:")
+        logger.info(f"  - Imports: {len(original_imports)}")
+        logger.info(f"  - Classes: {len(original_classes)}")
+        logger.info(f"  - Functions: {len(orig_functions)}")
+        logger.info(f"  - Module vars: {len(orig_vars)}")
+
+        logger.info(f"Reordered file elements:")
+        logger.info(f"  - Imports: {len(reordered_imports)}")
+        logger.info(f"  - Classes: {len(reordered_classes)}")
+        logger.info(f"  - Functions: {len(reord_functions)}")
+        logger.info(f"  - Module vars: {len(reord_vars)}")
+
+        if result["order_changes"]:
+            logger.info("Order changes detected (this is expected)")
+
+    except Exception as e:
+        result["is_valid"] = False
+        result["errors"].append(f"Validation error: {str(e)}")
+        logger.error(f"Validation failed with error: {e}")
+        if logger.isEnabledFor(logging.DEBUG):
+            traceback.print_exc()
+
+    return result
 
 
 def main():
@@ -2239,29 +3392,97 @@ def main():
     args = parser.parse_args()
 
     try:
-        # Create reorganizer
-        reorganizer = OdooCodeReorganizer(
-            line_length=args.line_length,
-            add_section_headers=not args.no_section_headers,
-            output_dir=args.output_dir,
-            odoo_version=args.odoo_version,
-            dry_run=args.dry_run,
-            no_backup=args.no_backup,
-        )
-
         # Process path
         path = Path(args.path)
 
-        if path.is_file():
-            reorganizer.reorganize_file(str(path))
-        elif path.is_dir():
-            if args.module or reorganizer.module_processor.is_odoo_module(path):
-                reorganizer.process_module(str(path))
+        # Handle validation
+        if args.validate:
+            backup_file = Path(args.validate)
+            if not backup_file.exists():
+                logger.error(f"Backup file {backup_file} does not exist")
+                sys.exit(1)
+
+            result = validate_reordering(backup_file, path)
+
+            if result["is_valid"]:
+                logger.info("✅ Validation PASSED")
+                sys.exit(0)
             else:
-                reorganizer.process_directory(str(path), recursive=args.recursive)
+                logger.error("❌ Validation FAILED")
+                sys.exit(1)
+
+        # Handle order export
+        elif args.export_order:
+            exporter = OrderExporter()
+
+            if path.is_file():
+                order_data = exporter.export_file(path, args.odoo_version)
+            elif path.is_dir():
+                if args.module or any(
+                    (path / f).exists() for f in ["__manifest__.py", "__openerp__.py"]
+                ):
+                    order_data = exporter.export_module(path, args.odoo_version)
+                else:
+                    order_data = exporter.export_directory(path, args.odoo_version)
+            else:
+                logger.error(f"Path {path} does not exist")
+                sys.exit(1)
+
+            output_path = Path(args.order_output)
+            exporter.save_order(order_data, output_path)
+            logger.info(f"Order exported successfully to {output_path}")
+
+        # Handle order import/apply
+        elif args.apply_order:
+            importer = OrderImporter()
+            order_file = Path(args.apply_order)
+
+            if not order_file.exists():
+                logger.error(f"Order file {order_file} does not exist")
+                sys.exit(1)
+
+            order_data = importer.load_order(order_file)
+
+            if path.is_file():
+                new_content, changed = importer.apply_order_to_file(order_data, path)
+                if changed and not args.dry_run:
+                    if not args.no_backup:
+                        FileUtils.create_backup(path)
+                    FileUtils.write_file(path, new_content)
+                    logger.info(f"Applied order to {path}")
+                elif changed:
+                    logger.info(f"Would apply order to {path}")
+                else:
+                    logger.info(f"No changes needed for {path}")
+
+            elif path.is_dir() and order_data.export_type == OrderExportType.MODULE:
+                stats = importer.apply_order_to_module(order_data, path)
+                stats.log_summary("Order application")
+            else:
+                logger.error("Order file type doesn't match the target path")
+                sys.exit(1)
+
+        # Regular reorganization (existing functionality)
         else:
-            logger.error(f"Path {path} does not exist")
-            sys.exit(1)
+            reorganizer = OdooCodeReorganizer(
+                line_length=args.line_length,
+                add_section_headers=not args.no_section_headers,
+                output_dir=args.output_dir,
+                odoo_version=args.odoo_version,
+                dry_run=args.dry_run,
+                no_backup=args.no_backup,
+            )
+
+            if path.is_file():
+                reorganizer.reorganize_file(str(path))
+            elif path.is_dir():
+                if args.module or reorganizer.module_processor.is_odoo_module(path):
+                    reorganizer.process_module(str(path))
+                else:
+                    reorganizer.process_directory(str(path), recursive=args.recursive)
+            else:
+                logger.error(f"Path {path} does not exist")
+                sys.exit(1)
 
     except KeyboardInterrupt:
         logger.info("Operation cancelled by user")

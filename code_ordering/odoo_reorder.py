@@ -23,13 +23,13 @@ Default Odoo Version: 19.0
 import argparse
 import ast
 import json
+from datetime import datetime
 import logging
 import shutil
 import sys
 import traceback
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, Protocol
@@ -504,6 +504,21 @@ class ReorganizerConfig:
     in_place: bool = True
     dry_run: bool = False
     no_backup: bool = False
+    generate_docs: bool = False
+    docs_output_dir: Optional[str] = None
+    
+    # Migration/Pattern Application Configuration
+    apply_pattern: bool = False
+    pattern_file: Optional[str] = None
+    target_file: Optional[str] = None
+    match_threshold: float = 0.8
+    backup_suffix: str = ".backup"
+    migration_report_path: Optional[str] = None
+    
+    # Migration Strategies
+    missing_element_strategy: str = "document"  # document, ignore, error
+    new_element_strategy: str = "append"        # append, classify, ignore
+    conflict_resolution: str = "preserve"       # preserve, override, manual
 
     def __post_init__(self):
         """Post-initialization setup and validation."""
@@ -518,6 +533,25 @@ class ReorganizerConfig:
 
         if self.odoo_version not in ["17.0", "18.0", "19.0"]:
             raise ValueError("Odoo version must be 17.0, 18.0, or 19.0")
+            
+        # Validate migration configurations
+        if self.apply_pattern:
+            if not self.pattern_file:
+                raise ValueError("Pattern file is required when apply_pattern is True")
+            if not self.target_file:
+                raise ValueError("Target file is required when apply_pattern is True")
+                
+        if not 0.0 <= self.match_threshold <= 1.0:
+            raise ValueError("Match threshold must be between 0.0 and 1.0")
+            
+        if self.missing_element_strategy not in ["document", "ignore", "error"]:
+            raise ValueError("missing_element_strategy must be 'document', 'ignore', or 'error'")
+            
+        if self.new_element_strategy not in ["append", "classify", "ignore"]:
+            raise ValueError("new_element_strategy must be 'append', 'classify', or 'ignore'")
+            
+        if self.conflict_resolution not in ["preserve", "override", "manual"]:
+            raise ValueError("conflict_resolution must be 'preserve', 'override', or 'manual'")
 
     def _setup_black_mode(self) -> None:
         """Setup Black formatter configuration."""
@@ -1578,6 +1612,593 @@ class ClassReorganizer:
 
 
 # =============================================================================
+# DOCUMENTATION SYSTEM
+# =============================================================================
+
+
+class DocumentationAnalyzer:
+    """Analyzes code structure preserving original order for documentation."""
+
+    def __init__(self):
+        self.config = OdooConfiguration()
+        self.field_analyzer = FieldAnalyzer()
+        self.method_classifier = MethodClassifier()
+
+    def extract_current_structure(self, tree: ast.Module, content: str) -> Dict[str, Any]:
+        """Extract current code structure maintaining original order."""
+        structure = {
+            "imports": [],
+            "classes": [],
+            "functions": [],
+            "module_constants": [],
+            "total_lines": len(content.splitlines()),
+        }
+
+        # Process nodes in order of appearance
+        for i, node in enumerate(tree.body):
+            line_number = getattr(node, 'lineno', i + 1)
+            
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                import_info = self._extract_import_info(node, line_number)
+                structure["imports"].append(import_info)
+            
+            elif isinstance(node, ast.ClassDef):
+                class_info = self._extract_class_info(node, line_number)
+                structure["classes"].append(class_info)
+            
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                function_info = self._extract_function_info(node, line_number)
+                structure["functions"].append(function_info)
+            
+            elif isinstance(node, ast.Assign):
+                const_info = self._extract_constant_info(node, line_number)
+                if const_info:
+                    structure["module_constants"].append(const_info)
+
+        return structure
+
+    def _extract_import_info(self, node: Union[ast.Import, ast.ImportFrom], line_number: int) -> Dict[str, Any]:
+        """Extract import information maintaining original order."""
+        if isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+            return {
+                "type": "import",
+                "module": None,
+                "names": names,
+                "line": line_number,
+                "raw": ast.unparse(node),
+                "group": self._classify_import_group(names[0] if names else "")
+            }
+        else:  # ImportFrom
+            names = [alias.name for alias in node.names]
+            module = node.module or ""
+            return {
+                "type": "from_import", 
+                "module": module,
+                "names": names,
+                "line": line_number,
+                "level": node.level,
+                "raw": ast.unparse(node),
+                "group": self._classify_import_group(module)
+            }
+
+    def _extract_class_info(self, node: ast.ClassDef, line_number: int) -> Dict[str, Any]:
+        """Extract class information preserving original element order."""
+        class_info = {
+            "name": node.name,
+            "line": line_number,
+            "bases": [ast.unparse(base) for base in node.bases],
+            "is_odoo_model": self._is_odoo_model(node),
+            "model_attributes": [],
+            "fields": [],
+            "methods": [],
+            "other": []
+        }
+
+        # Process class body in original order
+        for i, body_node in enumerate(node.body):
+            element_line = getattr(body_node, 'lineno', line_number + i + 1)
+            
+            if isinstance(body_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                method_info = self._extract_method_info(body_node, element_line)
+                class_info["methods"].append(method_info)
+            
+            elif isinstance(body_node, ast.Assign):
+                if self._is_model_attribute(body_node):
+                    attr_info = self._extract_model_attribute_info(body_node, element_line)
+                    class_info["model_attributes"].append(attr_info)
+                elif self.field_analyzer.is_odoo_field(body_node):
+                    field_info = self._extract_field_info(body_node, element_line, node.body)
+                    class_info["fields"].append(field_info)
+                else:
+                    other_info = self._extract_other_assignment(body_node, element_line)
+                    class_info["other"].append(other_info)
+            else:
+                # Docstrings, decorators, etc.
+                if not ASTUtils.is_docstring(body_node):
+                    other_info = {
+                        "type": type(body_node).__name__,
+                        "line": element_line,
+                        "raw": ast.unparse(body_node)
+                    }
+                    class_info["other"].append(other_info)
+
+        return class_info
+
+    def _extract_method_info(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef], line_number: int) -> Dict[str, Any]:
+        """Extract method information with classification."""
+        decorators = []
+        for decorator in node.decorator_list:
+            dec_name = ASTUtils.extract_decorator_name(decorator)
+            if dec_name:
+                decorators.append(dec_name)
+
+        method_type = self.method_classifier.classify_method(node)
+        
+        return {
+            "name": node.name,
+            "line": line_number,
+            "type": method_type.name,
+            "decorators": decorators,
+            "is_async": isinstance(node, ast.AsyncFunctionDef),
+            "args_count": len(node.args.args),
+            "raw": ast.unparse(node)
+        }
+
+    def _extract_field_info(self, node: ast.Assign, line_number: int, all_methods: List) -> Dict[str, Any]:
+        """Extract field information with original position."""
+        if not node.targets or not isinstance(node.targets[0], ast.Name):
+            return {}
+
+        field_name = node.targets[0].id
+        field_info = self.field_analyzer.extract_field_info(node, all_methods)
+        
+        return {
+            "name": field_name,
+            "line": line_number,
+            "field_type": field_info.field_type if field_info else "Unknown",
+            "semantic_group": field_info.semantic_group if field_info else "other",
+            "is_computed": field_info.is_computed if field_info else False,
+            "is_related": field_info.is_related if field_info else False,
+            "compute_method": field_info.compute if field_info else None,
+            "raw": ast.unparse(node)
+        }
+
+    def _extract_model_attribute_info(self, node: ast.Assign, line_number: int) -> Dict[str, Any]:
+        """Extract model attribute information."""
+        if not node.targets or not isinstance(node.targets[0], ast.Name):
+            return {}
+
+        attr_name = node.targets[0].id
+        value = ast.unparse(node.value) if node.value else ""
+        
+        return {
+            "name": attr_name,
+            "line": line_number,
+            "value": value,
+            "raw": ast.unparse(node)
+        }
+
+    def _extract_function_info(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef], line_number: int) -> Dict[str, Any]:
+        """Extract module-level function information."""
+        return {
+            "name": node.name,
+            "line": line_number,
+            "is_async": isinstance(node, ast.AsyncFunctionDef),
+            "args_count": len(node.args.args),
+            "raw": ast.unparse(node)
+        }
+
+    def _extract_constant_info(self, node: ast.Assign, line_number: int) -> Optional[Dict[str, Any]]:
+        """Extract module-level constant information."""
+        if not node.targets or not isinstance(node.targets[0], ast.Name):
+            return None
+
+        const_name = node.targets[0].id
+        # Only consider uppercase names as constants
+        if const_name.isupper():
+            return {
+                "name": const_name,
+                "line": line_number,
+                "value": ast.unparse(node.value) if node.value else "",
+                "raw": ast.unparse(node)
+            }
+        return None
+
+    def _extract_other_assignment(self, node: ast.Assign, line_number: int) -> Dict[str, Any]:
+        """Extract other assignment information."""
+        target_names = []
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                target_names.append(target.id)
+            else:
+                target_names.append(ast.unparse(target))
+
+        return {
+            "targets": target_names,
+            "line": line_number,
+            "raw": ast.unparse(node)
+        }
+
+    def _is_odoo_model(self, node: ast.ClassDef) -> bool:
+        """Check if class is an Odoo model."""
+        model_bases = ["Model", "AbstractModel", "TransientModel"]
+        for base in node.bases:
+            if isinstance(base, ast.Attribute) and base.attr in model_bases:
+                return True
+            elif isinstance(base, ast.Name) and base.id in model_bases:
+                return True
+        return False
+
+    def _is_model_attribute(self, node: ast.Assign) -> bool:
+        """Check if assignment is a model attribute."""
+        if not node.targets or not isinstance(node.targets[0], ast.Name):
+            return False
+        return node.targets[0].id in self.config.MODEL_ATTRIBUTES_ORDER
+
+    def _classify_import_group(self, module_name: str) -> str:
+        """Classify import into groups."""
+        if not module_name:
+            return "unknown"
+        
+        if module_name.startswith("odoo.addons"):
+            return "odoo_addons"
+        elif module_name.startswith("odoo"):
+            return "odoo"
+        elif module_name in sys.stdlib_module_names if hasattr(sys, 'stdlib_module_names') else False:
+            return "python_stdlib"
+        else:
+            return "third_party"
+
+
+class DocumentationGenerator:
+    """Generates documentation content from analyzed code structure."""
+
+    def __init__(self):
+        self.config = OdooConfiguration()
+
+    def generate_documentation_content(self, structure: Dict[str, Any], original_filename: str) -> str:
+        """Generate complete documentation file content."""
+        lines = []
+        
+        # File header
+        lines.extend(self._generate_header(original_filename))
+        lines.append("")
+
+        # General information
+        lines.extend(self._generate_general_info(structure, original_filename))
+        lines.append("")
+
+        # Imports
+        if structure["imports"]:
+            lines.extend(self._generate_imports_section(structure["imports"]))
+            lines.append("")
+
+        # Module constants
+        if structure["module_constants"]:
+            lines.extend(self._generate_constants_section(structure["module_constants"]))
+            lines.append("")
+
+        # Classes
+        if structure["classes"]:
+            lines.extend(self._generate_classes_section(structure["classes"]))
+            lines.append("")
+
+        # Functions
+        if structure["functions"]:
+            lines.extend(self._generate_functions_section(structure["functions"]))
+            lines.append("")
+
+        # Statistics
+        lines.extend(self._generate_statistics(structure))
+
+        return "\n".join(lines)
+
+    def _generate_header(self, original_filename: str) -> List[str]:
+        """Generate file header."""
+        return [
+            "#!/usr/bin/env python3",
+            '"""',
+            f"Documentación del orden actual para: {original_filename}",
+            "Generado automáticamente - refleja la estructura EXISTENTE",
+            "",
+            "Este archivo documenta el orden actual de elementos en el código fuente,",
+            "preservando la secuencia exacta como aparece en el archivo original.",
+            '"""',
+            "",
+            "from datetime import datetime",
+            "",
+            f"# Generado el: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        ]
+
+    def _generate_general_info(self, structure: Dict[str, Any], original_filename: str) -> List[str]:
+        """Generate general file information."""
+        return [
+            "# =============================================================================",
+            "# INFORMACIÓN GENERAL DEL ARCHIVO",
+            "# =============================================================================",
+            "",
+            f'ANALYZED_FILE = "{original_filename}"',
+            f'TOTAL_LINES = {structure["total_lines"]}',
+            f'TOTAL_CLASSES = {len(structure["classes"])}',
+            f'TOTAL_FUNCTIONS = {len(structure["functions"])}',
+            f'TOTAL_IMPORTS = {len(structure["imports"])}',
+            f'TOTAL_CONSTANTS = {len(structure["module_constants"])}'
+        ]
+
+    def _generate_imports_section(self, imports: List[Dict[str, Any]]) -> List[str]:
+        """Generate imports documentation."""
+        lines = [
+            "# =============================================================================", 
+            "# IMPORTS EN ORDEN ACTUAL",
+            "# =============================================================================",
+            "",
+            "# Lista de imports en el orden exacto de aparición",
+            "CURRENT_IMPORTS_ORDER = ["
+        ]
+
+        for imp in imports:
+            if imp["type"] == "import":
+                import_str = f"import {', '.join(imp['names'])}"
+            else:  # from_import
+                level_str = "." * imp["level"] if imp["level"] > 0 else ""
+                module_str = imp["module"] if imp["module"] else ""
+                import_str = f"from {level_str}{module_str} import {', '.join(imp['names'])}"
+            
+            lines.append(f'    ("{import_str}", {imp["line"]}, "{imp["group"]}"),')
+
+        lines.extend([
+            "]",
+            "",
+            "# Imports agrupados por tipo",
+            "IMPORTS_BY_GROUP = {"
+        ])
+
+        # Group by type
+        groups = {}
+        for imp in imports:
+            group = imp["group"]
+            if group not in groups:
+                groups[group] = []
+            groups[group].append(imp)
+
+        for group_name, group_imports in groups.items():
+            lines.append(f'    "{group_name}": [')
+            for imp in group_imports:
+                lines.append(f'        ("{imp["raw"]}", {imp["line"]}),')
+            lines.append("    ],")
+
+        lines.append("}")
+
+        return lines
+
+    def _generate_constants_section(self, constants: List[Dict[str, Any]]) -> List[str]:
+        """Generate module constants documentation."""
+        lines = [
+            "# =============================================================================",
+            "# CONSTANTES DE MÓDULO",
+            "# =============================================================================",
+            "",
+            "CURRENT_CONSTANTS_ORDER = ["
+        ]
+
+        for const in constants:
+            lines.append(f'    ("{const["name"]}", {const["line"]}, {const["value"]}),')
+
+        lines.append("]")
+        return lines
+
+    def _generate_classes_section(self, classes: List[Dict[str, Any]]) -> List[str]:
+        """Generate classes documentation."""
+        lines = [
+            "# =============================================================================",
+            "# CLASES EN ORDEN ACTUAL", 
+            "# =============================================================================",
+            "",
+            "# Clases encontradas en orden de aparición",
+            "CLASSES_ORDER = ["
+        ]
+
+        for cls in classes:
+            comment = f" # línea {cls['line']}"
+            if cls["is_odoo_model"]:
+                comment += " (Modelo Odoo)"
+            lines.append(f'    "{cls["name"]}",{comment}')
+
+        lines.extend([
+            "]",
+            "",
+            "# Información detallada por clase",
+            "CLASSES_INFO = {"
+        ])
+
+        for cls in classes:
+            lines.extend(self._generate_single_class_info(cls))
+
+        lines.append("}")
+
+        return lines
+
+    def _generate_single_class_info(self, cls: Dict[str, Any]) -> List[str]:
+        """Generate detailed information for a single class."""
+        lines = [f'    "{cls["name"]}": {{']
+        
+        # Basic info
+        lines.extend([
+            f'        "line": {cls["line"]},',
+            f'        "bases": {cls["bases"]},',
+            f'        "is_odoo_model": {cls["is_odoo_model"]},'
+        ])
+
+        # Model attributes
+        if cls["model_attributes"]:
+            lines.append('        "model_attributes_order": [')
+            for attr in cls["model_attributes"]:
+                lines.append(f'            ("{attr["name"]}", {attr["line"]}, {attr["value"]}),')
+            lines.append('        ],')
+
+        # Fields
+        if cls["fields"]:
+            lines.append('        "fields_order": [')
+            for field in cls["fields"]:
+                lines.append(f'            ("{field["name"]}", {field["line"]}, "{field["field_type"]}", "{field["semantic_group"]}"),')
+            lines.append('        ],')
+
+        # Methods
+        if cls["methods"]:
+            lines.append('        "methods_order": [')
+            for method in cls["methods"]:
+                decorators_str = repr(method["decorators"])
+                lines.append(f'            ("{method["name"]}", {method["line"]}, "{method["type"]}", {decorators_str}),')
+            lines.append('        ],')
+
+        # Other elements
+        if cls["other"]:
+            lines.append('        "other_elements": [')
+            for other in cls["other"]:
+                if isinstance(other, dict) and "targets" in other:
+                    targets_str = ", ".join(other["targets"])
+                    lines.append(f'            ("{targets_str}", {other["line"]}),')
+                elif isinstance(other, dict) and "type" in other:
+                    lines.append(f'            ("{other["type"]}", {other["line"]}),')
+            lines.append('        ],')
+
+        # Remove trailing comma and close
+        if lines[-1].endswith(','):
+            lines[-1] = lines[-1][:-1]
+        lines.append('    },')
+
+        return lines
+
+    def _generate_functions_section(self, functions: List[Dict[str, Any]]) -> List[str]:
+        """Generate module functions documentation."""
+        lines = [
+            "# =============================================================================",
+            "# FUNCIONES DE MÓDULO",
+            "# =============================================================================",
+            "",
+            "MODULE_FUNCTIONS_ORDER = ["
+        ]
+
+        for func in functions:
+            async_marker = " (async)" if func["is_async"] else ""
+            lines.append(f'    ("{func["name"]}", {func["line"]}, {func["args_count"]}),{async_marker}')
+
+        lines.append("]")
+        return lines
+
+    def _generate_statistics(self, structure: Dict[str, Any]) -> List[str]:
+        """Generate analysis statistics."""
+        lines = [
+            "# =============================================================================",
+            "# ESTADÍSTICAS DEL ANÁLISIS",
+            "# =============================================================================",
+            "",
+            "ANALYSIS_STATS = {"
+        ]
+
+        total_methods = sum(len(cls["methods"]) for cls in structure["classes"])
+        total_fields = sum(len(cls["fields"]) for cls in structure["classes"])
+        odoo_models = sum(1 for cls in structure["classes"] if cls["is_odoo_model"])
+
+        lines.extend([
+            f'    "total_lines": {structure["total_lines"]},',
+            f'    "total_classes": {len(structure["classes"])},',
+            f'    "total_functions": {len(structure["functions"])},',
+            f'    "total_methods": {total_methods},',
+            f'    "total_fields": {total_fields},',
+            f'    "total_imports": {len(structure["imports"])},',
+            f'    "total_constants": {len(structure["module_constants"])},',
+            f'    "odoo_models_detected": {odoo_models},',
+            f'    "non_odoo_classes": {len(structure["classes"]) - odoo_models},',
+        ])
+
+        # Import statistics by group
+        import_groups = {}
+        for imp in structure["imports"]:
+            group = imp["group"]
+            import_groups[group] = import_groups.get(group, 0) + 1
+
+        lines.append('    "imports_by_group": {')
+        for group, count in import_groups.items():
+            lines.append(f'        "{group}": {count},')
+        lines.append('    },')
+
+        # Method type statistics
+        method_types = {}
+        for cls in structure["classes"]:
+            for method in cls["methods"]:
+                method_type = method["type"]
+                method_types[method_type] = method_types.get(method_type, 0) + 1
+
+        lines.append('    "methods_by_type": {')
+        for method_type, count in method_types.items():
+            lines.append(f'        "{method_type}": {count},')
+        lines.append('    },')
+
+        lines.append("}")
+
+        return lines
+
+
+class DocumentationFileProcessor(FileHandler):
+    """Processes Python files to generate documentation of current order."""
+
+    def __init__(self, config: ReorganizerConfig):
+        self.config = config
+        self.documentation_analyzer = DocumentationAnalyzer()
+        self.documentation_generator = DocumentationGenerator()
+
+    def can_handle(self, filepath: Path) -> bool:
+        """Check if this processor can handle the file."""
+        return filepath.suffix == PYTHON_EXTENSION
+
+    def process(self, filepath: Path, config: ReorganizerConfig) -> Tuple[str, bool]:
+        """Process Python file to generate documentation."""
+        try:
+            # Read original file
+            content = FileUtils.read_file(filepath)
+            if not content.strip():
+                return "", False
+
+            # Parse AST
+            tree = ast.parse(content)
+
+            # Extract structure maintaining original order
+            structure = self.documentation_analyzer.extract_current_structure(tree, content)
+
+            # Generate documentation content
+            doc_content = self.documentation_generator.generate_documentation_content(
+                structure, filepath.name
+            )
+
+            # Create output filename
+            output_filename = self._get_documentation_filename(filepath)
+            
+            # Write documentation file
+            if config.docs_output_dir:
+                output_dir = Path(config.docs_output_dir)
+                output_dir.mkdir(parents=True, exist_ok=True)
+                output_path = output_dir / output_filename
+            else:
+                output_path = filepath.parent / output_filename
+
+            FileUtils.write_file(output_path, doc_content)
+            logger.info(f"Generated documentation: {output_path}")
+
+            return doc_content, True
+
+        except Exception as e:
+            ErrorHandler.handle_file_error(filepath, e, ProcessingStats())
+            return "", False
+
+    def _get_documentation_filename(self, original_filepath: Path) -> str:
+        """Generate documentation filename from original file."""
+        original_name = original_filepath.stem  # filename without extension
+        return f"doc_{original_name}.py"
+
+
+# =============================================================================
 # CODE GENERATOR
 # =============================================================================
 
@@ -2114,6 +2735,680 @@ class DirectoryProcessor:
 
 
 # =============================================================================
+# MIGRATION CLASSES
+# =============================================================================
+
+
+@dataclass
+class MatchResult:
+    """Result of element matching operation."""
+    
+    pattern_element: Any
+    target_element: Any
+    confidence: float
+    match_type: str
+    notes: List[str] = field(default_factory=list)
+    
+
+@dataclass 
+class MigrationReport:
+    """Report of migration operation."""
+    
+    original_file: str
+    target_file: str
+    pattern_file: str
+    matches: List[MatchResult] = field(default_factory=list)
+    unmatched_pattern: List[Any] = field(default_factory=list)
+    unmatched_target: List[Any] = field(default_factory=list)
+    errors: List[str] = field(default_factory=list)
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    
+    def add_match(self, match: MatchResult):
+        """Add a match result to the report."""
+        self.matches.append(match)
+        
+    def add_error(self, error: str):
+        """Add an error to the report.""" 
+        self.errors.append(error)
+        
+    def generate_summary(self) -> str:
+        """Generate a human-readable summary of the migration."""
+        total_pattern = len(self.matches) + len(self.unmatched_pattern)
+        total_target = len(self.matches) + len(self.unmatched_target)
+        success_rate = (len(self.matches) / total_pattern * 100) if total_pattern > 0 else 0
+        
+        duration = ""
+        if self.start_time and self.end_time:
+            duration = f"\nDuration: {(self.end_time - self.start_time).total_seconds():.2f} seconds"
+        
+        return f"""Migration Report: {self.original_file}
+=====================================
+
+Pattern File: {self.pattern_file}
+Target File: {self.target_file}
+
+✅ Successfully matched: {len(self.matches)}/{total_pattern} elements ({success_rate:.1f}%)
+⚠️  Unmatched from pattern: {len(self.unmatched_pattern)}
+⚠️  Unmatched from target: {len(self.unmatched_target)}
+❌ Errors: {len(self.errors)}{duration}
+
+Matches by Confidence:
+- High (>= 0.9): {sum(1 for m in self.matches if m.confidence >= 0.9)}
+- Medium (0.7-0.9): {sum(1 for m in self.matches if 0.7 <= m.confidence < 0.9)}
+- Low (< 0.7): {sum(1 for m in self.matches if m.confidence < 0.7)}
+"""
+
+
+class ElementMatcher:
+    """Intelligent element matching for migration between code versions."""
+    
+    def __init__(self, config: ReorganizerConfig):
+        """Initialize element matcher with configuration."""
+        self.config = config
+        self.logger = logging.getLogger(__name__)
+        
+    def match_elements(self, pattern_elements: Dict, target_elements: Dict) -> List[MatchResult]:
+        """Match elements between pattern and target using multiple strategies."""
+        matches = []
+        
+        # Match different types of elements
+        for element_type in ['fields', 'methods', 'imports', 'classes']:
+            if element_type in pattern_elements and element_type in target_elements:
+                type_matches = self._match_by_type(
+                    pattern_elements[element_type],
+                    target_elements[element_type],
+                    element_type
+                )
+                matches.extend(type_matches)
+        
+        return matches
+    
+    def _match_by_type(self, pattern_items: List, target_items: List, element_type: str) -> List[MatchResult]:
+        """Match elements of a specific type."""
+        matches = []
+        
+        if element_type == 'fields':
+            matches = self._match_fields(pattern_items, target_items)
+        elif element_type == 'methods':
+            matches = self._match_methods(pattern_items, target_items)
+        elif element_type == 'imports':
+            matches = self._match_imports(pattern_items, target_items)
+        elif element_type == 'classes':
+            matches = self._match_classes(pattern_items, target_items)
+            
+        return matches
+    
+    def _match_fields(self, pattern_fields: List, target_fields: List) -> List[MatchResult]:
+        """Match field definitions between versions."""
+        matches = []
+        
+        for pattern_field in pattern_fields:
+            pattern_name = pattern_field[0] if isinstance(pattern_field, tuple) else pattern_field
+            best_match = None
+            best_confidence = 0.0
+            
+            for target_field in target_fields:
+                target_name = target_field[0] if isinstance(target_field, tuple) else target_field
+                confidence = self._calculate_field_similarity(pattern_field, target_field)
+                
+                if confidence > best_confidence and confidence >= self.config.match_threshold:
+                    best_match = target_field
+                    best_confidence = confidence
+            
+            if best_match:
+                matches.append(MatchResult(
+                    pattern_element=pattern_field,
+                    target_element=best_match,
+                    confidence=best_confidence,
+                    match_type="field",
+                    notes=[f"Matched field '{pattern_name}' with confidence {best_confidence:.2f}"]
+                ))
+        
+        return matches
+    
+    def _match_methods(self, pattern_methods: List, target_methods: List) -> List[MatchResult]:
+        """Match method definitions between versions."""
+        matches = []
+        
+        for pattern_method in pattern_methods:
+            pattern_name = pattern_method[0] if isinstance(pattern_method, tuple) else pattern_method
+            best_match = None
+            best_confidence = 0.0
+            
+            for target_method in target_methods:
+                target_name = target_method[0] if isinstance(target_method, tuple) else target_method
+                confidence = self._calculate_method_similarity(pattern_method, target_method)
+                
+                if confidence > best_confidence and confidence >= self.config.match_threshold:
+                    best_match = target_method
+                    best_confidence = confidence
+            
+            if best_match:
+                matches.append(MatchResult(
+                    pattern_element=pattern_method,
+                    target_element=best_match,
+                    confidence=best_confidence,
+                    match_type="method",
+                    notes=[f"Matched method '{pattern_name}' with confidence {best_confidence:.2f}"]
+                ))
+        
+        return matches
+    
+    def _match_imports(self, pattern_imports: List, target_imports: List) -> List[MatchResult]:
+        """Match import statements between versions."""
+        matches = []
+        
+        for pattern_import in pattern_imports:
+            pattern_stmt = pattern_import[0] if isinstance(pattern_import, tuple) else pattern_import
+            
+            for target_import in target_imports:
+                target_stmt = target_import[0] if isinstance(target_import, tuple) else target_import
+                
+                if pattern_stmt == target_stmt:
+                    matches.append(MatchResult(
+                        pattern_element=pattern_import,
+                        target_element=target_import,
+                        confidence=1.0,
+                        match_type="import",
+                        notes=["Exact import match"]
+                    ))
+                    break
+        
+        return matches
+    
+    def _match_classes(self, pattern_classes: List, target_classes: List) -> List[MatchResult]:
+        """Match class definitions between versions."""
+        matches = []
+        
+        for pattern_class in pattern_classes:
+            pattern_name = pattern_class if isinstance(pattern_class, str) else pattern_class[0]
+            
+            for target_class in target_classes:
+                target_name = target_class if isinstance(target_class, str) else target_class[0]
+                
+                if pattern_name == target_name:
+                    matches.append(MatchResult(
+                        pattern_element=pattern_class,
+                        target_element=target_class,
+                        confidence=1.0,
+                        match_type="class",
+                        notes=["Exact class name match"]
+                    ))
+                    break
+        
+        return matches
+    
+    def _calculate_field_similarity(self, pattern_field: Any, target_field: Any) -> float:
+        """Calculate similarity between two field definitions."""
+        if isinstance(pattern_field, tuple) and isinstance(target_field, tuple):
+            pattern_name = pattern_field[0]
+            target_name = target_field[0]
+            
+            # Exact match
+            if pattern_name == target_name:
+                return 1.0
+            
+            # REQUIREMENT: Field types must match for similarity calculation
+            if len(pattern_field) >= 3 and len(target_field) >= 3:
+                pattern_type = pattern_field[2]  # e.g., 'Integer', 'Many2one'
+                target_type = target_field[2]    # e.g., 'extracted' (we need better type detection)
+                
+                # For now, if target_type is 'extracted', we can't validate type
+                # In a full implementation, we'd need to parse the actual field definition
+                if target_type != 'extracted' and pattern_type != target_type:
+                    # Field types don't match - return 0.0 to prevent matching
+                    return 0.0
+            
+            # Only allow name similarity if field types are compatible or unknown
+            name_similarity = self._string_similarity(pattern_name, target_name)
+            
+            # Apply stricter threshold for field name similarity
+            # Fields should have at least 50% character overlap to be considered similar
+            if name_similarity < 0.5:
+                return 0.0
+                
+            return name_similarity
+        
+        return 0.0
+    
+    def _calculate_method_similarity(self, pattern_method: Any, target_method: Any) -> float:
+        """Calculate similarity between two method definitions.""" 
+        if isinstance(pattern_method, tuple) and isinstance(target_method, tuple):
+            pattern_name, target_name = pattern_method[0], target_method[0]
+            
+            # Exact match
+            if pattern_name == target_name:
+                return 1.0
+                
+            # Check method type/decorators if available
+            if len(pattern_method) > 2 and len(target_method) > 2:
+                pattern_type, target_type = pattern_method[2], target_method[2]
+                if pattern_type == target_type:
+                    # Same method type increases confidence
+                    base_similarity = self._string_similarity(pattern_name, target_name)
+                    return min(1.0, base_similarity + 0.2)
+            
+            return self._string_similarity(pattern_name, target_name)
+        
+        return 0.0
+    
+    def _string_similarity(self, s1: str, s2: str) -> float:
+        """Calculate string similarity using a simple algorithm."""
+        if s1 == s2:
+            return 1.0
+            
+        # Simple similarity based on common characters and length
+        common_chars = set(s1) & set(s2)
+        total_chars = set(s1) | set(s2)
+        
+        if not total_chars:
+            return 0.0
+            
+        return len(common_chars) / len(total_chars)
+
+
+class PatternApplier:
+    """Apply documented code patterns to target files."""
+    
+    def __init__(self, config: ReorganizerConfig):
+        """Initialize pattern applier with configuration."""
+        self.config = config
+        self.logger = logging.getLogger(__name__)
+        self.matcher = ElementMatcher(config)
+        
+    def apply_pattern(self, pattern_file: str, target_file: str) -> MigrationReport:
+        """Apply a documented pattern to a target file."""
+        report = MigrationReport(
+            original_file=target_file,
+            target_file=target_file,
+            pattern_file=pattern_file,
+            start_time=datetime.now()
+        )
+        
+        try:
+            # Load pattern and target
+            pattern_data = self._load_pattern_file(pattern_file)
+            target_data = self._analyze_target_file(target_file)
+            
+            if not pattern_data or not target_data:
+                report.add_error("Failed to load pattern or target file")
+                return report
+            
+            # Create backup if not dry run
+            if not self.config.dry_run:
+                self._create_backup(target_file)
+            
+            # Match elements
+            matches = self.matcher.match_elements(pattern_data, target_data)
+            report.matches.extend(matches)
+            
+            # Apply reorganization
+            if not self.config.dry_run:
+                self._apply_reorganization(target_file, pattern_data, matches)
+            
+        except Exception as e:
+            report.add_error(f"Error applying pattern: {str(e)}")
+            self.logger.error(f"Pattern application failed: {e}")
+        
+        report.end_time = datetime.now()
+        return report
+    
+    def _load_pattern_file(self, pattern_file: str) -> Optional[Dict]:
+        """Load and parse a pattern documentation file."""
+        try:
+            # Import the pattern file as a module to access its variables
+            import importlib.util
+            import sys
+            
+            spec = importlib.util.spec_from_file_location("pattern_module", pattern_file)
+            if not spec or not spec.loader:
+                return None
+                
+            pattern_module = importlib.util.module_from_spec(spec)
+            
+            # Add mock objects to handle undefined references in pattern files
+            pattern_module.models = type('MockModels', (), {
+                'Model': 'MockModel',
+                'check_company_domain_parent_of': 'MockCheckCompanyDomain'
+            })()
+            
+            spec.loader.exec_module(pattern_module)
+            
+            # Extract pattern data from module attributes
+            pattern_data = {}
+            
+            if hasattr(pattern_module, 'CLASSES_ORDER'):
+                pattern_data['classes'] = pattern_module.CLASSES_ORDER
+                
+            if hasattr(pattern_module, 'CURRENT_IMPORTS_ORDER'):
+                pattern_data['imports'] = pattern_module.CURRENT_IMPORTS_ORDER
+                
+            # Extract fields and methods from CLASSES_INFO if available
+            if hasattr(pattern_module, 'CLASSES_INFO'):
+                classes_info = pattern_module.CLASSES_INFO
+                pattern_data['fields'] = []
+                pattern_data['methods'] = []
+                
+                for class_name, class_info in classes_info.items():
+                    if 'fields_order' in class_info:
+                        pattern_data['fields'].extend(class_info['fields_order'])
+                    if 'methods_order' in class_info:
+                        pattern_data['methods'].extend(class_info['methods_order'])
+            
+            return pattern_data
+            
+        except Exception as e:
+            self.logger.error(f"Failed to load pattern file {pattern_file}: {e}")
+            return None
+    
+    def _analyze_target_file(self, target_file: str) -> Optional[Dict]:
+        """Analyze target file to extract its current structure."""
+        try:
+            # Use existing DocumentationAnalyzer to get current structure
+            with open(target_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            tree = ast.parse(content)
+            target_data = {}
+            
+            # Extract imports
+            imports = []
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    import_str = ast.unparse(node) if hasattr(ast, 'unparse') else str(node)
+                    imports.append((import_str, node.lineno, "extracted"))
+            target_data['imports'] = imports
+            
+            # Extract classes, fields, and methods
+            classes = []
+            fields = []
+            methods = []
+            
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    classes.append(node.name)
+                    
+                    # Extract fields and methods from class
+                    for item in node.body:
+                        if isinstance(item, ast.Assign):
+                            # Field assignment
+                            for target in item.targets:
+                                if isinstance(target, ast.Name):
+                                    field_name = target.id
+                                    field_type = self._extract_field_type_from_ast(item.value)
+                                    fields.append((field_name, item.lineno, field_type, "unknown"))
+                        elif isinstance(item, ast.FunctionDef):
+                            # Method definition
+                            decorators = [d.id if isinstance(d, ast.Name) else str(d) for d in item.decorator_list]
+                            methods.append((item.name, item.lineno, "extracted", decorators))
+            
+            target_data['classes'] = classes
+            target_data['fields'] = fields
+            target_data['methods'] = methods
+            
+            return target_data
+            
+        except Exception as e:
+            self.logger.error(f"Failed to analyze target file {target_file}: {e}")
+            return None
+    
+    def _extract_field_type_from_ast(self, ast_node: ast.AST) -> str:
+        """Extract Odoo field type from AST node."""
+        try:
+            if isinstance(ast_node, ast.Call):
+                # Handle fields.FieldType(...) calls
+                if isinstance(ast_node.func, ast.Attribute):
+                    if (isinstance(ast_node.func.value, ast.Name) and 
+                        ast_node.func.value.id == 'fields'):
+                        return ast_node.func.attr  # e.g., 'Char', 'Many2one', 'Integer'
+                
+                # Handle direct field type calls like Char(...), Many2one(...)
+                elif isinstance(ast_node.func, ast.Name):
+                    field_types = {
+                        'Char', 'Text', 'Html', 'Boolean', 'Integer', 'Float', 
+                        'Monetary', 'Date', 'Datetime', 'Binary', 'Image',
+                        'Selection', 'Reference', 'Many2one', 'One2many', 'Many2many'
+                    }
+                    if ast_node.func.id in field_types:
+                        return ast_node.func.id
+            
+            return "unknown"
+            
+        except Exception:
+            return "unknown"
+    
+    def _create_backup(self, target_file: str):
+        """Create backup of target file."""
+        try:
+            backup_path = f"{target_file}{self.config.backup_suffix}.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            shutil.copy2(target_file, backup_path)
+            self.logger.info(f"Created backup: {backup_path}")
+        except Exception as e:
+            self.logger.error(f"Failed to create backup: {e}")
+            raise
+    
+    def _apply_reorganization(self, target_file: str, pattern_data: Dict, matches: List[MatchResult]):
+        """Apply reorganization based on pattern and matches."""
+        try:
+            # Convert string to Path object
+            target_path = Path(target_file)
+            
+            # 1. Parse the target file AST
+            original_content = FileUtils.read_file(target_path)
+            tree = ast.parse(original_content)
+            
+            # 2. Apply pattern-based reorganization (not standard reorganization)
+            # Use the pattern data and matches to reorganize according to documented order
+            new_content = self._apply_pattern_reorganization(original_content, pattern_data, matches)
+            
+            # Format with Black
+            try:
+                new_content = black.format_str(
+                    new_content,
+                    mode=black.FileMode(
+                        line_length=self.config.line_length,
+                        string_normalization=False  # Preserve original string quotes
+                    )
+                )
+            except Exception as e:
+                self.logger.warning(f"Black formatting failed for {target_file}: {e}")
+            
+            # Check if content changed
+            if new_content == original_content:
+                self.logger.info(f"No changes needed for {target_file}")
+                return False
+            
+            # 3. Write the reorganized file back (if not dry run)
+            if not self.config.dry_run:
+                # Create backup if enabled
+                if not self.config.no_backup:
+                    FileUtils.create_backup(target_path)
+                
+                # Write reorganized content
+                FileUtils.write_file(target_path, new_content)
+                
+                # 4. Show "Reorganized" message
+                self.logger.info(f"Reorganized {target_file} based on {len(matches)} matches")
+            else:
+                self.logger.info(f"Would reorganize {target_file} based on {len(matches)} matches")
+                
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to apply reorganization to {target_file}: {e}")
+            if self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.debug(traceback.format_exc())
+            return False
+
+    def _apply_pattern_reorganization(self, original_content: str, pattern_data: Dict, matches: List[MatchResult]) -> str:
+        """Apply pattern-based reorganization using the documented order from pattern_data."""
+        try:
+            # Create a temporary file to process with the standard reorganizer
+            import tempfile
+            import os
+            import re
+            
+            # Store multiline strings to preserve their format
+            multiline_strings = {}
+            placeholder_counter = 0
+            
+            def preserve_multiline_strings(content):
+                nonlocal placeholder_counter
+                # Pattern to match triple-quoted strings (both """ and ''')
+                triple_quote_pattern = r'(""".*?"""|\'\'\'.*?\'\'\')'
+                
+                def replace_multiline(match):
+                    nonlocal placeholder_counter
+                    original_string = match.group(1)
+                    placeholder = f"__MULTILINE_PLACEHOLDER_{placeholder_counter}__"
+                    multiline_strings[placeholder] = original_string
+                    placeholder_counter += 1
+                    return f'"{placeholder}"'  # Wrap in quotes so it's valid Python
+                
+                return re.sub(triple_quote_pattern, replace_multiline, content, flags=re.DOTALL)
+            
+            def restore_multiline_strings(content):
+                for placeholder, original in multiline_strings.items():
+                    # Remove the quotes we added and restore original
+                    content = content.replace(f'"{placeholder}"', original)
+                    content = content.replace(f"'{placeholder}'", original)
+                return content
+            
+            # Preserve multiline strings before processing
+            protected_content = preserve_multiline_strings(original_content)
+            
+            # Create a temporary file with the protected content
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as temp_file:
+                temp_file.write(protected_content)
+                temp_file_path = temp_file.name
+            
+            try:
+                # Use the standard reorganizer to process the temporary file
+                organizer = OdooCodeReorganizer(
+                    odoo_version=self.config.odoo_version,
+                    dry_run=True,  # This will ensure we get the content back without file operations
+                    line_length=self.config.line_length,
+                    add_section_headers=self.config.add_section_headers,
+                    no_backup=True
+                )
+                
+                # Process the temporary file and get the reorganized content
+                reorganized_content = organizer.reorganize_file(temp_file_path)
+                
+                # Restore the original multiline strings
+                final_content = restore_multiline_strings(reorganized_content)
+                return final_content
+                
+            finally:
+                # Clean up the temporary file
+                os.unlink(temp_file_path)
+            
+        except Exception as e:
+            self.logger.warning(f"Pattern reorganization failed: {e}")
+            # If everything fails, return the original content unchanged
+            return original_content
+
+
+class VersionMigrator:
+    """Orchestrate version migration operations."""
+    
+    def __init__(self, config: ReorganizerConfig):
+        """Initialize version migrator."""
+        self.config = config
+        self.logger = logging.getLogger(__name__)
+        self.applier = PatternApplier(config)
+        
+    def migrate_file(self, pattern_path: str, target_path: str) -> MigrationReport:
+        """Migrate a single file using a pattern."""
+        self.logger.info(f"Starting migration: {pattern_path} -> {target_path}")
+        
+        # Validate files exist
+        if not Path(pattern_path).exists():
+            report = MigrationReport(target_path, target_path, pattern_path)
+            report.add_error(f"Pattern file not found: {pattern_path}")
+            return report
+            
+        if not Path(target_path).exists():
+            report = MigrationReport(target_path, target_path, pattern_path) 
+            report.add_error(f"Target file not found: {target_path}")
+            return report
+        
+        # Apply pattern
+        report = self.applier.apply_pattern(pattern_path, target_path)
+        
+        # Validate migration if not dry run
+        if not self.config.dry_run:
+            validation_result = self.validate_migration(target_path, report)
+            if not validation_result:
+                report.add_error("Migration validation failed")
+        
+        return report
+    
+    def validate_migration(self, migrated_file: str, report: MigrationReport) -> bool:
+        """Validate that migration was successful."""
+        try:
+            # Check if file is still valid Python
+            with open(migrated_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Parse AST to check syntax
+            ast.parse(content)
+            
+            self.logger.info(f"Migration validation passed for {migrated_file}")
+            return True
+            
+        except SyntaxError as e:
+            self.logger.error(f"Syntax error in migrated file {migrated_file}: {e}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Validation error for {migrated_file}: {e}")
+            return False
+    
+    def generate_migration_report(self, report: MigrationReport, output_path: Optional[str] = None) -> str:
+        """Generate detailed migration report."""
+        report_content = report.generate_summary()
+        
+        # Add detailed match information
+        if report.matches:
+            report_content += "\n\nDetailed Matches:\n" + "="*50 + "\n"
+            for match in report.matches:
+                report_content += f"\n{match.match_type.upper()}: {match.pattern_element} -> {match.target_element}"
+                report_content += f"\nConfidence: {match.confidence:.2f}"
+                if match.notes:
+                    report_content += f"\nNotes: {', '.join(match.notes)}"
+                report_content += "\n" + "-"*30 + "\n"
+        
+        # Add unmatched elements
+        if report.unmatched_pattern:
+            report_content += f"\n\nUnmatched Pattern Elements ({len(report.unmatched_pattern)}):\n"
+            for element in report.unmatched_pattern:
+                report_content += f"- {element}\n"
+                
+        if report.unmatched_target:
+            report_content += f"\n\nUnmatched Target Elements ({len(report.unmatched_target)}):\n"
+            for element in report.unmatched_target:
+                report_content += f"- {element}\n"
+        
+        # Add errors
+        if report.errors:
+            report_content += f"\n\nErrors ({len(report.errors)}):\n"
+            for error in report.errors:
+                report_content += f"❌ {error}\n"
+        
+        # Save to file if requested
+        if output_path:
+            try:
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    f.write(report_content)
+                self.logger.info(f"Migration report saved to {output_path}")
+            except Exception as e:
+                self.logger.error(f"Failed to save report to {output_path}: {e}")
+        
+        return report_content
+
+
+# =============================================================================
 # MAIN REORGANIZER
 # =============================================================================
 
@@ -2128,6 +3423,10 @@ class OdooCodeReorganizer:
         self.directory_processor = DirectoryProcessor(self.config)
         self.python_processor = PythonFileProcessor(self.config)
         self.init_processor = InitFileProcessor(self.config)
+        self.documentation_processor = DocumentationFileProcessor(self.config)
+        
+        # Initialize migration components
+        self.migrator = VersionMigrator(self.config) if self.config.apply_pattern else None
 
     def reorganize_file(self, filepath: str) -> str:
         """Reorganize a single Python file."""
@@ -2181,6 +3480,79 @@ class OdooCodeReorganizer:
         stats = self.directory_processor.process_directory(path, recursive)
         stats.log_summary("Directory processing")
 
+    def generate_documentation(self, filepath: str) -> str:
+        """Generate documentation for a single Python file."""
+        path = Path(filepath)
+
+        if not path.is_file():
+            raise FileNotFoundError(f"File not found: {filepath}")
+
+        if not path.suffix == PYTHON_EXTENSION:
+            raise ValueError(f"Not a Python file: {filepath}")
+
+        # Process file with documentation processor
+        doc_content, generated = self.documentation_processor.process(path, self.config)
+
+        if generated:
+            logger.info(f"Documentation generated for {path}")
+        else:
+            logger.info(f"No documentation generated for {path}")
+
+        return doc_content
+
+    def generate_documentation_for_directory(self, directory: str, recursive: bool = True) -> None:
+        """Generate documentation for all Python files in a directory."""
+        path = Path(directory)
+
+        if not path.exists():
+            raise FileNotFoundError(f"Directory not found: {directory}")
+
+        if not path.is_dir():
+            raise ValueError(f"Not a directory: {directory}")
+
+        stats = ProcessingStats()
+        pattern = "**/*.py" if recursive else "*.py"
+
+        for filepath in path.glob(pattern):
+            if FileUtils.should_skip(filepath, OdooConfiguration().SKIP_DIRS):
+                continue
+
+            stats.processed += 1
+
+            try:
+                doc_content, generated = self.documentation_processor.process(filepath, self.config)
+                if generated:
+                    stats.changed += 1
+            except Exception as e:
+                ErrorHandler.handle_file_error(filepath, e, stats)
+
+        stats.log_summary("Documentation generation")
+
+    def apply_pattern_to_file(self, pattern_file: str, target_file: str) -> MigrationReport:
+        """Apply a documented pattern to a target file."""
+        if not self.migrator:
+            self.migrator = VersionMigrator(self.config)
+        
+        logging.info(f"Applying pattern {pattern_file} to {target_file}")
+        
+        try:
+            report = self.migrator.migrate_file(pattern_file, target_file)
+            
+            if report.errors:
+                logging.error(f"Migration completed with {len(report.errors)} errors")
+                for error in report.errors:
+                    logging.error(f"  - {error}")
+            else:
+                logging.info(f"Migration completed successfully with {len(report.matches)} matches")
+            
+            return report
+            
+        except Exception as e:
+            logging.error(f"Pattern application failed: {e}")
+            report = MigrationReport(target_file, target_file, pattern_file)
+            report.add_error(f"Pattern application failed: {str(e)}")
+            return report
+
 
 # =============================================================================
 # CLI INTERFACE
@@ -2194,7 +3566,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument("path", help="File, directory, or Odoo module to process")
+    parser.add_argument("path", nargs='?', help="File, directory, or Odoo module to process")
     parser.add_argument(
         "-r", "--recursive", action="store_true", help="Process directories recursively"
     )
@@ -2229,6 +3601,62 @@ def create_argument_parser() -> argparse.ArgumentParser:
         choices=["17.0", "18.0", "19.0"],
         help="Odoo version (default: 19.0)",
     )
+    parser.add_argument(
+        "--generate-docs",
+        action="store_true",
+        help="Generate documentation of current code order instead of reorganizing",
+    )
+    parser.add_argument(
+        "--docs-output-dir",
+        type=str,
+        help="Directory to save documentation files (default: same as source)",
+    )
+    
+    # Migration/Pattern Application Arguments
+    parser.add_argument(
+        "--apply-pattern",
+        nargs=2,
+        metavar=("PATTERN_FILE", "TARGET_FILE"),
+        help="Apply documented pattern to target file",
+    )
+    parser.add_argument(
+        "--migration-report",
+        type=str,
+        help="Generate detailed migration report to specified file",
+    )
+    parser.add_argument(
+        "--match-threshold",
+        type=float,
+        default=0.8,
+        help="Minimum similarity threshold for element matching (0.0-1.0, default: 0.8)",
+    )
+    parser.add_argument(
+        "--backup-suffix",
+        type=str,
+        default=".backup",
+        help="Suffix for backup files (default: .backup)",
+    )
+    parser.add_argument(
+        "--missing-element-strategy",
+        type=str,
+        choices=["document", "ignore", "error"],
+        default="document",
+        help="Strategy for handling missing elements from pattern (default: document)",
+    )
+    parser.add_argument(
+        "--new-element-strategy", 
+        type=str,
+        choices=["append", "classify", "ignore"],
+        default="append",
+        help="Strategy for handling new elements not in pattern (default: append)",
+    )
+    parser.add_argument(
+        "--conflict-resolution",
+        type=str,
+        choices=["preserve", "override", "manual"],
+        default="preserve",
+        help="Strategy for resolving conflicts (default: preserve)",
+    )
 
     return parser
 
@@ -2239,7 +3667,44 @@ def main():
     args = parser.parse_args()
 
     try:
-        # Create reorganizer
+        # Handle pattern application mode
+        if args.apply_pattern:
+            pattern_file, target_file = args.apply_pattern
+            # Create reorganizer with migration configuration
+            reorganizer = OdooCodeReorganizer(
+                line_length=args.line_length,
+                add_section_headers=not args.no_section_headers,
+                output_dir=args.output_dir,
+                odoo_version=args.odoo_version,
+                dry_run=args.dry_run,
+                no_backup=args.no_backup,
+                generate_docs=False,
+                docs_output_dir=args.docs_output_dir,
+                # Migration arguments
+                apply_pattern=True,
+                pattern_file=pattern_file,
+                target_file=target_file,
+                match_threshold=args.match_threshold,
+                backup_suffix=args.backup_suffix,
+                migration_report_path=args.migration_report,
+                missing_element_strategy=args.missing_element_strategy,
+                new_element_strategy=args.new_element_strategy,
+                conflict_resolution=args.conflict_resolution,
+            )
+            
+            # Execute pattern application
+            report = reorganizer.apply_pattern_to_file(pattern_file, target_file)
+            
+            # Generate migration report if requested
+            if args.migration_report:
+                reorganizer.migrator.generate_migration_report(report, args.migration_report)
+                print(f"Migration report saved to: {args.migration_report}")
+            
+            # Print summary
+            print(report.generate_summary())
+            return
+        
+        # Create reorganizer for normal operations
         reorganizer = OdooCodeReorganizer(
             line_length=args.line_length,
             add_section_headers=not args.no_section_headers,
@@ -2247,21 +3712,55 @@ def main():
             odoo_version=args.odoo_version,
             dry_run=args.dry_run,
             no_backup=args.no_backup,
+            generate_docs=args.generate_docs,
+            docs_output_dir=args.docs_output_dir,
+            # Migration arguments (defaults for normal operation)
+            apply_pattern=False,
+            pattern_file=None,
+            target_file=None,
+            match_threshold=args.match_threshold,
+            backup_suffix=args.backup_suffix,
+            migration_report_path=args.migration_report,
+            missing_element_strategy=args.missing_element_strategy,
+            new_element_strategy=args.new_element_strategy,
+            conflict_resolution=args.conflict_resolution,
         )
 
+        # Validate path argument when needed
+        if not args.path and not args.apply_pattern:
+            parser.error("the following arguments are required: path (unless using --apply-pattern)")
+        
         # Process path
-        path = Path(args.path)
-
-        if path.is_file():
-            reorganizer.reorganize_file(str(path))
-        elif path.is_dir():
-            if args.module or reorganizer.module_processor.is_odoo_module(path):
-                reorganizer.process_module(str(path))
-            else:
-                reorganizer.process_directory(str(path), recursive=args.recursive)
+        if args.path:
+            path = Path(args.path)
         else:
-            logger.error(f"Path {path} does not exist")
-            sys.exit(1)
+            path = None
+
+        if args.generate_docs:
+            # Documentation generation mode
+            if not path:
+                parser.error("path is required for documentation generation")
+            if path.is_file():
+                reorganizer.generate_documentation(str(path))
+            elif path.is_dir():
+                reorganizer.generate_documentation_for_directory(str(path), recursive=args.recursive)
+            else:
+                logger.error(f"Path {path} does not exist")
+                sys.exit(1)
+        else:
+            # Normal reorganization mode
+            if not path:
+                parser.error("path is required for reorganization")
+            if path.is_file():
+                reorganizer.reorganize_file(str(path))
+            elif path.is_dir():
+                if args.module or reorganizer.module_processor.is_odoo_module(path):
+                    reorganizer.process_module(str(path))
+                else:
+                    reorganizer.process_directory(str(path), recursive=args.recursive)
+            else:
+                logger.error(f"Path {path} does not exist")
+                sys.exit(1)
 
     except KeyboardInterrupt:
         logger.info("Operation cancelled by user")

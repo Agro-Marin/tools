@@ -22,12 +22,14 @@ Default Odoo Version: 19.0
 # Standard library imports
 import argparse
 import ast
+import json
 import logging
 import shutil
 import sys
 import traceback
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, Protocol
@@ -1443,6 +1445,7 @@ class ClassReorganizer:
             "model_attrs": [],
             "fields": [],
             "sql_constraints": [],
+            "model_indexes": [],
             "methods": [],
             "other": [],
         }
@@ -1464,6 +1467,8 @@ class ClassReorganizer:
                     elements["model_attrs"].append(node)
                 elif self._is_sql_constraint(node):
                     elements["sql_constraints"].append(node)
+                elif self._is_model_index(node):
+                    elements["model_indexes"].append(node)
                 elif self.field_analyzer.is_odoo_field(node):
                     elements["fields"].append(node)
                 else:
@@ -1484,6 +1489,13 @@ class ClassReorganizer:
         if not node.targets or not isinstance(node.targets[0], ast.Name):
             return False
         return node.targets[0].id == "_sql_constraints"
+
+    def _is_model_index(self, node: ast.Assign) -> bool:
+        """Check if assignment is a model index."""
+        if not node.targets or not isinstance(node.targets[0], ast.Name):
+            return False
+        attr_name = node.targets[0].id
+        return attr_name.endswith("_index") or attr_name == "_sql_indexes"
 
     def _sort_elements(self, elements: Dict[str, List]) -> None:
         """Sort elements within categories."""
@@ -1533,6 +1545,10 @@ class ClassReorganizer:
                     elements["sql_constraints"],
                 )
             )
+
+        # Model indexes (placed after SQL constraints)
+        if elements["model_indexes"]:
+            sections.append((None, elements["model_indexes"]))
 
         # Methods by type
         if "methods_by_type" in elements:

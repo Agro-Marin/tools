@@ -1,0 +1,2537 @@
+{
+  "analysis_date": "2025-09-13T08:20:21.186252",
+  "commit_info": {
+    "author": "Luis <marin.guadarrama@gmail.com>",
+    "date": "2025-03-10 01:38:42 -0600",
+    "hash": "22aabaebe7b62d25be460a3826a77186b2d17546",
+    "message": "[REF] AgroMarin guidelines"
+  },
+  "modified_modules": [
+    {
+      "all_files": [
+        "addons/account/models/account_account.py",
+        "addons/account/models/account_bank_statement_line.py",
+        "addons/account/models/account_move.py",
+        "addons/account/models/account_move_line.py",
+        "addons/account/models/partner.py",
+        "addons/account/report/account_invoice_report.py",
+        "addons/account/report/account_invoice_report_view.xml",
+        "addons/account/views/account_portal_templates.xml",
+        "addons/account/views/partner_view.xml",
+        "addons/account/wizard/accrued_orders.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/account/models/account_account.py",
+          "addons/account/models/account_bank_statement_line.py",
+          "addons/account/models/account_move.py",
+          "addons/account/models/account_move_line.py",
+          "addons/account/models/partner.py"
+        ],
+        "reports": [
+          "addons/account/report/account_invoice_report.py"
+        ],
+        "views": [
+          "addons/account/report/account_invoice_report_view.xml",
+          "addons/account/views/account_portal_templates.xml",
+          "addons/account/views/partner_view.xml"
+        ],
+        "wizards": [
+          "addons/account/wizard/accrued_orders.py"
+        ]
+      },
+      "files_changed": 10,
+      "is_new_module": false,
+      "model_files": 5,
+      "module_name": "account",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/account_fleet/__init__.py",
+        "addons/account_fleet/__manifest__.py",
+        "addons/account_fleet/data/fleet_service_type_data.xml",
+        "addons/account_fleet/models/__init__.py",
+        "addons/account_fleet/models/account_move.py",
+        "addons/account_fleet/models/account_move_line.py",
+        "addons/account_fleet/models/fleet_vehicle.py",
+        "addons/account_fleet/models/fleet_vehicle_log.py",
+        "addons/account_fleet/models/fleet_vehicle_log_services.py",
+        "addons/account_fleet/tests/__init__.py",
+        "addons/account_fleet/tests/test_account_fleet.py",
+        "addons/account_fleet/tests/test_fleet_vehicle_log.py",
+        "addons/account_fleet/views/account_move_line_views.xml",
+        "addons/account_fleet/views/account_move_views.xml",
+        "addons/account_fleet/views/fleet_vehicle_log_views.xml",
+        "addons/account_fleet/views/fleet_vehicle_views.xml",
+        "addons/account_fleet/wizard/account_automatic_entry_wizard.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/account_fleet/models/__init__.py",
+          "addons/account_fleet/models/account_move.py",
+          "addons/account_fleet/models/account_move_line.py",
+          "addons/account_fleet/models/fleet_vehicle.py",
+          "addons/account_fleet/models/fleet_vehicle_log.py",
+          "addons/account_fleet/models/fleet_vehicle_log_services.py"
+        ],
+        "other": [
+          "addons/account_fleet/__init__.py",
+          "addons/account_fleet/__manifest__.py"
+        ],
+        "tests": [
+          "addons/account_fleet/tests/__init__.py",
+          "addons/account_fleet/tests/test_account_fleet.py",
+          "addons/account_fleet/tests/test_fleet_vehicle_log.py"
+        ],
+        "views": [
+          "addons/account_fleet/data/fleet_service_type_data.xml",
+          "addons/account_fleet/views/account_move_line_views.xml",
+          "addons/account_fleet/views/account_move_views.xml",
+          "addons/account_fleet/views/fleet_vehicle_log_views.xml",
+          "addons/account_fleet/views/fleet_vehicle_views.xml"
+        ],
+        "wizards": [
+          "addons/account_fleet/wizard/account_automatic_entry_wizard.py"
+        ]
+      },
+      "files_changed": 17,
+      "is_new_module": true,
+      "model_files": 5,
+      "module_name": "account_fleet",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/account_payment/views/account_portal_templates.xml"
+      ],
+      "file_categories": {
+        "views": [
+          "addons/account_payment/views/account_portal_templates.xml"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 0,
+      "module_name": "account_payment",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/delivery/models/delivery_carrier.py",
+        "addons/delivery/models/sale_order.py",
+        "addons/delivery/models/sale_order_line.py",
+        "addons/delivery/views/sale_order_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/delivery/models/delivery_carrier.py",
+          "addons/delivery/models/sale_order.py",
+          "addons/delivery/models/sale_order_line.py"
+        ],
+        "views": [
+          "addons/delivery/views/sale_order_views.xml"
+        ]
+      },
+      "files_changed": 4,
+      "is_new_module": false,
+      "model_files": 3,
+      "module_name": "delivery",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/event_booth_sale/models/sale_order_line.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/event_booth_sale/models/sale_order_line.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "event_booth_sale",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/event_sale/models/event_registration.py",
+        "addons/event_sale/models/sale_order.py",
+        "addons/event_sale/models/sale_order_line.py",
+        "addons/event_sale/report/event_sale_report.py",
+        "addons/event_sale/report/event_sale_report_views.xml",
+        "addons/event_sale/views/sale_order_views.xml",
+        "addons/event_sale/wizard/event_edit_registration.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/event_sale/models/event_registration.py",
+          "addons/event_sale/models/sale_order.py",
+          "addons/event_sale/models/sale_order_line.py"
+        ],
+        "reports": [
+          "addons/event_sale/report/event_sale_report.py"
+        ],
+        "views": [
+          "addons/event_sale/report/event_sale_report_views.xml",
+          "addons/event_sale/views/sale_order_views.xml"
+        ],
+        "wizards": [
+          "addons/event_sale/wizard/event_edit_registration.py"
+        ]
+      },
+      "files_changed": 7,
+      "is_new_module": false,
+      "model_files": 3,
+      "module_name": "event_sale",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/fleet/__init__.py",
+        "addons/fleet/__manifest__.py",
+        "addons/fleet/data/fleet_data.xml",
+        "addons/fleet/data/fleet_demo.xml",
+        "addons/fleet/data/fleet_vehicle_model_brand_data.xml",
+        "addons/fleet/data/ir_actions_server_data.xml",
+        "addons/fleet/data/mail_activity_plan_template_data.xml",
+        "addons/fleet/data/mail_activity_type_data.xml",
+        "addons/fleet/data/mail_message_subtype_data.xml",
+        "addons/fleet/data/product_category_data.xml",
+        "addons/fleet/data/product_product_data.xml",
+        "addons/fleet/models/__init__.py",
+        "addons/fleet/models/fleet_service_type.py",
+        "addons/fleet/models/fleet_vehicle.py",
+        "addons/fleet/models/fleet_vehicle_assignation_log.py",
+        "addons/fleet/models/fleet_vehicle_log.py",
+        "addons/fleet/models/fleet_vehicle_log_contract.py",
+        "addons/fleet/models/fleet_vehicle_log_services.py",
+        "addons/fleet/models/fleet_vehicle_model.py",
+        "addons/fleet/models/fleet_vehicle_model_brand.py",
+        "addons/fleet/models/fleet_vehicle_model_category.py",
+        "addons/fleet/models/fleet_vehicle_odometer.py",
+        "addons/fleet/models/fleet_vehicle_state.py",
+        "addons/fleet/models/fleet_vehicle_tag.py",
+        "addons/fleet/models/hr_employee.py",
+        "addons/fleet/models/mail_activity_plan_template.py",
+        "addons/fleet/models/product_template.py",
+        "addons/fleet/models/res_config_settings.py",
+        "addons/fleet/models/res_partner.py",
+        "addons/fleet/models/res_users.py",
+        "addons/fleet/report/__init__.py",
+        "addons/fleet/report/fleet_report.py",
+        "addons/fleet/security/fleet_security.xml",
+        "addons/fleet/security/ir.model.access.csv",
+        "addons/fleet/tests/test_access_rights.py",
+        "addons/fleet/tests/test_overdue.py",
+        "addons/fleet/views/fleet_board_view.xml",
+        "addons/fleet/views/fleet_menuitem.xml",
+        "addons/fleet/views/fleet_vehicle_cost_views.xml",
+        "addons/fleet/views/fleet_vehicle_log_views.xml",
+        "addons/fleet/views/fleet_vehicle_model_brand_views.xml",
+        "addons/fleet/views/fleet_vehicle_model_category_views.xml",
+        "addons/fleet/views/fleet_vehicle_model_views.xml",
+        "addons/fleet/views/fleet_vehicle_tag_views.xml",
+        "addons/fleet/views/fleet_vehicle_views.xml",
+        "addons/fleet/views/hr_employee_views.xml",
+        "addons/fleet/views/ir_attachment_views.xml",
+        "addons/fleet/views/mail_activity_views.xml",
+        "addons/fleet/views/product_template_views.xml",
+        "addons/fleet/views/res_config_settings_views.xml",
+        "addons/fleet/views/res_users_views.xml",
+        "addons/fleet/wizard/__init__.py",
+        "addons/fleet/wizard/fleet_vehicle_send_mail.py",
+        "addons/fleet/wizard/fleet_vehicle_send_mail_views.xml",
+        "addons/fleet/wizard/hr_departure_wizard.py",
+        "addons/fleet/wizard/hr_departure_wizard_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/fleet/models/__init__.py",
+          "addons/fleet/models/fleet_service_type.py",
+          "addons/fleet/models/fleet_vehicle.py",
+          "addons/fleet/models/fleet_vehicle_assignation_log.py",
+          "addons/fleet/models/fleet_vehicle_log.py",
+          "addons/fleet/models/fleet_vehicle_log_contract.py",
+          "addons/fleet/models/fleet_vehicle_log_services.py",
+          "addons/fleet/models/fleet_vehicle_model.py",
+          "addons/fleet/models/fleet_vehicle_model_brand.py",
+          "addons/fleet/models/fleet_vehicle_model_category.py",
+          "addons/fleet/models/fleet_vehicle_odometer.py",
+          "addons/fleet/models/fleet_vehicle_state.py",
+          "addons/fleet/models/fleet_vehicle_tag.py",
+          "addons/fleet/models/hr_employee.py",
+          "addons/fleet/models/mail_activity_plan_template.py",
+          "addons/fleet/models/product_template.py",
+          "addons/fleet/models/res_config_settings.py",
+          "addons/fleet/models/res_partner.py",
+          "addons/fleet/models/res_users.py"
+        ],
+        "other": [
+          "addons/fleet/__init__.py",
+          "addons/fleet/__manifest__.py"
+        ],
+        "reports": [
+          "addons/fleet/report/__init__.py",
+          "addons/fleet/report/fleet_report.py"
+        ],
+        "security": [
+          "addons/fleet/security/ir.model.access.csv"
+        ],
+        "tests": [
+          "addons/fleet/tests/test_access_rights.py",
+          "addons/fleet/tests/test_overdue.py"
+        ],
+        "views": [
+          "addons/fleet/data/fleet_data.xml",
+          "addons/fleet/data/fleet_demo.xml",
+          "addons/fleet/data/fleet_vehicle_model_brand_data.xml",
+          "addons/fleet/data/ir_actions_server_data.xml",
+          "addons/fleet/data/mail_activity_plan_template_data.xml",
+          "addons/fleet/data/mail_activity_type_data.xml",
+          "addons/fleet/data/mail_message_subtype_data.xml",
+          "addons/fleet/data/product_category_data.xml",
+          "addons/fleet/data/product_product_data.xml",
+          "addons/fleet/security/fleet_security.xml",
+          "addons/fleet/views/fleet_board_view.xml",
+          "addons/fleet/views/fleet_menuitem.xml",
+          "addons/fleet/views/fleet_vehicle_cost_views.xml",
+          "addons/fleet/views/fleet_vehicle_log_views.xml",
+          "addons/fleet/views/fleet_vehicle_model_brand_views.xml",
+          "addons/fleet/views/fleet_vehicle_model_category_views.xml",
+          "addons/fleet/views/fleet_vehicle_model_views.xml",
+          "addons/fleet/views/fleet_vehicle_tag_views.xml",
+          "addons/fleet/views/fleet_vehicle_views.xml",
+          "addons/fleet/views/hr_employee_views.xml",
+          "addons/fleet/views/ir_attachment_views.xml",
+          "addons/fleet/views/mail_activity_views.xml",
+          "addons/fleet/views/product_template_views.xml",
+          "addons/fleet/views/res_config_settings_views.xml",
+          "addons/fleet/views/res_users_views.xml",
+          "addons/fleet/wizard/fleet_vehicle_send_mail_views.xml",
+          "addons/fleet/wizard/hr_departure_wizard_views.xml"
+        ],
+        "wizards": [
+          "addons/fleet/wizard/__init__.py",
+          "addons/fleet/wizard/fleet_vehicle_send_mail.py",
+          "addons/fleet/wizard/hr_departure_wizard.py"
+        ]
+      },
+      "files_changed": 56,
+      "is_new_module": true,
+      "model_files": 18,
+      "module_name": "fleet",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/hr_expense/views/product_product_views.xml"
+      ],
+      "file_categories": {
+        "views": [
+          "addons/hr_expense/views/product_product_views.xml"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 0,
+      "module_name": "hr_expense",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/mrp/models/mrp_production.py",
+        "addons/mrp/models/product.py",
+        "addons/mrp/models/stock_move.py",
+        "addons/mrp/report/mrp_report_bom_structure.py",
+        "addons/mrp/report/mrp_report_mo_overview.py",
+        "addons/mrp/views/mrp_production_views.xml",
+        "addons/mrp/views/product_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/mrp/models/mrp_production.py",
+          "addons/mrp/models/product.py",
+          "addons/mrp/models/stock_move.py"
+        ],
+        "reports": [
+          "addons/mrp/report/mrp_report_bom_structure.py",
+          "addons/mrp/report/mrp_report_mo_overview.py"
+        ],
+        "views": [
+          "addons/mrp/views/mrp_production_views.xml",
+          "addons/mrp/views/product_views.xml"
+        ]
+      },
+      "files_changed": 7,
+      "is_new_module": false,
+      "model_files": 3,
+      "module_name": "mrp",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/mrp_account/models/product.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/mrp_account/models/product.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "mrp_account",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/mrp_subcontracting_dropshipping/models/purchase.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/mrp_subcontracting_dropshipping/models/purchase.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "mrp_subcontracting_dropshipping",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/point_of_sale/models/pos_order.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/point_of_sale/models/pos_order.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "point_of_sale",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/pos_hr/static/src/app/components/navbar/navbar.xml"
+      ],
+      "file_categories": {
+        "views": [
+          "addons/pos_hr/static/src/app/components/navbar/navbar.xml"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 0,
+      "module_name": "pos_hr",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/pos_sale/models/pos_order.py",
+        "addons/pos_sale/models/sale_order.py",
+        "addons/pos_sale/report/sale_report.py",
+        "addons/pos_sale/static/src/app/components/screens/product_screen/control_buttons/control_buttons.js",
+        "addons/pos_sale/static/src/app/models/pos_order_line.js",
+        "addons/pos_sale/static/src/app/services/pos_store.js",
+        "addons/pos_sale/views/point_of_sale_report.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/pos_sale/models/pos_order.py",
+          "addons/pos_sale/models/sale_order.py",
+          "addons/pos_sale/static/src/app/models/pos_order_line.js"
+        ],
+        "reports": [
+          "addons/pos_sale/report/sale_report.py"
+        ],
+        "static": [
+          "addons/pos_sale/static/src/app/components/screens/product_screen/control_buttons/control_buttons.js",
+          "addons/pos_sale/static/src/app/services/pos_store.js"
+        ],
+        "views": [
+          "addons/pos_sale/views/point_of_sale_report.xml"
+        ]
+      },
+      "files_changed": 7,
+      "is_new_module": false,
+      "model_files": 2,
+      "module_name": "pos_sale",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/product/__init__.py",
+        "addons/product/__manifest__.py",
+        "addons/product/controllers/catalog.py",
+        "addons/product/controllers/pricelist_report.py",
+        "addons/product/controllers/product_document.py",
+        "addons/product/data/product_data.xml",
+        "addons/product/data/product_demo.xml",
+        "addons/product/models/__init__.py",
+        "addons/product/models/account_product_category.py",
+        "addons/product/models/ir_attachment.py",
+        "addons/product/models/mrp_product_category.py",
+        "addons/product/models/product_attribute.py",
+        "addons/product/models/product_attribute_custom_value.py",
+        "addons/product/models/product_attribute_value.py",
+        "addons/product/models/product_catalog_mixin.py",
+        "addons/product/models/product_category.py",
+        "addons/product/models/product_combo.py",
+        "addons/product/models/product_combo_item.py",
+        "addons/product/models/product_document.py",
+        "addons/product/models/product_pricelist.py",
+        "addons/product/models/product_pricelist_item.py",
+        "addons/product/models/product_product.py",
+        "addons/product/models/product_supplierinfo.py",
+        "addons/product/models/product_tag.py",
+        "addons/product/models/product_template.py",
+        "addons/product/models/product_template_attribute_exclusion.py",
+        "addons/product/models/product_template_attribute_line.py",
+        "addons/product/models/product_template_attribute_value.py",
+        "addons/product/models/product_uom.py",
+        "addons/product/models/purchase_product_category.py",
+        "addons/product/models/res_company.py",
+        "addons/product/models/res_config_settings.py",
+        "addons/product/models/res_country_group.py",
+        "addons/product/models/res_currency.py",
+        "addons/product/models/res_partner.py",
+        "addons/product/models/sale_product_category.py",
+        "addons/product/models/stock_product_category.py",
+        "addons/product/models/uom_uom.py",
+        "addons/product/report/__init__.py",
+        "addons/product/report/product_label_report.py",
+        "addons/product/report/product_packaging.xml",
+        "addons/product/report/product_pricelist_report.py",
+        "addons/product/report/product_pricelist_report_templates.xml",
+        "addons/product/report/product_product_templates.xml",
+        "addons/product/report/product_reports.xml",
+        "addons/product/report/product_template_templates.xml",
+        "addons/product/security/ir.model.access.csv",
+        "addons/product/security/product_security.xml",
+        "addons/product/views/product_attribute_value_views.xml",
+        "addons/product/views/product_attribute_views.xml",
+        "addons/product/views/product_category_views.xml",
+        "addons/product/views/product_combo_views.xml",
+        "addons/product/views/product_document_views.xml",
+        "addons/product/views/product_pricelist_item_views.xml",
+        "addons/product/views/product_pricelist_views.xml",
+        "addons/product/views/product_product_views.xml",
+        "addons/product/views/product_supplierinfo_views.xml",
+        "addons/product/views/product_tag_views.xml",
+        "addons/product/views/product_template_attribute_line_views.xml",
+        "addons/product/views/product_template_attribute_value_views.xml",
+        "addons/product/views/product_template_views.xml",
+        "addons/product/views/product_views.xml",
+        "addons/product/views/res_config_settings_views.xml",
+        "addons/product/views/res_country_group_views.xml",
+        "addons/product/views/res_partner_views.xml",
+        "addons/product/views/uom_views.xml",
+        "addons/product/wizard/product_label_layout.py",
+        "addons/product/wizard/product_label_layout_views.xml",
+        "addons/product/wizard/update_product_attribute_value.py",
+        "addons/product/wizard/update_product_attribute_value_views.xml"
+      ],
+      "file_categories": {
+        "controllers": [
+          "addons/product/controllers/catalog.py",
+          "addons/product/controllers/pricelist_report.py",
+          "addons/product/controllers/product_document.py"
+        ],
+        "models": [
+          "addons/product/models/__init__.py",
+          "addons/product/models/account_product_category.py",
+          "addons/product/models/ir_attachment.py",
+          "addons/product/models/mrp_product_category.py",
+          "addons/product/models/product_attribute.py",
+          "addons/product/models/product_attribute_custom_value.py",
+          "addons/product/models/product_attribute_value.py",
+          "addons/product/models/product_catalog_mixin.py",
+          "addons/product/models/product_category.py",
+          "addons/product/models/product_combo.py",
+          "addons/product/models/product_combo_item.py",
+          "addons/product/models/product_document.py",
+          "addons/product/models/product_pricelist.py",
+          "addons/product/models/product_pricelist_item.py",
+          "addons/product/models/product_product.py",
+          "addons/product/models/product_supplierinfo.py",
+          "addons/product/models/product_tag.py",
+          "addons/product/models/product_template.py",
+          "addons/product/models/product_template_attribute_exclusion.py",
+          "addons/product/models/product_template_attribute_line.py",
+          "addons/product/models/product_template_attribute_value.py",
+          "addons/product/models/product_uom.py",
+          "addons/product/models/purchase_product_category.py",
+          "addons/product/models/res_company.py",
+          "addons/product/models/res_config_settings.py",
+          "addons/product/models/res_country_group.py",
+          "addons/product/models/res_currency.py",
+          "addons/product/models/res_partner.py",
+          "addons/product/models/sale_product_category.py",
+          "addons/product/models/stock_product_category.py",
+          "addons/product/models/uom_uom.py"
+        ],
+        "other": [
+          "addons/product/__init__.py",
+          "addons/product/__manifest__.py"
+        ],
+        "reports": [
+          "addons/product/report/__init__.py",
+          "addons/product/report/product_label_report.py",
+          "addons/product/report/product_pricelist_report.py"
+        ],
+        "security": [
+          "addons/product/security/ir.model.access.csv"
+        ],
+        "views": [
+          "addons/product/data/product_data.xml",
+          "addons/product/data/product_demo.xml",
+          "addons/product/report/product_packaging.xml",
+          "addons/product/report/product_pricelist_report_templates.xml",
+          "addons/product/report/product_product_templates.xml",
+          "addons/product/report/product_reports.xml",
+          "addons/product/report/product_template_templates.xml",
+          "addons/product/security/product_security.xml",
+          "addons/product/views/product_attribute_value_views.xml",
+          "addons/product/views/product_attribute_views.xml",
+          "addons/product/views/product_category_views.xml",
+          "addons/product/views/product_combo_views.xml",
+          "addons/product/views/product_document_views.xml",
+          "addons/product/views/product_pricelist_item_views.xml",
+          "addons/product/views/product_pricelist_views.xml",
+          "addons/product/views/product_product_views.xml",
+          "addons/product/views/product_supplierinfo_views.xml",
+          "addons/product/views/product_tag_views.xml",
+          "addons/product/views/product_template_attribute_line_views.xml",
+          "addons/product/views/product_template_attribute_value_views.xml",
+          "addons/product/views/product_template_views.xml",
+          "addons/product/views/product_views.xml",
+          "addons/product/views/res_config_settings_views.xml",
+          "addons/product/views/res_country_group_views.xml",
+          "addons/product/views/res_partner_views.xml",
+          "addons/product/views/uom_views.xml",
+          "addons/product/wizard/product_label_layout_views.xml",
+          "addons/product/wizard/update_product_attribute_value_views.xml"
+        ],
+        "wizards": [
+          "addons/product/wizard/product_label_layout.py",
+          "addons/product/wizard/update_product_attribute_value.py"
+        ]
+      },
+      "files_changed": 70,
+      "is_new_module": true,
+      "model_files": 30,
+      "module_name": "product",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/product_expiry/models/production_lot.py",
+        "addons/product_expiry/models/stock_move_line.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/product_expiry/models/production_lot.py",
+          "addons/product_expiry/models/stock_move_line.py"
+        ]
+      },
+      "files_changed": 2,
+      "is_new_module": false,
+      "model_files": 2,
+      "module_name": "product_expiry",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/project/__init__.py",
+        "addons/project/__manifest__.py",
+        "addons/project/controllers/portal.py",
+        "addons/project/controllers/project_sharing_chatter.py",
+        "addons/project/models/account_analytic_account.py",
+        "addons/project/models/digest_digest.py",
+        "addons/project/models/ir_ui_menu.py",
+        "addons/project/models/mail_message.py",
+        "addons/project/models/project_collaborator.py",
+        "addons/project/models/project_milestone.py",
+        "addons/project/models/project_project.py",
+        "addons/project/models/project_project_stage.py",
+        "addons/project/models/project_tags.py",
+        "addons/project/models/project_task.py",
+        "addons/project/models/project_task_recurrence.py",
+        "addons/project/models/project_task_stage_personal.py",
+        "addons/project/models/project_task_type.py",
+        "addons/project/models/project_update.py",
+        "addons/project/models/res_config_settings.py",
+        "addons/project/models/res_partner.py",
+        "addons/project/report/project_report.py",
+        "addons/project/report/project_task_burndown_chart_report.py",
+        "addons/project/wizard/project_project_stage_delete.py",
+        "addons/project/wizard/project_share_collaborator_wizard.py",
+        "addons/project/wizard/project_share_wizard.py",
+        "addons/project/wizard/project_task_type_delete.py"
+      ],
+      "file_categories": {
+        "controllers": [
+          "addons/project/controllers/portal.py",
+          "addons/project/controllers/project_sharing_chatter.py"
+        ],
+        "models": [
+          "addons/project/models/account_analytic_account.py",
+          "addons/project/models/digest_digest.py",
+          "addons/project/models/ir_ui_menu.py",
+          "addons/project/models/mail_message.py",
+          "addons/project/models/project_collaborator.py",
+          "addons/project/models/project_milestone.py",
+          "addons/project/models/project_project.py",
+          "addons/project/models/project_project_stage.py",
+          "addons/project/models/project_tags.py",
+          "addons/project/models/project_task.py",
+          "addons/project/models/project_task_recurrence.py",
+          "addons/project/models/project_task_stage_personal.py",
+          "addons/project/models/project_task_type.py",
+          "addons/project/models/project_update.py",
+          "addons/project/models/res_config_settings.py",
+          "addons/project/models/res_partner.py"
+        ],
+        "other": [
+          "addons/project/__init__.py",
+          "addons/project/__manifest__.py"
+        ],
+        "reports": [
+          "addons/project/report/project_report.py",
+          "addons/project/report/project_task_burndown_chart_report.py"
+        ],
+        "wizards": [
+          "addons/project/wizard/project_project_stage_delete.py",
+          "addons/project/wizard/project_share_collaborator_wizard.py",
+          "addons/project/wizard/project_share_wizard.py",
+          "addons/project/wizard/project_task_type_delete.py"
+        ]
+      },
+      "files_changed": 26,
+      "is_new_module": true,
+      "model_files": 16,
+      "module_name": "project",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/project_purchase/models/project_project.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/project_purchase/models/project_project.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "project_purchase",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/project_purchase_stock/models/purchase_order.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/project_purchase_stock/models/purchase_order.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "project_purchase_stock",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/project_sale_expense/models/project_project.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/project_sale_expense/models/project_project.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "project_sale_expense",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/purchase/__init__.py",
+        "addons/purchase/__manifest__.py",
+        "addons/purchase/controllers/__init__.py",
+        "addons/purchase/controllers/portal.py",
+        "addons/purchase/data/approval_category_data.xml",
+        "addons/purchase/data/digest_data.xml",
+        "addons/purchase/data/ir_cron_data.xml",
+        "addons/purchase/data/mail_template_data.xml",
+        "addons/purchase/data/mail_templates.xml",
+        "addons/purchase/data/purchase_data.xml",
+        "addons/purchase/data/purchase_demo.xml",
+        "addons/purchase/data/purchase_reports.xml",
+        "addons/purchase/migrations/9.0.1.2/pre-create-properties.py",
+        "addons/purchase/models/__init__.py",
+        "addons/purchase/models/account_analytic_applicability.py",
+        "addons/purchase/models/account_invoice.py",
+        "addons/purchase/models/account_move.py",
+        "addons/purchase/models/account_move_line.py",
+        "addons/purchase/models/account_tax.py",
+        "addons/purchase/models/analytic_account.py",
+        "addons/purchase/models/analytic_applicability.py",
+        "addons/purchase/models/ir_actions_report.py",
+        "addons/purchase/models/product.py",
+        "addons/purchase/models/product_product.py",
+        "addons/purchase/models/product_supplierinfo.py",
+        "addons/purchase/models/product_template.py",
+        "addons/purchase/models/purchase_bill_line_match.py",
+        "addons/purchase/models/purchase_order.py",
+        "addons/purchase/models/purchase_order_line.py",
+        "addons/purchase/models/res_company.py",
+        "addons/purchase/models/res_config_settings.py",
+        "addons/purchase/models/res_partner.py",
+        "addons/purchase/report/__init__.py",
+        "addons/purchase/report/purchase_bill.py",
+        "addons/purchase/report/purchase_bill_views.xml",
+        "addons/purchase/report/purchase_order_templates.xml",
+        "addons/purchase/report/purchase_quotation_templates.xml",
+        "addons/purchase/report/purchase_report.py",
+        "addons/purchase/report/purchase_report_views.xml",
+        "addons/purchase/report/purchase_reports.xml",
+        "addons/purchase/security/ir_module_category.xml",
+        "addons/purchase/security/ir_rule.xml",
+        "addons/purchase/security/purchase_security.xml",
+        "addons/purchase/security/res_groups.xml",
+        "addons/purchase/static/src/components/open_match_line_widget/open_match_line_widget.xml",
+        "addons/purchase/static/src/components/tax_totals/tax_totals.xml",
+        "addons/purchase/static/src/js/tours/purchase.js",
+        "addons/purchase/static/src/views/purchase_dashboard.js",
+        "addons/purchase/tests/test_purchase_invoice.py",
+        "addons/purchase/tests/test_purchase_order_report.py",
+        "addons/purchase/views/account_move_views.xml",
+        "addons/purchase/views/analytic_account_views.xml",
+        "addons/purchase/views/portal_templates.xml",
+        "addons/purchase/views/product_product_views.xml",
+        "addons/purchase/views/product_supplierinfo_views.xml",
+        "addons/purchase/views/product_template_views.xml",
+        "addons/purchase/views/product_views.xml",
+        "addons/purchase/views/purchase_menu.xml",
+        "addons/purchase/views/purchase_order_line_views.xml",
+        "addons/purchase/views/purchase_order_views.xml",
+        "addons/purchase/views/purchase_views.xml",
+        "addons/purchase/views/res_config_settings_views.xml",
+        "addons/purchase/views/res_partner_views.xml",
+        "addons/purchase/wizard/__init__.py",
+        "addons/purchase/wizard/bill_to_po_wizard.py",
+        "addons/purchase/wizard/bill_to_po_wizard_views.xml",
+        "addons/purchase/wizard/purchase_bill_line_match.py",
+        "addons/purchase/wizard/purchase_bill_line_match_views.xml",
+        "addons/purchase/wizard/purchase_bill_union.py",
+        "addons/purchase/wizard/purchase_bill_union_views.xml",
+        "addons/purchase/wizard/res_config_settings.py",
+        "addons/purchase/wizard/res_config_settings_views.xml"
+      ],
+      "file_categories": {
+        "controllers": [
+          "addons/purchase/controllers/__init__.py",
+          "addons/purchase/controllers/portal.py"
+        ],
+        "models": [
+          "addons/purchase/models/__init__.py",
+          "addons/purchase/models/account_analytic_applicability.py",
+          "addons/purchase/models/account_invoice.py",
+          "addons/purchase/models/account_move.py",
+          "addons/purchase/models/account_move_line.py",
+          "addons/purchase/models/account_tax.py",
+          "addons/purchase/models/analytic_account.py",
+          "addons/purchase/models/analytic_applicability.py",
+          "addons/purchase/models/ir_actions_report.py",
+          "addons/purchase/models/product.py",
+          "addons/purchase/models/product_product.py",
+          "addons/purchase/models/product_supplierinfo.py",
+          "addons/purchase/models/product_template.py",
+          "addons/purchase/models/purchase_bill_line_match.py",
+          "addons/purchase/models/purchase_order.py",
+          "addons/purchase/models/purchase_order_line.py",
+          "addons/purchase/models/res_company.py",
+          "addons/purchase/models/res_config_settings.py",
+          "addons/purchase/models/res_partner.py"
+        ],
+        "other": [
+          "addons/purchase/__init__.py",
+          "addons/purchase/__manifest__.py",
+          "addons/purchase/migrations/9.0.1.2/pre-create-properties.py"
+        ],
+        "reports": [
+          "addons/purchase/report/__init__.py",
+          "addons/purchase/report/purchase_bill.py",
+          "addons/purchase/report/purchase_report.py",
+          "addons/purchase/tests/test_purchase_order_report.py"
+        ],
+        "static": [
+          "addons/purchase/static/src/js/tours/purchase.js"
+        ],
+        "tests": [
+          "addons/purchase/tests/test_purchase_invoice.py"
+        ],
+        "views": [
+          "addons/purchase/data/approval_category_data.xml",
+          "addons/purchase/data/digest_data.xml",
+          "addons/purchase/data/ir_cron_data.xml",
+          "addons/purchase/data/mail_template_data.xml",
+          "addons/purchase/data/mail_templates.xml",
+          "addons/purchase/data/purchase_data.xml",
+          "addons/purchase/data/purchase_demo.xml",
+          "addons/purchase/data/purchase_reports.xml",
+          "addons/purchase/report/purchase_bill_views.xml",
+          "addons/purchase/report/purchase_order_templates.xml",
+          "addons/purchase/report/purchase_quotation_templates.xml",
+          "addons/purchase/report/purchase_report_views.xml",
+          "addons/purchase/report/purchase_reports.xml",
+          "addons/purchase/security/ir_module_category.xml",
+          "addons/purchase/security/ir_rule.xml",
+          "addons/purchase/security/purchase_security.xml",
+          "addons/purchase/security/res_groups.xml",
+          "addons/purchase/static/src/components/open_match_line_widget/open_match_line_widget.xml",
+          "addons/purchase/static/src/components/tax_totals/tax_totals.xml",
+          "addons/purchase/static/src/views/purchase_dashboard.js",
+          "addons/purchase/views/account_move_views.xml",
+          "addons/purchase/views/analytic_account_views.xml",
+          "addons/purchase/views/portal_templates.xml",
+          "addons/purchase/views/product_product_views.xml",
+          "addons/purchase/views/product_supplierinfo_views.xml",
+          "addons/purchase/views/product_template_views.xml",
+          "addons/purchase/views/product_views.xml",
+          "addons/purchase/views/purchase_menu.xml",
+          "addons/purchase/views/purchase_order_line_views.xml",
+          "addons/purchase/views/purchase_order_views.xml",
+          "addons/purchase/views/purchase_views.xml",
+          "addons/purchase/views/res_config_settings_views.xml",
+          "addons/purchase/views/res_partner_views.xml",
+          "addons/purchase/wizard/bill_to_po_wizard_views.xml",
+          "addons/purchase/wizard/purchase_bill_line_match_views.xml",
+          "addons/purchase/wizard/purchase_bill_union_views.xml",
+          "addons/purchase/wizard/res_config_settings_views.xml"
+        ],
+        "wizards": [
+          "addons/purchase/wizard/__init__.py",
+          "addons/purchase/wizard/bill_to_po_wizard.py",
+          "addons/purchase/wizard/purchase_bill_line_match.py",
+          "addons/purchase/wizard/purchase_bill_union.py",
+          "addons/purchase/wizard/res_config_settings.py"
+        ]
+      },
+      "files_changed": 72,
+      "is_new_module": true,
+      "model_files": 18,
+      "module_name": "purchase",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/purchase_mrp/models/mrp_production.py",
+        "addons/purchase_mrp/models/purchase.py",
+        "addons/purchase_mrp/models/stock_move.py",
+        "addons/purchase_mrp/report/mrp_report_mo_overview.py",
+        "addons/purchase_mrp/tests/test_purchase_mrp_flow.py",
+        "addons/purchase_mrp/views/mrp_production_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/purchase_mrp/models/mrp_production.py",
+          "addons/purchase_mrp/models/purchase.py",
+          "addons/purchase_mrp/models/stock_move.py"
+        ],
+        "reports": [
+          "addons/purchase_mrp/report/mrp_report_mo_overview.py"
+        ],
+        "tests": [
+          "addons/purchase_mrp/tests/test_purchase_mrp_flow.py"
+        ],
+        "views": [
+          "addons/purchase_mrp/views/mrp_production_views.xml"
+        ]
+      },
+      "files_changed": 6,
+      "is_new_module": false,
+      "model_files": 3,
+      "module_name": "purchase_mrp",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/purchase_requisition/data/purchase_requisition_demo.xml",
+        "addons/purchase_requisition/models/purchase.py",
+        "addons/purchase_requisition/models/purchase_requisition.py",
+        "addons/purchase_requisition/report/report_purchaserequisition.xml",
+        "addons/purchase_requisition/views/purchase_views.xml",
+        "addons/purchase_requisition/wizard/purchase_requisition_alternative_warning.py",
+        "addons/purchase_requisition/wizard/purchase_requisition_create_alternative.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/purchase_requisition/models/purchase.py",
+          "addons/purchase_requisition/models/purchase_requisition.py"
+        ],
+        "views": [
+          "addons/purchase_requisition/data/purchase_requisition_demo.xml",
+          "addons/purchase_requisition/report/report_purchaserequisition.xml",
+          "addons/purchase_requisition/views/purchase_views.xml"
+        ],
+        "wizards": [
+          "addons/purchase_requisition/wizard/purchase_requisition_alternative_warning.py",
+          "addons/purchase_requisition/wizard/purchase_requisition_create_alternative.py"
+        ]
+      },
+      "files_changed": 7,
+      "is_new_module": false,
+      "model_files": 2,
+      "module_name": "purchase_requisition",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/purchase_stock/__init__.py",
+        "addons/purchase_stock/__manifest__.py",
+        "addons/purchase_stock/data/purchase_stock_data.xml",
+        "addons/purchase_stock/data/purchase_stock_demo.xml",
+        "addons/purchase_stock/models/__init__.py",
+        "addons/purchase_stock/models/account_invoice.py",
+        "addons/purchase_stock/models/account_move.py",
+        "addons/purchase_stock/models/account_move_line.py",
+        "addons/purchase_stock/models/procurement_group.py",
+        "addons/purchase_stock/models/product.py",
+        "addons/purchase_stock/models/product_category.py",
+        "addons/purchase_stock/models/product_product.py",
+        "addons/purchase_stock/models/product_supplierinfo.py",
+        "addons/purchase_stock/models/product_template.py",
+        "addons/purchase_stock/models/purchase_order.py",
+        "addons/purchase_stock/models/purchase_order_line.py",
+        "addons/purchase_stock/models/res_company.py",
+        "addons/purchase_stock/models/res_config_settings.py",
+        "addons/purchase_stock/models/res_partner.py",
+        "addons/purchase_stock/models/stock.py",
+        "addons/purchase_stock/models/stock_lot.py",
+        "addons/purchase_stock/models/stock_move.py",
+        "addons/purchase_stock/models/stock_picking.py",
+        "addons/purchase_stock/models/stock_replenish_mixin.py",
+        "addons/purchase_stock/models/stock_rule.py",
+        "addons/purchase_stock/models/stock_valuation_layer.py",
+        "addons/purchase_stock/models/stock_warehouse.py",
+        "addons/purchase_stock/models/stock_warehouse_orderpoint.py",
+        "addons/purchase_stock/report/purchase_report.py",
+        "addons/purchase_stock/report/purchase_report_templates.xml",
+        "addons/purchase_stock/report/purchase_report_views.xml",
+        "addons/purchase_stock/report/report_stock_rule.py",
+        "addons/purchase_stock/report/report_stock_rule.xml",
+        "addons/purchase_stock/report/stock_forecasted.py",
+        "addons/purchase_stock/report/vendor_delay_report.py",
+        "addons/purchase_stock/report/vendor_delay_report.xml",
+        "addons/purchase_stock/security/ir.model.access.csv",
+        "addons/purchase_stock/tests/test_anglo_saxon_valuation_reconciliation.py",
+        "addons/purchase_stock/tests/test_purchase_order.py",
+        "addons/purchase_stock/tests/test_purchase_order_process.py",
+        "addons/purchase_stock/tests/test_stockvaluation.py",
+        "addons/purchase_stock/views/product_category_views.xml",
+        "addons/purchase_stock/views/product_product_views.xml",
+        "addons/purchase_stock/views/product_template_views.xml",
+        "addons/purchase_stock/views/product_views.xml",
+        "addons/purchase_stock/views/purchase_order_line_views.xml",
+        "addons/purchase_stock/views/purchase_order_views.xml",
+        "addons/purchase_stock/views/purchase_views.xml",
+        "addons/purchase_stock/views/res_config_settings_views.xml",
+        "addons/purchase_stock/views/res_partner_views.xml",
+        "addons/purchase_stock/views/stock_lot_views.xml",
+        "addons/purchase_stock/views/stock_move_views.xml",
+        "addons/purchase_stock/views/stock_orderpoint_views.xml",
+        "addons/purchase_stock/views/stock_rule_views.xml",
+        "addons/purchase_stock/views/stock_views.xml",
+        "addons/purchase_stock/views/stock_warehouse_orderpoint_views.xml",
+        "addons/purchase_stock/views/stock_warehouse_views.xml",
+        "addons/purchase_stock/wizard/__init__.py",
+        "addons/purchase_stock/wizard/product_replenish.py",
+        "addons/purchase_stock/wizard/product_replenish_views.xml",
+        "addons/purchase_stock/wizard/res_config_settings.py",
+        "addons/purchase_stock/wizard/stock_replenishment_info.py",
+        "addons/purchase_stock/wizard/stock_replenishment_info.xml",
+        "addons/purchase_stock/wizard/stock_return_picking.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/purchase_stock/models/__init__.py",
+          "addons/purchase_stock/models/account_invoice.py",
+          "addons/purchase_stock/models/account_move.py",
+          "addons/purchase_stock/models/account_move_line.py",
+          "addons/purchase_stock/models/procurement_group.py",
+          "addons/purchase_stock/models/product.py",
+          "addons/purchase_stock/models/product_category.py",
+          "addons/purchase_stock/models/product_product.py",
+          "addons/purchase_stock/models/product_supplierinfo.py",
+          "addons/purchase_stock/models/product_template.py",
+          "addons/purchase_stock/models/purchase_order.py",
+          "addons/purchase_stock/models/purchase_order_line.py",
+          "addons/purchase_stock/models/res_company.py",
+          "addons/purchase_stock/models/res_config_settings.py",
+          "addons/purchase_stock/models/res_partner.py",
+          "addons/purchase_stock/models/stock.py",
+          "addons/purchase_stock/models/stock_lot.py",
+          "addons/purchase_stock/models/stock_move.py",
+          "addons/purchase_stock/models/stock_picking.py",
+          "addons/purchase_stock/models/stock_replenish_mixin.py",
+          "addons/purchase_stock/models/stock_rule.py",
+          "addons/purchase_stock/models/stock_valuation_layer.py",
+          "addons/purchase_stock/models/stock_warehouse.py",
+          "addons/purchase_stock/models/stock_warehouse_orderpoint.py"
+        ],
+        "other": [
+          "addons/purchase_stock/__init__.py",
+          "addons/purchase_stock/__manifest__.py"
+        ],
+        "reports": [
+          "addons/purchase_stock/report/purchase_report.py",
+          "addons/purchase_stock/report/report_stock_rule.py",
+          "addons/purchase_stock/report/stock_forecasted.py",
+          "addons/purchase_stock/report/vendor_delay_report.py"
+        ],
+        "security": [
+          "addons/purchase_stock/security/ir.model.access.csv"
+        ],
+        "tests": [
+          "addons/purchase_stock/tests/test_anglo_saxon_valuation_reconciliation.py",
+          "addons/purchase_stock/tests/test_purchase_order.py",
+          "addons/purchase_stock/tests/test_purchase_order_process.py",
+          "addons/purchase_stock/tests/test_stockvaluation.py"
+        ],
+        "views": [
+          "addons/purchase_stock/data/purchase_stock_data.xml",
+          "addons/purchase_stock/data/purchase_stock_demo.xml",
+          "addons/purchase_stock/report/purchase_report_templates.xml",
+          "addons/purchase_stock/report/purchase_report_views.xml",
+          "addons/purchase_stock/report/report_stock_rule.xml",
+          "addons/purchase_stock/report/vendor_delay_report.xml",
+          "addons/purchase_stock/views/product_category_views.xml",
+          "addons/purchase_stock/views/product_product_views.xml",
+          "addons/purchase_stock/views/product_template_views.xml",
+          "addons/purchase_stock/views/product_views.xml",
+          "addons/purchase_stock/views/purchase_order_line_views.xml",
+          "addons/purchase_stock/views/purchase_order_views.xml",
+          "addons/purchase_stock/views/purchase_views.xml",
+          "addons/purchase_stock/views/res_config_settings_views.xml",
+          "addons/purchase_stock/views/res_partner_views.xml",
+          "addons/purchase_stock/views/stock_lot_views.xml",
+          "addons/purchase_stock/views/stock_move_views.xml",
+          "addons/purchase_stock/views/stock_orderpoint_views.xml",
+          "addons/purchase_stock/views/stock_rule_views.xml",
+          "addons/purchase_stock/views/stock_views.xml",
+          "addons/purchase_stock/views/stock_warehouse_orderpoint_views.xml",
+          "addons/purchase_stock/views/stock_warehouse_views.xml",
+          "addons/purchase_stock/wizard/product_replenish_views.xml",
+          "addons/purchase_stock/wizard/stock_replenishment_info.xml"
+        ],
+        "wizards": [
+          "addons/purchase_stock/wizard/__init__.py",
+          "addons/purchase_stock/wizard/product_replenish.py",
+          "addons/purchase_stock/wizard/res_config_settings.py",
+          "addons/purchase_stock/wizard/stock_replenishment_info.py",
+          "addons/purchase_stock/wizard/stock_return_picking.py"
+        ]
+      },
+      "files_changed": 64,
+      "is_new_module": true,
+      "model_files": 23,
+      "module_name": "purchase_stock",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale/__init__.py",
+        "addons/sale/__manifest__.py",
+        "addons/sale/controllers/__init__.py",
+        "addons/sale/controllers/combo_configurator.py",
+        "addons/sale/controllers/customer_portal.py",
+        "addons/sale/controllers/payment_portal.py",
+        "addons/sale/controllers/portal.py",
+        "addons/sale/controllers/product_configurator.py",
+        "addons/sale/data/approval_category_data.xml",
+        "addons/sale/data/ir_config_parameter.xml",
+        "addons/sale/data/ir_cron.xml",
+        "addons/sale/data/ir_sequence_data.xml",
+        "addons/sale/data/mail_activity_type_data.xml",
+        "addons/sale/data/mail_message_subtype_data.xml",
+        "addons/sale/data/mail_template_data.xml",
+        "addons/sale/data/product_demo.xml",
+        "addons/sale/data/sale_demo.xml",
+        "addons/sale/data/sale_tour.xml",
+        "addons/sale/models/__init__.py",
+        "addons/sale/models/account_analytic_applicability.py",
+        "addons/sale/models/account_move.py",
+        "addons/sale/models/account_move_line.py",
+        "addons/sale/models/analytic.py",
+        "addons/sale/models/chart_template.py",
+        "addons/sale/models/crm_team.py",
+        "addons/sale/models/ir_config_parameter.py",
+        "addons/sale/models/payment_provider.py",
+        "addons/sale/models/payment_transaction.py",
+        "addons/sale/models/product_attribute_custom_value.py",
+        "addons/sale/models/product_category.py",
+        "addons/sale/models/product_document.py",
+        "addons/sale/models/product_product.py",
+        "addons/sale/models/product_template.py",
+        "addons/sale/models/res_company.py",
+        "addons/sale/models/res_partner.py",
+        "addons/sale/models/sale_order.py",
+        "addons/sale/models/sale_order_line.py",
+        "addons/sale/models/utm_campaign.py",
+        "addons/sale/report/__init__.py",
+        "addons/sale/report/account_invoice_report.py",
+        "addons/sale/report/account_invoice_report_views.xml",
+        "addons/sale/report/ir_actions_report.xml",
+        "addons/sale/report/ir_actions_report_templates.xml",
+        "addons/sale/report/sale_report.py",
+        "addons/sale/report/sale_report_views.xml",
+        "addons/sale/security/ir_rules.xml",
+        "addons/sale/security/res_groups.xml",
+        "addons/sale/static/src/js/sale_order_line_field/sale_order_line_field.js",
+        "addons/sale/static/src/js/tours/sale.js",
+        "addons/sale/views/account_move_views.xml",
+        "addons/sale/views/crm_team_views.xml",
+        "addons/sale/views/mail_activity_plan_views.xml",
+        "addons/sale/views/mail_activity_views.xml",
+        "addons/sale/views/payment_views.xml",
+        "addons/sale/views/product_category_views.xml",
+        "addons/sale/views/product_document_views.xml",
+        "addons/sale/views/product_product_views.xml",
+        "addons/sale/views/product_template_views.xml",
+        "addons/sale/views/product_views.xml",
+        "addons/sale/views/res_partner_views.xml",
+        "addons/sale/views/sale_menus.xml",
+        "addons/sale/views/sale_order_line_views.xml",
+        "addons/sale/views/sale_order_views.xml",
+        "addons/sale/views/sale_portal_templates.xml",
+        "addons/sale/views/utm_campaign_views.xml",
+        "addons/sale/wizard/__init__.py",
+        "addons/sale/wizard/account_accrued_orders_wizard_views.xml",
+        "addons/sale/wizard/base_document_layout.py",
+        "addons/sale/wizard/mass_cancel_orders.py",
+        "addons/sale/wizard/mass_cancel_orders_views.xml",
+        "addons/sale/wizard/payment_link_wizard.py",
+        "addons/sale/wizard/payment_link_wizard_views.xml",
+        "addons/sale/wizard/payment_provider_onboarding_wizard.py",
+        "addons/sale/wizard/res_config_settings.py",
+        "addons/sale/wizard/res_config_settings_views.xml",
+        "addons/sale/wizard/sale_make_invoice_advance.py",
+        "addons/sale/wizard/sale_make_invoice_advance_views.xml",
+        "addons/sale/wizard/sale_order_discount.py",
+        "addons/sale/wizard/sale_order_discount_views.xml"
+      ],
+      "file_categories": {
+        "controllers": [
+          "addons/sale/controllers/__init__.py",
+          "addons/sale/controllers/combo_configurator.py",
+          "addons/sale/controllers/customer_portal.py",
+          "addons/sale/controllers/payment_portal.py",
+          "addons/sale/controllers/portal.py",
+          "addons/sale/controllers/product_configurator.py"
+        ],
+        "models": [
+          "addons/sale/models/__init__.py",
+          "addons/sale/models/account_analytic_applicability.py",
+          "addons/sale/models/account_move.py",
+          "addons/sale/models/account_move_line.py",
+          "addons/sale/models/analytic.py",
+          "addons/sale/models/chart_template.py",
+          "addons/sale/models/crm_team.py",
+          "addons/sale/models/ir_config_parameter.py",
+          "addons/sale/models/payment_provider.py",
+          "addons/sale/models/payment_transaction.py",
+          "addons/sale/models/product_attribute_custom_value.py",
+          "addons/sale/models/product_category.py",
+          "addons/sale/models/product_document.py",
+          "addons/sale/models/product_product.py",
+          "addons/sale/models/product_template.py",
+          "addons/sale/models/res_company.py",
+          "addons/sale/models/res_partner.py",
+          "addons/sale/models/sale_order.py",
+          "addons/sale/models/sale_order_line.py",
+          "addons/sale/models/utm_campaign.py"
+        ],
+        "other": [
+          "addons/sale/__init__.py",
+          "addons/sale/__manifest__.py"
+        ],
+        "reports": [
+          "addons/sale/report/__init__.py",
+          "addons/sale/report/account_invoice_report.py",
+          "addons/sale/report/sale_report.py"
+        ],
+        "static": [
+          "addons/sale/static/src/js/sale_order_line_field/sale_order_line_field.js",
+          "addons/sale/static/src/js/tours/sale.js"
+        ],
+        "views": [
+          "addons/sale/data/approval_category_data.xml",
+          "addons/sale/data/ir_config_parameter.xml",
+          "addons/sale/data/ir_cron.xml",
+          "addons/sale/data/ir_sequence_data.xml",
+          "addons/sale/data/mail_activity_type_data.xml",
+          "addons/sale/data/mail_message_subtype_data.xml",
+          "addons/sale/data/mail_template_data.xml",
+          "addons/sale/data/product_demo.xml",
+          "addons/sale/data/sale_demo.xml",
+          "addons/sale/data/sale_tour.xml",
+          "addons/sale/report/account_invoice_report_views.xml",
+          "addons/sale/report/ir_actions_report.xml",
+          "addons/sale/report/ir_actions_report_templates.xml",
+          "addons/sale/report/sale_report_views.xml",
+          "addons/sale/security/ir_rules.xml",
+          "addons/sale/security/res_groups.xml",
+          "addons/sale/views/account_move_views.xml",
+          "addons/sale/views/crm_team_views.xml",
+          "addons/sale/views/mail_activity_plan_views.xml",
+          "addons/sale/views/mail_activity_views.xml",
+          "addons/sale/views/payment_views.xml",
+          "addons/sale/views/product_category_views.xml",
+          "addons/sale/views/product_document_views.xml",
+          "addons/sale/views/product_product_views.xml",
+          "addons/sale/views/product_template_views.xml",
+          "addons/sale/views/product_views.xml",
+          "addons/sale/views/res_partner_views.xml",
+          "addons/sale/views/sale_menus.xml",
+          "addons/sale/views/sale_order_line_views.xml",
+          "addons/sale/views/sale_order_views.xml",
+          "addons/sale/views/sale_portal_templates.xml",
+          "addons/sale/views/utm_campaign_views.xml",
+          "addons/sale/wizard/account_accrued_orders_wizard_views.xml",
+          "addons/sale/wizard/mass_cancel_orders_views.xml",
+          "addons/sale/wizard/payment_link_wizard_views.xml",
+          "addons/sale/wizard/res_config_settings_views.xml",
+          "addons/sale/wizard/sale_make_invoice_advance_views.xml",
+          "addons/sale/wizard/sale_order_discount_views.xml"
+        ],
+        "wizards": [
+          "addons/sale/wizard/__init__.py",
+          "addons/sale/wizard/base_document_layout.py",
+          "addons/sale/wizard/mass_cancel_orders.py",
+          "addons/sale/wizard/payment_link_wizard.py",
+          "addons/sale/wizard/payment_provider_onboarding_wizard.py",
+          "addons/sale/wizard/res_config_settings.py",
+          "addons/sale/wizard/sale_make_invoice_advance.py",
+          "addons/sale/wizard/sale_order_discount.py"
+        ]
+      },
+      "files_changed": 79,
+      "is_new_module": true,
+      "model_files": 19,
+      "module_name": "sale",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_async_emails/models/sale_order.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_async_emails/models/sale_order.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "sale_async_emails",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_edi/__init__.py",
+        "addons/sale_edi/__manifest__.py",
+        "addons/sale_edi/models/__init__.py",
+        "addons/sale_edi/models/sale_order.py",
+        "addons/sale_edi/views/sale_order_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_edi/models/__init__.py",
+          "addons/sale_edi/models/sale_order.py"
+        ],
+        "other": [
+          "addons/sale_edi/__init__.py",
+          "addons/sale_edi/__manifest__.py"
+        ],
+        "views": [
+          "addons/sale_edi/views/sale_order_views.xml"
+        ]
+      },
+      "files_changed": 5,
+      "is_new_module": true,
+      "model_files": 1,
+      "module_name": "sale_edi",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_expense/models/hr_expense.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_expense/models/hr_expense.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "sale_expense",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_loyalty/models/sale_order.py",
+        "addons/sale_loyalty/models/sale_order_line.py",
+        "addons/sale_loyalty/tests/test_sale_auto_invoice.py",
+        "addons/sale_loyalty/views/sale_order_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_loyalty/models/sale_order.py",
+          "addons/sale_loyalty/models/sale_order_line.py"
+        ],
+        "tests": [
+          "addons/sale_loyalty/tests/test_sale_auto_invoice.py"
+        ],
+        "views": [
+          "addons/sale_loyalty/views/sale_order_views.xml"
+        ]
+      },
+      "files_changed": 4,
+      "is_new_module": false,
+      "model_files": 2,
+      "module_name": "sale_loyalty",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_loyalty_delivery/models/sale_order.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_loyalty_delivery/models/sale_order.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "sale_loyalty_delivery",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_management/__init__.py",
+        "addons/sale_management/__manifest__.py",
+        "addons/sale_management/controllers/__init__.py",
+        "addons/sale_management/controllers/portal.py",
+        "addons/sale_management/data/digest_data.xml",
+        "addons/sale_management/models/__init__.py",
+        "addons/sale_management/models/digest.py",
+        "addons/sale_management/models/res_company.py",
+        "addons/sale_management/models/res_config_settings.py",
+        "addons/sale_management/models/sale_order.py",
+        "addons/sale_management/models/sale_order_line.py",
+        "addons/sale_management/models/sale_order_option.py",
+        "addons/sale_management/models/sale_order_template.py",
+        "addons/sale_management/models/sale_order_template_line.py",
+        "addons/sale_management/models/sale_order_template_option.py",
+        "addons/sale_management/report/sale_report_templates.xml",
+        "addons/sale_management/views/digest_views.xml",
+        "addons/sale_management/views/res_config_settings_views.xml",
+        "addons/sale_management/views/sale_management_menus.xml",
+        "addons/sale_management/views/sale_order_template_views.xml",
+        "addons/sale_management/views/sale_order_views.xml",
+        "addons/sale_management/views/sale_portal_templates.xml"
+      ],
+      "file_categories": {
+        "controllers": [
+          "addons/sale_management/controllers/__init__.py",
+          "addons/sale_management/controllers/portal.py"
+        ],
+        "models": [
+          "addons/sale_management/models/__init__.py",
+          "addons/sale_management/models/digest.py",
+          "addons/sale_management/models/res_company.py",
+          "addons/sale_management/models/res_config_settings.py",
+          "addons/sale_management/models/sale_order.py",
+          "addons/sale_management/models/sale_order_line.py",
+          "addons/sale_management/models/sale_order_option.py",
+          "addons/sale_management/models/sale_order_template.py",
+          "addons/sale_management/models/sale_order_template_line.py",
+          "addons/sale_management/models/sale_order_template_option.py"
+        ],
+        "other": [
+          "addons/sale_management/__init__.py",
+          "addons/sale_management/__manifest__.py"
+        ],
+        "views": [
+          "addons/sale_management/data/digest_data.xml",
+          "addons/sale_management/report/sale_report_templates.xml",
+          "addons/sale_management/views/digest_views.xml",
+          "addons/sale_management/views/res_config_settings_views.xml",
+          "addons/sale_management/views/sale_management_menus.xml",
+          "addons/sale_management/views/sale_order_template_views.xml",
+          "addons/sale_management/views/sale_order_views.xml",
+          "addons/sale_management/views/sale_portal_templates.xml"
+        ]
+      },
+      "files_changed": 22,
+      "is_new_module": true,
+      "model_files": 9,
+      "module_name": "sale_management",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_margin/__init__.py",
+        "addons/sale_margin/__manifest__.py",
+        "addons/sale_margin/models/__init__.py",
+        "addons/sale_margin/models/sale_order.py",
+        "addons/sale_margin/models/sale_order_line.py",
+        "addons/sale_margin/report/sale_report.py",
+        "addons/sale_margin/views/sale_order_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_margin/models/__init__.py",
+          "addons/sale_margin/models/sale_order.py",
+          "addons/sale_margin/models/sale_order_line.py"
+        ],
+        "other": [
+          "addons/sale_margin/__init__.py",
+          "addons/sale_margin/__manifest__.py"
+        ],
+        "reports": [
+          "addons/sale_margin/report/sale_report.py"
+        ],
+        "views": [
+          "addons/sale_margin/views/sale_order_views.xml"
+        ]
+      },
+      "files_changed": 7,
+      "is_new_module": true,
+      "model_files": 2,
+      "module_name": "sale_margin",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_mrp/models/account_move.py",
+        "addons/sale_mrp/models/mrp_bom.py",
+        "addons/sale_mrp/models/sale_order.py",
+        "addons/sale_mrp/models/sale_order_line.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_mrp/models/account_move.py",
+          "addons/sale_mrp/models/mrp_bom.py",
+          "addons/sale_mrp/models/sale_order.py",
+          "addons/sale_mrp/models/sale_order_line.py"
+        ]
+      },
+      "files_changed": 4,
+      "is_new_module": false,
+      "model_files": 4,
+      "module_name": "sale_mrp",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_pdf_quote_builder/models/ir_actions_report.py",
+        "addons/sale_pdf_quote_builder/models/sale_order.py",
+        "addons/sale_pdf_quote_builder/models/sale_pdf_form_field.py",
+        "addons/sale_pdf_quote_builder/static/src/js/custom_content_kanban_like_widget/custom_content_kanban_like_widget.js",
+        "addons/sale_pdf_quote_builder/views/sale_order_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_pdf_quote_builder/models/ir_actions_report.py",
+          "addons/sale_pdf_quote_builder/models/sale_order.py",
+          "addons/sale_pdf_quote_builder/models/sale_pdf_form_field.py"
+        ],
+        "static": [
+          "addons/sale_pdf_quote_builder/static/src/js/custom_content_kanban_like_widget/custom_content_kanban_like_widget.js"
+        ],
+        "views": [
+          "addons/sale_pdf_quote_builder/views/sale_order_views.xml"
+        ]
+      },
+      "files_changed": 5,
+      "is_new_module": false,
+      "model_files": 3,
+      "module_name": "sale_pdf_quote_builder",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_product_catalog/__init__.py",
+        "addons/sale_product_catalog/__manifest__.py",
+        "addons/sale_product_catalog/models/__init__.py",
+        "addons/sale_product_catalog/models/product_product.py",
+        "addons/sale_product_catalog/models/sale_order.py",
+        "addons/sale_product_catalog/models/sale_order_line.py",
+        "addons/sale_product_catalog/views/product_product_views.xml",
+        "addons/sale_product_catalog/views/sale_order_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_product_catalog/models/__init__.py",
+          "addons/sale_product_catalog/models/product_product.py",
+          "addons/sale_product_catalog/models/sale_order.py",
+          "addons/sale_product_catalog/models/sale_order_line.py"
+        ],
+        "other": [
+          "addons/sale_product_catalog/__init__.py",
+          "addons/sale_product_catalog/__manifest__.py"
+        ],
+        "views": [
+          "addons/sale_product_catalog/views/product_product_views.xml",
+          "addons/sale_product_catalog/views/sale_order_views.xml"
+        ]
+      },
+      "files_changed": 8,
+      "is_new_module": true,
+      "model_files": 3,
+      "module_name": "sale_product_catalog",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_project/data/sale_project_demo.xml",
+        "addons/sale_project/models/project_milestone.py",
+        "addons/sale_project/models/project_project.py",
+        "addons/sale_project/models/project_task.py",
+        "addons/sale_project/models/res_config_settings.py",
+        "addons/sale_project/models/sale_order.py",
+        "addons/sale_project/models/sale_order_line.py",
+        "addons/sale_project/report/sale_report.py",
+        "addons/sale_project/static/src/components/project_right_side_panel/components/project_profitability_section.xml",
+        "addons/sale_project/views/sale_order_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_project/models/project_milestone.py",
+          "addons/sale_project/models/project_project.py",
+          "addons/sale_project/models/project_task.py",
+          "addons/sale_project/models/res_config_settings.py",
+          "addons/sale_project/models/sale_order.py",
+          "addons/sale_project/models/sale_order_line.py"
+        ],
+        "reports": [
+          "addons/sale_project/report/sale_report.py"
+        ],
+        "views": [
+          "addons/sale_project/data/sale_project_demo.xml",
+          "addons/sale_project/static/src/components/project_right_side_panel/components/project_profitability_section.xml",
+          "addons/sale_project/views/sale_order_views.xml"
+        ]
+      },
+      "files_changed": 10,
+      "is_new_module": false,
+      "model_files": 6,
+      "module_name": "sale_project",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_project_stock/models/stock_move.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_project_stock/models/stock_move.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "sale_project_stock",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_purchase/data/mail_templates.xml",
+        "addons/sale_purchase/models/purchase_order.py",
+        "addons/sale_purchase/models/sale_order.py",
+        "addons/sale_purchase/models/sale_order_line.py",
+        "addons/sale_purchase/views/purchase_order_views.xml",
+        "addons/sale_purchase/views/sale_order_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_purchase/models/purchase_order.py",
+          "addons/sale_purchase/models/sale_order.py",
+          "addons/sale_purchase/models/sale_order_line.py"
+        ],
+        "views": [
+          "addons/sale_purchase/data/mail_templates.xml",
+          "addons/sale_purchase/views/purchase_order_views.xml",
+          "addons/sale_purchase/views/sale_order_views.xml"
+        ]
+      },
+      "files_changed": 6,
+      "is_new_module": false,
+      "model_files": 3,
+      "module_name": "sale_purchase",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_purchase_stock/models/purchase_order.py",
+        "addons/sale_purchase_stock/models/sale_order.py",
+        "addons/sale_purchase_stock/tests/test_sale_purchase_stock_flow.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_purchase_stock/models/purchase_order.py",
+          "addons/sale_purchase_stock/models/sale_order.py"
+        ],
+        "tests": [
+          "addons/sale_purchase_stock/tests/test_sale_purchase_stock_flow.py"
+        ]
+      },
+      "files_changed": 3,
+      "is_new_module": false,
+      "model_files": 2,
+      "module_name": "sale_purchase_stock",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_stock/controllers/portal.py",
+        "addons/sale_stock/data/sale_order_demo.xml",
+        "addons/sale_stock/models/__init__.py",
+        "addons/sale_stock/models/account_move.py",
+        "addons/sale_stock/models/account_move_line.py",
+        "addons/sale_stock/models/procurement_group.py",
+        "addons/sale_stock/models/product_template.py",
+        "addons/sale_stock/models/res_company.py",
+        "addons/sale_stock/models/res_config_settings.py",
+        "addons/sale_stock/models/res_users.py",
+        "addons/sale_stock/models/sale_order.py",
+        "addons/sale_stock/models/sale_order_line.py",
+        "addons/sale_stock/models/stock.py",
+        "addons/sale_stock/models/stock_lot.py",
+        "addons/sale_stock/models/stock_move.py",
+        "addons/sale_stock/models/stock_move_line.py",
+        "addons/sale_stock/models/stock_picking.py",
+        "addons/sale_stock/models/stock_route.py",
+        "addons/sale_stock/models/stock_rule.py",
+        "addons/sale_stock/report/report_stock_rule.py",
+        "addons/sale_stock/report/sale_order_report_templates.xml",
+        "addons/sale_stock/report/sale_report.py",
+        "addons/sale_stock/report/stock_forecasted.py",
+        "addons/sale_stock/report/stock_report_deliveryslip.xml",
+        "addons/sale_stock/security/sale_stock_security.xml",
+        "addons/sale_stock/static/src/widgets/qty_at_date_widget.js",
+        "addons/sale_stock/static/src/widgets/qty_at_date_widget.xml",
+        "addons/sale_stock/views/res_users_views.xml",
+        "addons/sale_stock/views/sale_order_views.xml",
+        "addons/sale_stock/views/sale_stock_portal_template.xml",
+        "addons/sale_stock/views/stock_lot_views.xml",
+        "addons/sale_stock/views/stock_picking_views.xml",
+        "addons/sale_stock/wizard/__init__.py",
+        "addons/sale_stock/wizard/res_config_settings.py"
+      ],
+      "file_categories": {
+        "controllers": [
+          "addons/sale_stock/controllers/portal.py"
+        ],
+        "models": [
+          "addons/sale_stock/models/__init__.py",
+          "addons/sale_stock/models/account_move.py",
+          "addons/sale_stock/models/account_move_line.py",
+          "addons/sale_stock/models/procurement_group.py",
+          "addons/sale_stock/models/product_template.py",
+          "addons/sale_stock/models/res_company.py",
+          "addons/sale_stock/models/res_config_settings.py",
+          "addons/sale_stock/models/res_users.py",
+          "addons/sale_stock/models/sale_order.py",
+          "addons/sale_stock/models/sale_order_line.py",
+          "addons/sale_stock/models/stock.py",
+          "addons/sale_stock/models/stock_lot.py",
+          "addons/sale_stock/models/stock_move.py",
+          "addons/sale_stock/models/stock_move_line.py",
+          "addons/sale_stock/models/stock_picking.py",
+          "addons/sale_stock/models/stock_route.py",
+          "addons/sale_stock/models/stock_rule.py"
+        ],
+        "reports": [
+          "addons/sale_stock/report/report_stock_rule.py",
+          "addons/sale_stock/report/sale_report.py",
+          "addons/sale_stock/report/stock_forecasted.py"
+        ],
+        "static": [
+          "addons/sale_stock/static/src/widgets/qty_at_date_widget.js"
+        ],
+        "views": [
+          "addons/sale_stock/data/sale_order_demo.xml",
+          "addons/sale_stock/report/sale_order_report_templates.xml",
+          "addons/sale_stock/report/stock_report_deliveryslip.xml",
+          "addons/sale_stock/security/sale_stock_security.xml",
+          "addons/sale_stock/static/src/widgets/qty_at_date_widget.xml",
+          "addons/sale_stock/views/res_users_views.xml",
+          "addons/sale_stock/views/sale_order_views.xml",
+          "addons/sale_stock/views/sale_stock_portal_template.xml",
+          "addons/sale_stock/views/stock_lot_views.xml",
+          "addons/sale_stock/views/stock_picking_views.xml"
+        ],
+        "wizards": [
+          "addons/sale_stock/wizard/__init__.py",
+          "addons/sale_stock/wizard/res_config_settings.py"
+        ]
+      },
+      "files_changed": 34,
+      "is_new_module": false,
+      "model_files": 16,
+      "module_name": "sale_stock",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_stock_margin/models/sale_order_line.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_stock_margin/models/sale_order_line.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "sale_stock_margin",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/sale_timesheet/models/sale_order.py",
+        "addons/sale_timesheet/wizard/project_create_invoice.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/sale_timesheet/models/sale_order.py"
+        ],
+        "wizards": [
+          "addons/sale_timesheet/wizard/project_create_invoice.py"
+        ]
+      },
+      "files_changed": 2,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "sale_timesheet",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/spreadsheet_dashboard_sale/data/files/sales_dashboard.json"
+      ],
+      "file_categories": {
+        "data": [
+          "addons/spreadsheet_dashboard_sale/data/files/sales_dashboard.json"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 0,
+      "module_name": "spreadsheet_dashboard_sale",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/spreadsheet_dashboard_website_sale/data/files/ecommerce_dashboard.json"
+      ],
+      "file_categories": {
+        "data": [
+          "addons/spreadsheet_dashboard_website_sale/data/files/ecommerce_dashboard.json"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 0,
+      "module_name": "spreadsheet_dashboard_website_sale",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/stock/__init__.py",
+        "addons/stock/__manifest__.py",
+        "addons/stock/controllers/__init__.py",
+        "addons/stock/controllers/main.py",
+        "addons/stock/data/default_barcode_patterns.xml",
+        "addons/stock/data/digest_data.xml",
+        "addons/stock/data/mail_template_data.xml",
+        "addons/stock/data/mail_templates.xml",
+        "addons/stock/data/stock_data.xml",
+        "addons/stock/data/stock_demo2.xml",
+        "addons/stock/data/stock_demo_pre.xml",
+        "addons/stock/data/stock_orderpoint_demo.xml",
+        "addons/stock/data/stock_sequence_data.xml",
+        "addons/stock/data/stock_storage_category_demo.xml",
+        "addons/stock/data/stock_traceability_report_data.xml",
+        "addons/stock/models/__init__.py",
+        "addons/stock/models/barcode.py",
+        "addons/stock/models/barcode_rule.py",
+        "addons/stock/models/ir_actions_report.py",
+        "addons/stock/models/product.py",
+        "addons/stock/models/product_category.py",
+        "addons/stock/models/product_product.py",
+        "addons/stock/models/product_removal.py",
+        "addons/stock/models/product_strategy.py",
+        "addons/stock/models/product_template.py",
+        "addons/stock/models/res_company.py",
+        "addons/stock/models/res_config_settings.py",
+        "addons/stock/models/res_partner.py",
+        "addons/stock/models/res_users.py",
+        "addons/stock/models/stock_location.py",
+        "addons/stock/models/stock_lot.py",
+        "addons/stock/models/stock_move.py",
+        "addons/stock/models/stock_move_line.py",
+        "addons/stock/models/stock_orderpoint.py",
+        "addons/stock/models/stock_package_level.py",
+        "addons/stock/models/stock_package_type.py",
+        "addons/stock/models/stock_picking.py",
+        "addons/stock/models/stock_picking_type.py",
+        "addons/stock/models/stock_putaway_rule.py",
+        "addons/stock/models/stock_quant.py",
+        "addons/stock/models/stock_quant_package.py",
+        "addons/stock/models/stock_replenish_mixin.py",
+        "addons/stock/models/stock_route.py",
+        "addons/stock/models/stock_rule.py",
+        "addons/stock/models/stock_scrap.py",
+        "addons/stock/models/stock_storage_category.py",
+        "addons/stock/models/stock_warehouse.py",
+        "addons/stock/models/uom_uom.py",
+        "addons/stock/report/__init__.py",
+        "addons/stock/report/package_templates.xml",
+        "addons/stock/report/packaging_barcode.xml",
+        "addons/stock/report/picking_templates.xml",
+        "addons/stock/report/product_label_report.py",
+        "addons/stock/report/product_templates.xml",
+        "addons/stock/report/report_deliveryslip.xml",
+        "addons/stock/report/report_location_barcode.xml",
+        "addons/stock/report/report_lot_barcode.xml",
+        "addons/stock/report/report_return_slip.xml",
+        "addons/stock/report/report_stock_quantity.py",
+        "addons/stock/report/report_stock_quantity.xml",
+        "addons/stock/report/report_stock_reception.py",
+        "addons/stock/report/report_stock_reception.xml",
+        "addons/stock/report/report_stock_rule.py",
+        "addons/stock/report/report_stock_rule.xml",
+        "addons/stock/report/report_stockinventory.xml",
+        "addons/stock/report/report_stockpicking_operations.xml",
+        "addons/stock/report/stock_forecasted.py",
+        "addons/stock/report/stock_lot_customer.py",
+        "addons/stock/report/stock_report_views.xml",
+        "addons/stock/report/stock_traceability.py",
+        "addons/stock/security/ir.model.access.csv",
+        "addons/stock/security/stock_security.xml",
+        "addons/stock/static/src/widgets/forecast_widget.js",
+        "addons/stock/static/src/widgets/stock_rescheduling_popover.xml",
+        "addons/stock/views/product_category_views.xml",
+        "addons/stock/views/product_product_views.xml",
+        "addons/stock/views/product_strategy_views.xml",
+        "addons/stock/views/product_template_views.xml",
+        "addons/stock/views/product_views.xml",
+        "addons/stock/views/report_stock_traceability.xml",
+        "addons/stock/views/res_partner_views.xml",
+        "addons/stock/views/stock_forecasted.xml",
+        "addons/stock/views/stock_location_views.xml",
+        "addons/stock/views/stock_lot_views.xml",
+        "addons/stock/views/stock_menu_views.xml",
+        "addons/stock/views/stock_move_line_views.xml",
+        "addons/stock/views/stock_move_views.xml",
+        "addons/stock/views/stock_orderpoint_views.xml",
+        "addons/stock/views/stock_package_level_views.xml",
+        "addons/stock/views/stock_package_type_view.xml",
+        "addons/stock/views/stock_picking_type_views.xml",
+        "addons/stock/views/stock_picking_views.xml",
+        "addons/stock/views/stock_quant_package_views.xml",
+        "addons/stock/views/stock_quant_views.xml",
+        "addons/stock/views/stock_rule_views.xml",
+        "addons/stock/views/stock_scrap_views.xml",
+        "addons/stock/views/stock_storage_category_views.xml",
+        "addons/stock/views/stock_template.xml",
+        "addons/stock/views/stock_warehouse_views.xml",
+        "addons/stock/wizard/__init__.py",
+        "addons/stock/wizard/product_label_layout.py",
+        "addons/stock/wizard/product_label_layout_views.xml",
+        "addons/stock/wizard/product_replenish.py",
+        "addons/stock/wizard/product_replenish_views.xml",
+        "addons/stock/wizard/stock_backorder_confirmation.py",
+        "addons/stock/wizard/stock_backorder_confirmation_views.xml",
+        "addons/stock/wizard/stock_inventory_adjustment_name.py",
+        "addons/stock/wizard/stock_inventory_adjustment_name.xml",
+        "addons/stock/wizard/stock_inventory_conflict.py",
+        "addons/stock/wizard/stock_inventory_conflict.xml",
+        "addons/stock/wizard/stock_inventory_warning.py",
+        "addons/stock/wizard/stock_inventory_warning.xml",
+        "addons/stock/wizard/stock_label_type.py",
+        "addons/stock/wizard/stock_label_type.xml",
+        "addons/stock/wizard/stock_lot_label_layout.py",
+        "addons/stock/wizard/stock_lot_label_layout.xml",
+        "addons/stock/wizard/stock_orderpoint_snooze.py",
+        "addons/stock/wizard/stock_orderpoint_snooze_views.xml",
+        "addons/stock/wizard/stock_package_destination.py",
+        "addons/stock/wizard/stock_package_destination_views.xml",
+        "addons/stock/wizard/stock_picking_return.py",
+        "addons/stock/wizard/stock_picking_return_views.xml",
+        "addons/stock/wizard/stock_quant_relocate.py",
+        "addons/stock/wizard/stock_quant_relocate.xml",
+        "addons/stock/wizard/stock_quantity_history.py",
+        "addons/stock/wizard/stock_quantity_history.xml",
+        "addons/stock/wizard/stock_replenishment_info.py",
+        "addons/stock/wizard/stock_replenishment_info.xml",
+        "addons/stock/wizard/stock_request_count.py",
+        "addons/stock/wizard/stock_request_count.xml",
+        "addons/stock/wizard/stock_rules_report.py",
+        "addons/stock/wizard/stock_rules_report_views.xml",
+        "addons/stock/wizard/stock_warn_insufficient_qty.py"
+      ],
+      "file_categories": {
+        "controllers": [
+          "addons/stock/controllers/__init__.py",
+          "addons/stock/controllers/main.py"
+        ],
+        "models": [
+          "addons/stock/models/__init__.py",
+          "addons/stock/models/barcode.py",
+          "addons/stock/models/barcode_rule.py",
+          "addons/stock/models/ir_actions_report.py",
+          "addons/stock/models/product.py",
+          "addons/stock/models/product_category.py",
+          "addons/stock/models/product_product.py",
+          "addons/stock/models/product_removal.py",
+          "addons/stock/models/product_strategy.py",
+          "addons/stock/models/product_template.py",
+          "addons/stock/models/res_company.py",
+          "addons/stock/models/res_config_settings.py",
+          "addons/stock/models/res_partner.py",
+          "addons/stock/models/res_users.py",
+          "addons/stock/models/stock_location.py",
+          "addons/stock/models/stock_lot.py",
+          "addons/stock/models/stock_move.py",
+          "addons/stock/models/stock_move_line.py",
+          "addons/stock/models/stock_orderpoint.py",
+          "addons/stock/models/stock_package_level.py",
+          "addons/stock/models/stock_package_type.py",
+          "addons/stock/models/stock_picking.py",
+          "addons/stock/models/stock_picking_type.py",
+          "addons/stock/models/stock_putaway_rule.py",
+          "addons/stock/models/stock_quant.py",
+          "addons/stock/models/stock_quant_package.py",
+          "addons/stock/models/stock_replenish_mixin.py",
+          "addons/stock/models/stock_route.py",
+          "addons/stock/models/stock_rule.py",
+          "addons/stock/models/stock_scrap.py",
+          "addons/stock/models/stock_storage_category.py",
+          "addons/stock/models/stock_warehouse.py",
+          "addons/stock/models/uom_uom.py"
+        ],
+        "other": [
+          "addons/stock/__init__.py",
+          "addons/stock/__manifest__.py"
+        ],
+        "reports": [
+          "addons/stock/report/__init__.py",
+          "addons/stock/report/product_label_report.py",
+          "addons/stock/report/report_stock_quantity.py",
+          "addons/stock/report/report_stock_reception.py",
+          "addons/stock/report/report_stock_rule.py",
+          "addons/stock/report/stock_forecasted.py",
+          "addons/stock/report/stock_lot_customer.py",
+          "addons/stock/report/stock_traceability.py"
+        ],
+        "security": [
+          "addons/stock/security/ir.model.access.csv"
+        ],
+        "static": [
+          "addons/stock/static/src/widgets/forecast_widget.js"
+        ],
+        "views": [
+          "addons/stock/data/default_barcode_patterns.xml",
+          "addons/stock/data/digest_data.xml",
+          "addons/stock/data/mail_template_data.xml",
+          "addons/stock/data/mail_templates.xml",
+          "addons/stock/data/stock_data.xml",
+          "addons/stock/data/stock_demo2.xml",
+          "addons/stock/data/stock_demo_pre.xml",
+          "addons/stock/data/stock_orderpoint_demo.xml",
+          "addons/stock/data/stock_sequence_data.xml",
+          "addons/stock/data/stock_storage_category_demo.xml",
+          "addons/stock/data/stock_traceability_report_data.xml",
+          "addons/stock/report/package_templates.xml",
+          "addons/stock/report/packaging_barcode.xml",
+          "addons/stock/report/picking_templates.xml",
+          "addons/stock/report/product_templates.xml",
+          "addons/stock/report/report_deliveryslip.xml",
+          "addons/stock/report/report_location_barcode.xml",
+          "addons/stock/report/report_lot_barcode.xml",
+          "addons/stock/report/report_return_slip.xml",
+          "addons/stock/report/report_stock_quantity.xml",
+          "addons/stock/report/report_stock_reception.xml",
+          "addons/stock/report/report_stock_rule.xml",
+          "addons/stock/report/report_stockinventory.xml",
+          "addons/stock/report/report_stockpicking_operations.xml",
+          "addons/stock/report/stock_report_views.xml",
+          "addons/stock/security/stock_security.xml",
+          "addons/stock/static/src/widgets/stock_rescheduling_popover.xml",
+          "addons/stock/views/product_category_views.xml",
+          "addons/stock/views/product_product_views.xml",
+          "addons/stock/views/product_strategy_views.xml",
+          "addons/stock/views/product_template_views.xml",
+          "addons/stock/views/product_views.xml",
+          "addons/stock/views/report_stock_traceability.xml",
+          "addons/stock/views/res_partner_views.xml",
+          "addons/stock/views/stock_forecasted.xml",
+          "addons/stock/views/stock_location_views.xml",
+          "addons/stock/views/stock_lot_views.xml",
+          "addons/stock/views/stock_menu_views.xml",
+          "addons/stock/views/stock_move_line_views.xml",
+          "addons/stock/views/stock_move_views.xml",
+          "addons/stock/views/stock_orderpoint_views.xml",
+          "addons/stock/views/stock_package_level_views.xml",
+          "addons/stock/views/stock_package_type_view.xml",
+          "addons/stock/views/stock_picking_type_views.xml",
+          "addons/stock/views/stock_picking_views.xml",
+          "addons/stock/views/stock_quant_package_views.xml",
+          "addons/stock/views/stock_quant_views.xml",
+          "addons/stock/views/stock_rule_views.xml",
+          "addons/stock/views/stock_scrap_views.xml",
+          "addons/stock/views/stock_storage_category_views.xml",
+          "addons/stock/views/stock_template.xml",
+          "addons/stock/views/stock_warehouse_views.xml",
+          "addons/stock/wizard/product_label_layout_views.xml",
+          "addons/stock/wizard/product_replenish_views.xml",
+          "addons/stock/wizard/stock_backorder_confirmation_views.xml",
+          "addons/stock/wizard/stock_inventory_adjustment_name.xml",
+          "addons/stock/wizard/stock_inventory_conflict.xml",
+          "addons/stock/wizard/stock_inventory_warning.xml",
+          "addons/stock/wizard/stock_label_type.xml",
+          "addons/stock/wizard/stock_lot_label_layout.xml",
+          "addons/stock/wizard/stock_orderpoint_snooze_views.xml",
+          "addons/stock/wizard/stock_package_destination_views.xml",
+          "addons/stock/wizard/stock_picking_return_views.xml",
+          "addons/stock/wizard/stock_quant_relocate.xml",
+          "addons/stock/wizard/stock_quantity_history.xml",
+          "addons/stock/wizard/stock_replenishment_info.xml",
+          "addons/stock/wizard/stock_request_count.xml",
+          "addons/stock/wizard/stock_rules_report_views.xml"
+        ],
+        "wizards": [
+          "addons/stock/wizard/__init__.py",
+          "addons/stock/wizard/product_label_layout.py",
+          "addons/stock/wizard/product_replenish.py",
+          "addons/stock/wizard/stock_backorder_confirmation.py",
+          "addons/stock/wizard/stock_inventory_adjustment_name.py",
+          "addons/stock/wizard/stock_inventory_conflict.py",
+          "addons/stock/wizard/stock_inventory_warning.py",
+          "addons/stock/wizard/stock_label_type.py",
+          "addons/stock/wizard/stock_lot_label_layout.py",
+          "addons/stock/wizard/stock_orderpoint_snooze.py",
+          "addons/stock/wizard/stock_package_destination.py",
+          "addons/stock/wizard/stock_picking_return.py",
+          "addons/stock/wizard/stock_quant_relocate.py",
+          "addons/stock/wizard/stock_quantity_history.py",
+          "addons/stock/wizard/stock_replenishment_info.py",
+          "addons/stock/wizard/stock_request_count.py",
+          "addons/stock/wizard/stock_rules_report.py",
+          "addons/stock/wizard/stock_warn_insufficient_qty.py"
+        ]
+      },
+      "files_changed": 133,
+      "is_new_module": true,
+      "model_files": 32,
+      "module_name": "stock",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/stock_delivery/data/delivery_demo.xml",
+        "addons/stock_delivery/models/delivery_carrier.py",
+        "addons/stock_delivery/models/stock_move.py",
+        "addons/stock_delivery/models/stock_picking.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/stock_delivery/models/delivery_carrier.py",
+          "addons/stock_delivery/models/stock_move.py",
+          "addons/stock_delivery/models/stock_picking.py"
+        ],
+        "views": [
+          "addons/stock_delivery/data/delivery_demo.xml"
+        ]
+      },
+      "files_changed": 4,
+      "is_new_module": false,
+      "model_files": 3,
+      "module_name": "stock_delivery",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/stock_dropshipping/models/purchase.py",
+        "addons/stock_dropshipping/models/sale.py",
+        "addons/stock_dropshipping/tests/test_lifo_price.py",
+        "addons/stock_dropshipping/tests/test_procurement_exception.py",
+        "addons/stock_dropshipping/views/sale_order_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/stock_dropshipping/models/purchase.py",
+          "addons/stock_dropshipping/models/sale.py"
+        ],
+        "tests": [
+          "addons/stock_dropshipping/tests/test_lifo_price.py",
+          "addons/stock_dropshipping/tests/test_procurement_exception.py"
+        ],
+        "views": [
+          "addons/stock_dropshipping/views/sale_order_views.xml"
+        ]
+      },
+      "files_changed": 5,
+      "is_new_module": false,
+      "model_files": 2,
+      "module_name": "stock_dropshipping",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/stock_fleet/__manifest__.py",
+        "addons/stock_fleet/data/stock_fleet_demo.xml",
+        "addons/stock_fleet/models/fleet_vehicle_model.py",
+        "addons/stock_fleet/models/stock_location.py",
+        "addons/stock_fleet/models/stock_picking.py",
+        "addons/stock_fleet/models/stock_picking_batch.py",
+        "addons/stock_fleet/report/report_picking_batch.xml",
+        "addons/stock_fleet/views/fleet_vehicle_model.xml",
+        "addons/stock_fleet/views/stock_location.xml",
+        "addons/stock_fleet/views/stock_picking_batch.xml",
+        "addons/stock_fleet/views/stock_picking_type.xml",
+        "addons/stock_fleet/views/stock_picking_view.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/stock_fleet/models/fleet_vehicle_model.py",
+          "addons/stock_fleet/models/stock_location.py",
+          "addons/stock_fleet/models/stock_picking.py",
+          "addons/stock_fleet/models/stock_picking_batch.py"
+        ],
+        "other": [
+          "addons/stock_fleet/__manifest__.py"
+        ],
+        "views": [
+          "addons/stock_fleet/data/stock_fleet_demo.xml",
+          "addons/stock_fleet/report/report_picking_batch.xml",
+          "addons/stock_fleet/views/fleet_vehicle_model.xml",
+          "addons/stock_fleet/views/stock_location.xml",
+          "addons/stock_fleet/views/stock_picking_batch.xml",
+          "addons/stock_fleet/views/stock_picking_type.xml",
+          "addons/stock_fleet/views/stock_picking_view.xml"
+        ]
+      },
+      "files_changed": 12,
+      "is_new_module": true,
+      "model_files": 4,
+      "module_name": "stock_fleet",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/stock_landed_costs/models/purchase.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/stock_landed_costs/models/purchase.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "stock_landed_costs",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/stock_picking_batch/__init__.py",
+        "addons/stock_picking_batch/__manifest__.py",
+        "addons/stock_picking_batch/data/stock_picking_batch_data.xml",
+        "addons/stock_picking_batch/models/__init__.py",
+        "addons/stock_picking_batch/models/stock_move.py",
+        "addons/stock_picking_batch/models/stock_move_line.py",
+        "addons/stock_picking_batch/models/stock_picking.py",
+        "addons/stock_picking_batch/models/stock_picking_batch.py",
+        "addons/stock_picking_batch/models/stock_picking_type.py",
+        "addons/stock_picking_batch/models/stock_warehouse.py",
+        "addons/stock_picking_batch/report/report_picking_batch.xml",
+        "addons/stock_picking_batch/report/stock_picking_batch_report_views.xml",
+        "addons/stock_picking_batch/security/stock_picking_batch_security.xml",
+        "addons/stock_picking_batch/views/stock_move_line_views.xml",
+        "addons/stock_picking_batch/views/stock_move_views.xml",
+        "addons/stock_picking_batch/views/stock_picking_batch_menuitem_views.xml",
+        "addons/stock_picking_batch/views/stock_picking_batch_views.xml",
+        "addons/stock_picking_batch/views/stock_picking_type_views.xml",
+        "addons/stock_picking_batch/views/stock_picking_views.xml",
+        "addons/stock_picking_batch/views/stock_picking_wave_views.xml",
+        "addons/stock_picking_batch/wizard/__init__.py",
+        "addons/stock_picking_batch/wizard/stock_add_to_wave.py",
+        "addons/stock_picking_batch/wizard/stock_add_to_wave_views.xml",
+        "addons/stock_picking_batch/wizard/stock_picking_to_batch.py",
+        "addons/stock_picking_batch/wizard/stock_picking_to_batch_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/stock_picking_batch/models/__init__.py",
+          "addons/stock_picking_batch/models/stock_move.py",
+          "addons/stock_picking_batch/models/stock_move_line.py",
+          "addons/stock_picking_batch/models/stock_picking.py",
+          "addons/stock_picking_batch/models/stock_picking_batch.py",
+          "addons/stock_picking_batch/models/stock_picking_type.py",
+          "addons/stock_picking_batch/models/stock_warehouse.py"
+        ],
+        "other": [
+          "addons/stock_picking_batch/__init__.py",
+          "addons/stock_picking_batch/__manifest__.py"
+        ],
+        "views": [
+          "addons/stock_picking_batch/data/stock_picking_batch_data.xml",
+          "addons/stock_picking_batch/report/report_picking_batch.xml",
+          "addons/stock_picking_batch/report/stock_picking_batch_report_views.xml",
+          "addons/stock_picking_batch/security/stock_picking_batch_security.xml",
+          "addons/stock_picking_batch/views/stock_move_line_views.xml",
+          "addons/stock_picking_batch/views/stock_move_views.xml",
+          "addons/stock_picking_batch/views/stock_picking_batch_menuitem_views.xml",
+          "addons/stock_picking_batch/views/stock_picking_batch_views.xml",
+          "addons/stock_picking_batch/views/stock_picking_type_views.xml",
+          "addons/stock_picking_batch/views/stock_picking_views.xml",
+          "addons/stock_picking_batch/views/stock_picking_wave_views.xml",
+          "addons/stock_picking_batch/wizard/stock_add_to_wave_views.xml",
+          "addons/stock_picking_batch/wizard/stock_picking_to_batch_views.xml"
+        ],
+        "wizards": [
+          "addons/stock_picking_batch/wizard/__init__.py",
+          "addons/stock_picking_batch/wizard/stock_add_to_wave.py",
+          "addons/stock_picking_batch/wizard/stock_picking_to_batch.py"
+        ]
+      },
+      "files_changed": 25,
+      "is_new_module": true,
+      "model_files": 6,
+      "module_name": "stock_picking_batch",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/uom/__init__.py",
+        "addons/uom/__manifest__.py",
+        "addons/uom/models/uom_uom.py",
+        "addons/uom/security/uom_security.xml",
+        "addons/uom/views/uom_uom_views.xml"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/uom/models/uom_uom.py"
+        ],
+        "other": [
+          "addons/uom/__init__.py",
+          "addons/uom/__manifest__.py"
+        ],
+        "views": [
+          "addons/uom/security/uom_security.xml",
+          "addons/uom/views/uom_uom_views.xml"
+        ]
+      },
+      "files_changed": 5,
+      "is_new_module": true,
+      "model_files": 1,
+      "module_name": "uom",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/website_event_sale/controllers/main.py",
+        "addons/website_event_sale/controllers/sale.py"
+      ],
+      "file_categories": {
+        "controllers": [
+          "addons/website_event_sale/controllers/main.py",
+          "addons/website_event_sale/controllers/sale.py"
+        ]
+      },
+      "files_changed": 2,
+      "is_new_module": false,
+      "model_files": 0,
+      "module_name": "website_event_sale",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/website_sale/controllers/cart.py",
+        "addons/website_sale/controllers/main.py",
+        "addons/website_sale/controllers/reorder.py",
+        "addons/website_sale/controllers/sale.py",
+        "addons/website_sale/data/demo.xml",
+        "addons/website_sale/models/product_template.py",
+        "addons/website_sale/models/sale_order.py",
+        "addons/website_sale/models/sale_order_line.py",
+        "addons/website_sale/models/website_snippet_filter.py",
+        "addons/website_sale/report/sale_report.py",
+        "addons/website_sale/report/sale_report_views.xml",
+        "addons/website_sale/views/product_views.xml",
+        "addons/website_sale/views/sale_order_views.xml"
+      ],
+      "file_categories": {
+        "controllers": [
+          "addons/website_sale/controllers/cart.py",
+          "addons/website_sale/controllers/main.py",
+          "addons/website_sale/controllers/reorder.py",
+          "addons/website_sale/controllers/sale.py"
+        ],
+        "models": [
+          "addons/website_sale/models/product_template.py",
+          "addons/website_sale/models/sale_order.py",
+          "addons/website_sale/models/sale_order_line.py",
+          "addons/website_sale/models/website_snippet_filter.py"
+        ],
+        "reports": [
+          "addons/website_sale/report/sale_report.py"
+        ],
+        "views": [
+          "addons/website_sale/data/demo.xml",
+          "addons/website_sale/report/sale_report_views.xml",
+          "addons/website_sale/views/product_views.xml",
+          "addons/website_sale/views/sale_order_views.xml"
+        ]
+      },
+      "files_changed": 13,
+      "is_new_module": false,
+      "model_files": 4,
+      "module_name": "website_sale",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/website_sale_loyalty/controllers/delivery.py",
+        "addons/website_sale_loyalty/models/sale_order.py"
+      ],
+      "file_categories": {
+        "controllers": [
+          "addons/website_sale_loyalty/controllers/delivery.py"
+        ],
+        "models": [
+          "addons/website_sale_loyalty/models/sale_order.py"
+        ]
+      },
+      "files_changed": 2,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "website_sale_loyalty",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/website_sale_stock/models/sale_order.py"
+      ],
+      "file_categories": {
+        "models": [
+          "addons/website_sale_stock/models/sale_order.py"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 1,
+      "module_name": "website_sale_stock",
+      "module_type": "addon"
+    },
+    {
+      "all_files": [
+        "addons/website_slides/views/slide_channel_views.xml"
+      ],
+      "file_categories": {
+        "views": [
+          "addons/website_slides/views/slide_channel_views.xml"
+        ]
+      },
+      "files_changed": 1,
+      "is_new_module": false,
+      "model_files": 0,
+      "module_name": "website_slides",
+      "module_type": "addon"
+    }
+  ],
+  "module_names_only": [
+    "account",
+    "account_fleet",
+    "account_payment",
+    "delivery",
+    "event_booth_sale",
+    "event_sale",
+    "fleet",
+    "hr_expense",
+    "mrp",
+    "mrp_account",
+    "mrp_subcontracting_dropshipping",
+    "point_of_sale",
+    "pos_hr",
+    "pos_sale",
+    "product",
+    "product_expiry",
+    "project",
+    "project_purchase",
+    "project_purchase_stock",
+    "project_sale_expense",
+    "purchase",
+    "purchase_mrp",
+    "purchase_requisition",
+    "purchase_stock",
+    "sale",
+    "sale_async_emails",
+    "sale_edi",
+    "sale_expense",
+    "sale_loyalty",
+    "sale_loyalty_delivery",
+    "sale_management",
+    "sale_margin",
+    "sale_mrp",
+    "sale_pdf_quote_builder",
+    "sale_product_catalog",
+    "sale_project",
+    "sale_project_stock",
+    "sale_purchase",
+    "sale_purchase_stock",
+    "sale_stock",
+    "sale_stock_margin",
+    "sale_timesheet",
+    "spreadsheet_dashboard_sale",
+    "spreadsheet_dashboard_website_sale",
+    "stock",
+    "stock_delivery",
+    "stock_dropshipping",
+    "stock_fleet",
+    "stock_landed_costs",
+    "stock_picking_batch",
+    "uom",
+    "website_event_sale",
+    "website_sale",
+    "website_sale_loyalty",
+    "website_sale_stock",
+    "website_slides"
+  ],
+  "summary": {
+    "addon_files_modified": 765,
+    "core_files_modified": 0,
+    "existing_modules_modified": 41,
+    "new_modules": 15,
+    "total_files_changed": 766,
+    "total_modules_affected": 56
+  }
+}

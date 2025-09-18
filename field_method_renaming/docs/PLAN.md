@@ -91,7 +91,7 @@ Para un modelo `sale.order`, buscará archivos en este orden:
 
 ### 1. Fase de descubrimiento
 ```python
-def discover_files(self, module: str, model: str) -> Dict[str, List[Path]]:
+def discover_files(self, module: str, model: str) -> dict[str, list[Path]]:
     """
     Descubre TODOS los archivos que pueden contener referencias
     """

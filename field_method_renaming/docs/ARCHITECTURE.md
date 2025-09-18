@@ -65,13 +65,13 @@ class FieldMethodRenamingTool:
 
 ```python
 class CSVReader:
-    def load_changes(self) -> List[FieldChange]:
+    def load_changes(self) -> list[FieldChange]:
         """Carga y valida cambios desde CSV"""
         
     def validate_csv_structure(self) -> bool:
         """Valida estructura del CSV"""
         
-    def group_by_module(self, changes) -> Dict[str, List[FieldChange]]:
+    def group_by_module(self, changes) -> dict[str, list[FieldChange]]:
         """Agrupa cambios por módulo para procesamiento eficiente"""
 ```
 
@@ -95,10 +95,10 @@ class FileFinder:
     def find_files_for_model(self, module: str, model: str) -> FileSet:
         """Encuentra archivos usando convenciones OCA"""
         
-    def _build_file_patterns(self, model: str) -> Dict[str, List[str]]:
+    def _build_file_patterns(self, model: str) -> dict[str, list[str]]:
         """Construye patrones de archivos según convenciones OCA"""
         
-    def _search_recursive_fallback(self, module_path: Path, model: str) -> List[Path]:
+    def _search_recursive_fallback(self, module_path: Path, model: str) -> list[Path]:
         """Búsqueda fallback si no encuentra archivos con naming estándar"""
 ```
 
@@ -106,13 +106,13 @@ class FileFinder:
 ```python
 @dataclass
 class FileSet:
-    python_files: List[Path]
-    view_files: List[Path]
-    data_files: List[Path]
-    demo_files: List[Path]
-    template_files: List[Path]
-    report_files: List[Path]
-    security_files: List[Path]
+    python_files: list[Path]
+    view_files: list[Path]
+    data_files: list[Path]
+    demo_files: list[Path]
+    template_files: list[Path]
+    report_files: list[Path]
+    security_files: list[Path]
 ```
 
 ### 4. BaseProcessor (processors/base_processor.py)
@@ -121,7 +121,7 @@ class FileSet:
 
 ```python
 class BaseProcessor:
-    def process_file(self, file_path: Path, changes: List[FieldChange]) -> ProcessResult:
+    def process_file(self, file_path: Path, changes: list[FieldChange]) -> ProcessResult:
         """Template method para procesamiento de archivos"""
         
     def validate_syntax(self, file_path: Path) -> bool:
@@ -140,13 +140,13 @@ class PythonProcessor(BaseProcessor):
     def __init__(self):
         self.ast_modifier = ASTModifier()
         
-    def process_python_file(self, file_path: Path, changes: List[FieldChange]) -> ProcessResult:
+    def process_python_file(self, file_path: Path, changes: list[FieldChange]) -> ProcessResult:
         """Procesa archivo Python usando AST"""
         
-    def _apply_field_changes(self, tree: ast.AST, changes: List[FieldChange]) -> ast.AST:
+    def _apply_field_changes(self, tree: ast.AST, changes: list[FieldChange]) -> ast.AST:
         """Aplica cambios de campos en AST"""
         
-    def _apply_method_changes(self, tree: ast.AST, changes: List[FieldChange]) -> ast.AST:
+    def _apply_method_changes(self, tree: ast.AST, changes: list[FieldChange]) -> ast.AST:
         """Aplica cambios de métodos en AST"""
 ```
 
@@ -172,13 +172,13 @@ class XMLProcessor(BaseProcessor):
     def __init__(self):
         self.patterns = XMLPatterns()
         
-    def process_xml_file(self, file_path: Path, changes: List[FieldChange]) -> ProcessResult:
+    def process_xml_file(self, file_path: Path, changes: list[FieldChange]) -> ProcessResult:
         """Procesa archivo XML"""
         
-    def _apply_elementtree_changes(self, root: ET.Element, changes: List[FieldChange]):
+    def _apply_elementtree_changes(self, root: ET.Element, changes: list[FieldChange]):
         """Aplica cambios usando ElementTree para elementos estructurados"""
         
-    def _apply_regex_changes(self, content: str, changes: List[FieldChange]) -> str:
+    def _apply_regex_changes(self, content: str, changes: list[FieldChange]) -> str:
         """Aplica cambios usando regex para patrones complejos"""
 ```
 
@@ -207,7 +207,7 @@ class BackupManager:
     def create_backup(self, file_path: Path) -> Path:
         """Crea respaldo con timestamp"""
         
-    def create_batch_backup(self, files: List[Path]) -> Path:
+    def create_batch_backup(self, files: list[Path]) -> Path:
         """Crea respaldo de múltiples archivos"""
         
     def restore_backup(self, backup_path: Path) -> bool:
@@ -223,13 +223,13 @@ class BackupManager:
 
 ```python
 class ConfirmationUI:
-    def confirm_file_changes(self, file_path: Path, changes: List[FieldChange]) -> bool:
+    def confirm_file_changes(self, file_path: Path, changes: list[FieldChange]) -> bool:
         """Confirma cambios en un archivo"""
         
     def show_diff(self, original: str, modified: str):
         """Muestra diferencias antes/después"""
         
-    def batch_confirm(self, file_changes: Dict[Path, List[FieldChange]]) -> Dict[Path, bool]:
+    def batch_confirm(self, file_changes: dict[Path, list[FieldChange]]) -> dict[Path, bool]:
         """Confirmación en lote"""
 ```
 
@@ -320,7 +320,7 @@ def handle_processing_error(self, error: ProcessingError, context: ProcessingCon
 1. **Crear nuevo procesador**:
 ```python
 class YAMLProcessor(BaseProcessor):
-    def process_yaml_file(self, file_path: Path, changes: List[FieldChange]) -> ProcessResult:
+    def process_yaml_file(self, file_path: Path, changes: list[FieldChange]) -> ProcessResult:
         # Implementar lógica específica para YAML
 ```
 

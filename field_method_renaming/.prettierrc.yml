@@ -1,0 +1,12 @@
+# Prettier configuration following Vauxoo standards
+# Prettier will complete this with settings from .editorconfig file.
+bracketSpacing: false
+printWidth: 119
+proseWrap: always
+semi: true
+trailingComma: "es5"
+tabWidth: 4
+useTabs: false
+xmlWhitespaceSensitivity: "ignore"
+xmlSelfClosingSpace: true
+xmlQuoteAttributes: "double"

@@ -40,7 +40,7 @@ INTERACTIVE_COLORS = {
 }
 
 # CSV output settings
-CSV_HEADERS = ['old_name', 'new_name', 'module', 'model']
+CSV_HEADERS = ['old_name', 'new_name', 'item_type', 'module', 'model']
 CSV_ENCODING = 'utf-8'
 
 # File filtering settings

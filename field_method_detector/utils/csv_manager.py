@@ -97,7 +97,7 @@ class CSVManager:
     
     def _create_record_key(self, record: Dict[str, str]) -> str:
         """Create unique key for record deduplication"""
-        return f"{record['old_name']}→{record['new_name']}:{record.get('module', '')}:{record.get('model', '')}"
+        return f"{record['old_name']}→{record['new_name']}:{record.get('item_type', '')}:{record.get('module', '')}:{record.get('model', '')}"
     
     def filter_new_candidates(self, candidates: List[RenameCandidate]) -> Tuple[List[RenameCandidate], List[RenameCandidate]]:
         """
@@ -127,7 +127,7 @@ class CSVManager:
     
     def _create_record_key_from_candidate(self, candidate: RenameCandidate) -> str:
         """Create record key from rename candidate"""
-        return f"{candidate.old_name}→{candidate.new_name}:{candidate.module}:{candidate.model}"
+        return f"{candidate.old_name}→{candidate.new_name}:{candidate.item_type}:{candidate.module}:{candidate.model}"
     
     def add_candidates_to_csv(self, candidates: List[RenameCandidate], 
                              backup_existing: bool = True) -> int:
@@ -179,6 +179,7 @@ class CSVManager:
         return {
             'old_name': candidate.old_name,
             'new_name': candidate.new_name,
+            'item_type': candidate.item_type,
             'module': candidate.module,
             'model': candidate.model
         }

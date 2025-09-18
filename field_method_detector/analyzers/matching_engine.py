@@ -118,6 +118,13 @@ class MatchingEngine:
         logger.debug(f"  Fields after: {[(f['name'], f.get('signature', 'no-sig')) for f in fields_after]}")
         
         for field_before in fields_before:
+            # Check if the original field still exists (indicating it wasn't renamed)
+            field_still_exists = any(f['name'] == field_before['name'] for f in fields_after)
+            if field_still_exists:
+                # Field still exists, so it wasn't renamed - skip
+                logger.debug(f"  Field '{field_before['name']}' still exists, skipping rename detection")
+                continue
+            
             # Find fields with matching signature but different name
             signature_matches = self._find_signature_matches(field_before, fields_after)
             renamed_matches = [f for f in signature_matches if f['name'] != field_before['name']]
@@ -207,6 +214,13 @@ class MatchingEngine:
         candidates = []
         
         for method_before in methods_before:
+            # Check if the original method still exists (indicating it wasn't renamed)
+            method_still_exists = any(m['name'] == method_before['name'] for m in methods_after)
+            if method_still_exists:
+                # Method still exists, so it wasn't renamed - skip
+                logger.debug(f"  Method '{method_before['name']}' still exists, skipping rename detection")
+                continue
+            
             # Find methods with matching signature but different name
             signature_matches = self._find_signature_matches(method_before, methods_after)
             renamed_matches = [m for m in signature_matches if m['name'] != method_before['name']]

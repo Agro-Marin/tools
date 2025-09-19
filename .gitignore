@@ -1,7 +1,11 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+*/__pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
 
 # C extensions
 *.so
@@ -89,3 +93,30 @@ Desktop.ini
 *.pot
 *.mo
 *.pyo
+
+# Project specific output files
+# Field Method Detector outputs
+field_method_detector/odoo_field_changes_detected.csv
+field_method_detector/*.backup_*.csv
+field_method_detector/confidence_report.json
+
+# Field Method Renaming outputs
+field_method_renaming/odoo_field_changes_detected.csv
+field_method_renaming/*.backup_*.csv
+field_method_renaming/field_renaming_report.json
+field_method_renaming/field_method_renaming.log
+field_method_renaming/.backups/
+field_method_renaming/node_modules/
+field_method_renaming/package-lock.json
+
+# Code ordering outputs
+code_ordering/module_order_report.json
+code_ordering/reorder_report.json
+code_ordering/*.backup
+
+# General tool outputs
+*_report.json
+*_detected.csv
+*.backup_*
+*.diff
+.backups/

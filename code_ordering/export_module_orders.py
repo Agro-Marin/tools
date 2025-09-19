@@ -14,14 +14,15 @@ Usage:
 import argparse
 import json
 import logging
-import sys
 from pathlib import Path
+import sys
 
 from config import OdooConfig
 
 # Import components from the main tool
 from core import FileOperations
 from odoo_reorder import OrderExport, OrderExporter, OrderExportType
+
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

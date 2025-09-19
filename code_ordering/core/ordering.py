@@ -16,12 +16,13 @@ The module provides:
 """
 
 import ast
-import logging
 from dataclasses import dataclass
+import logging
 from pathlib import Path
 from typing import Any
 
 import isort
+
 from core.classification_rule_field import (
     ClassificationRuleField,
     get_default_field_rules,
@@ -30,7 +31,7 @@ from core.classification_rule_method import (
     ClassificationRuleMethod,
     get_default_method_rules,
 )
-from core.formatting import format_section_header
+
 
 logger = logging.getLogger(__name__)
 
@@ -1355,6 +1356,44 @@ class Ordering:
         return False
 
     # ============================================================
+    # FORMATTING UTILITIES
+    # ============================================================
+
+    def format_section_header(
+        self,
+        title: str,
+        separator: str = "=",
+        length: int = 77,
+    ) -> list[str]:
+        """Format a prominent section header with separator lines.
+
+        Creates a three-line header comment block for visually separating
+        major sections in the code (e.g., FIELDS, CRUD METHODS).
+
+        Args:
+            title: Section title to display
+            separator: Character to use for separator lines (default '=')
+            length: Total length of separator lines (default 77)
+
+        Returns:
+            list[str]: Four lines - separator, title, separator, blank line
+
+        Example:
+            >>> format_section_header("FIELDS")
+            ['    # =====================================================',
+            '    # FIELDS',
+            '    # =====================================================',
+            '']
+        """
+        sep_line = separator * length
+        return [
+            f"    # {sep_line}",
+            f"    # {title}",
+            f"    # {sep_line}",
+            "",
+        ]
+
+    # ============================================================
     # REORGANIZER
     # ============================================================
 
@@ -1441,7 +1480,7 @@ class Ordering:
         # Fields section
         if elements["fields"]:
             if self.config.add_section_headers:
-                lines.extend(format_section_header("FIELDS"))
+                lines.extend(self.format_section_header("FIELDS"))
 
             for field in elements["fields"]:
                 lines.append(self.unparse_node(field, indent="    "))
@@ -1483,7 +1522,7 @@ class Ordering:
             for category in method_order:
                 if category in elements["methods"]:
                     if self.config.add_section_headers:
-                        lines.extend(format_section_header(f"{category} METHODS"))
+                        lines.extend(self.format_section_header(f"{category} METHODS"))
 
                     for method in elements["methods"][category]:
                         # Decorators are included in the method unparsing, no need to add separately

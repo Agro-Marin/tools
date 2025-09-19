@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <record id="test_model_form_view" model="ir.ui.view">
+        <field name="model">test.model</field>
+        <field name="name">test.model.form</field>
+        <field name="arch" type="xml">
+            <form string="Test Form" create="false" edit="false">
+                <sheet>
+                    <group name="main_group" string="Main Group" col="2">
+                        <field name="name" string="Name" required="1" readonly="0" help="Enter the name" />
+                        <field name="amount" string="Amount" widget="monetary" required="1" options="{'currency_field': 'currency_id'}" />
+                        <field name="currency_id" invisible="1" />
+                    </group>
+                    <notebook>
+                        <page name="details_page" string="Details" groups="base.group_user">
+                            <field name="description" string="Description" placeholder="Enter description here" colspan="4" />
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="test_model_tree_view" model="ir.ui.view">
+        <field name="name">test.model.tree</field>
+        <field name="model">test.model</field>
+        <field name="arch" type="xml">
+            <tree string="Test List" decoration-danger="state=='cancel'" decoration-info="state=='draft'">
+                <field name="name" string="Name" decoration-bf="True" optional="show" />
+                <field name="state" string="State" decoration-muted="state=='done'" />
+                <button name="action_confirm" string="Confirm" type="object" icon="fa-check" states="draft" />
+            </tree>
+        </field>
+    </record>
+    <record id="action_test_model" model="ir.actions.act_window">
+        <field name="view_mode">tree,form</field>
+        <field name="name">Test Model</field>
+        <field name="res_model">test.model</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first record!
+            </p>
+        </field>
+        <field name="context">{'default_state': 'draft'}</field>
+        <field name="domain">[('active', '=', True)]</field>
+    </record>
+    <menuitem id="menu_test_model" name="Test Model" parent="base.menu_custom" sequence="10" action="action_test_model" />
+</odoo>

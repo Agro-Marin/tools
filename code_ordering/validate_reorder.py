@@ -19,11 +19,11 @@ Version: 1.0.0
 
 import argparse
 import ast
+from dataclasses import dataclass
 import json
 import logging
-import sys
-from dataclasses import dataclass
 from pathlib import Path
+import sys
 from typing import Optional
 
 # Import shared components
@@ -71,8 +71,8 @@ class ReorderValidator:
         self,
         original_file: Path,
         reordered_file: Path,
-        config: Config | None = None,
-        order_file: Path | None = None,
+        config: Optional[Config] = None,
+        order_file: Optional[Path] = None,
     ):
         """Initialize validator with files and configuration.
 

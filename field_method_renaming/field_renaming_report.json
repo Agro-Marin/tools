@@ -1,24 +1,21 @@
 {
   "summary": {
     "timestamp": {
-      "total_changes": 117,
-      "field_changes": 60,
-      "method_changes": 57,
-      "unique_modules": 21,
-      "unique_models": 46,
+      "total_changes": 103,
+      "field_changes": 47,
+      "method_changes": 56,
+      "unique_modules": 19,
+      "unique_models": 41,
       "modules": {
-        "sale": 35,
-        "account": 8,
-        "product": 25,
-        "stock": 9,
-        "mrp": 1,
-        "point_of_sale": 1,
-        "project": 1,
-        "purchase": 10,
+        "account": 2,
+        "product": 21,
+        "purchase": 9,
         "purchase_mrp": 3,
         "purchase_stock": 5,
+        "sale": 35,
         "sale_purchase": 4,
         "sale_stock": 5,
+        "stock": 8,
         "event_booth_sale": 1,
         "event_sale": 1,
         "mrp_subcontracting_dropshipping": 1,
@@ -27,43 +24,38 @@
         "sale_mrp": 1,
         "sale_purchase_stock": 2,
         "stock_dropshipping": 1,
-        "website_sale": 1
+        "website_sale": 1,
+        "point_of_sale": 1
       },
       "models": {
-        "sale.crm.team": 5,
-        "sale.sale.order": 10,
-        "sale.res.partner": 2,
-        "sale.sale.order.line": 11,
-        "sale.utm.campaign": 3,
-        "sale.sale.mass.cancel.orders": 2,
-        "sale.sale.advance.payment.inv": 1,
-        "sale.account.move": 1,
-        "account.account.move": 4,
-        "account.account.move.line": 2,
         "account.res.partner": 2,
         "product.product.category": 2,
         "product.product.combo": 2,
         "product.product.pricelist.item": 1,
-        "product.product.product": 6,
+        "product.product.product": 5,
         "product.product.supplierinfo": 1,
-        "product.product.tag": 2,
-        "product.product.template": 7,
+        "product.product.template": 6,
         "product.uom.uom": 2,
         "product.update.product.attribute.value": 2,
-        "stock.stock.move": 5,
-        "stock.stock.picking": 4,
-        "mrp.mrp.production": 1,
-        "point_of_sale.pos.order": 1,
-        "project.project.project": 1,
         "purchase.purchase.order": 4,
-        "purchase.purchase.order.line": 4,
+        "purchase.purchase.order.line": 3,
         "purchase.res.partner": 2,
         "purchase_mrp.mrp.production": 2,
         "purchase_stock.purchase.order": 3,
+        "sale.account.move": 1,
+        "sale.crm.team": 5,
+        "sale.res.partner": 2,
+        "sale.sale.order": 10,
+        "sale.sale.order.line": 11,
+        "sale.utm.campaign": 3,
+        "sale.sale.mass.cancel.orders": 2,
+        "sale.sale.advance.payment.inv": 1,
         "sale_purchase.purchase.order": 2,
         "sale_purchase.sale.order": 2,
         "sale_stock.sale.order": 2,
         "sale_stock.sale.order.line": 3,
+        "stock.stock.move": 4,
+        "stock.stock.picking": 4,
         "event_booth_sale.sale.order.line": 1,
         "event_sale.sale.order.line": 1,
         "mrp_subcontracting_dropshipping.purchase.order": 1,
@@ -75,7 +67,8 @@
         "sale_purchase_stock.purchase.order": 1,
         "sale_purchase_stock.sale.order": 1,
         "stock_dropshipping.sale.order.line": 1,
-        "website_sale.sale.order.line": 1
+        "website_sale.sale.order.line": 1,
+        "point_of_sale.pos.order": 1
       },
       "csv_file": "odoo_field_changes_detected.csv"
     },
@@ -98,16 +91,184 @@
       ]
     },
     "statistics": {
-      "total_changes": 117,
-      "total_files_found": 236,
-      "total_files_processed": 236,
-      "successful_files": 66,
+      "total_changes": 103,
+      "total_files_found": 159,
+      "total_files_processed": 159,
+      "successful_files": 57,
       "failed_files": 0,
       "skipped_files": 0,
-      "backup_session": ".backups/20250918_083151"
+      "backup_session": ".backups/20250919_082729"
     }
   },
   "changes": [
+    {
+      "old_name": "supplier_invoice_count",
+      "new_name": "count_supplier_invoice",
+      "module": "account",
+      "model": "res.partner",
+      "change_type": "field"
+    },
+    {
+      "old_name": "product_count",
+      "new_name": "count_product",
+      "module": "product",
+      "model": "product.category",
+      "change_type": "field"
+    },
+    {
+      "old_name": "combo_item_count",
+      "new_name": "count_combo_item",
+      "module": "product",
+      "model": "product.combo",
+      "change_type": "field"
+    },
+    {
+      "old_name": "product_variant_count",
+      "new_name": "count_product_variant",
+      "module": "product",
+      "model": "product.pricelist.item",
+      "change_type": "field"
+    },
+    {
+      "old_name": "pricelist_item_count",
+      "new_name": "count_pricelist_item",
+      "module": "product",
+      "model": "product.product",
+      "change_type": "field"
+    },
+    {
+      "old_name": "product_document_count",
+      "new_name": "count_product_document",
+      "module": "product",
+      "model": "product.product",
+      "change_type": "field"
+    },
+    {
+      "old_name": "open_pricelist_rules",
+      "new_name": "action_open_pricelist_rules",
+      "module": "product",
+      "model": "product.product",
+      "change_type": "method"
+    },
+    {
+      "old_name": "open_product_template",
+      "new_name": "action_open_product_template",
+      "module": "product",
+      "model": "product.product",
+      "change_type": "method"
+    },
+    {
+      "old_name": "product_variant_count",
+      "new_name": "count_product_variant",
+      "module": "product",
+      "model": "product.supplierinfo",
+      "change_type": "field"
+    },
+    {
+      "old_name": "product_variant_count",
+      "new_name": "count_product_variant",
+      "module": "product",
+      "model": "product.template",
+      "change_type": "field"
+    },
+    {
+      "old_name": "pricelist_item_count",
+      "new_name": "count_pricelist_item",
+      "module": "product",
+      "model": "product.template",
+      "change_type": "field"
+    },
+    {
+      "old_name": "product_document_count",
+      "new_name": "count_product_document",
+      "module": "product",
+      "model": "product.template",
+      "change_type": "field"
+    },
+    {
+      "old_name": "open_pricelist_rules",
+      "new_name": "action_open_pricelist_rules",
+      "module": "product",
+      "model": "product.template",
+      "change_type": "method"
+    },
+    {
+      "old_name": "packaging_barcodes_count",
+      "new_name": "count_packaging_barcodes",
+      "module": "product",
+      "model": "uom.uom",
+      "change_type": "field"
+    },
+    {
+      "old_name": "product_count",
+      "new_name": "count_product",
+      "module": "product",
+      "model": "update.product.attribute.value",
+      "change_type": "field"
+    },
+    {
+      "old_name": "order_line",
+      "new_name": "line_ids",
+      "module": "purchase",
+      "model": "purchase.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "invoice_status",
+      "new_name": "invoice_state",
+      "module": "purchase",
+      "model": "purchase.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "onchange_date_planned",
+      "new_name": "_onchange_date_planned",
+      "module": "purchase",
+      "model": "purchase.order",
+      "change_type": "method"
+    },
+    {
+      "old_name": "price_unit_discounted",
+      "new_name": "price_unit_discounted_taxinc",
+      "module": "purchase",
+      "model": "purchase.order.line",
+      "change_type": "field"
+    },
+    {
+      "old_name": "qty_received",
+      "new_name": "qty_transfered",
+      "module": "purchase",
+      "model": "purchase.order.line",
+      "change_type": "field"
+    },
+    {
+      "old_name": "purchase_order_count",
+      "new_name": "count_purchase_order",
+      "module": "purchase",
+      "model": "res.partner",
+      "change_type": "field"
+    },
+    {
+      "old_name": "purchase_order_count",
+      "new_name": "count_purchase_order",
+      "module": "purchase_mrp",
+      "model": "mrp.production",
+      "change_type": "field"
+    },
+    {
+      "old_name": "effective_date",
+      "new_name": "date_effective",
+      "module": "purchase_stock",
+      "model": "purchase.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "sale_order_count",
+      "new_name": "count_sale_order",
+      "module": "sale",
+      "model": "account.move",
+      "change_type": "field"
+    },
     {
       "old_name": "quotations_count",
       "new_name": "count_quotations",
@@ -130,11 +291,312 @@
       "change_type": "field"
     },
     {
+      "old_name": "sale_order_count",
+      "new_name": "count_sale_order",
+      "module": "sale",
+      "model": "crm.team",
+      "change_type": "field"
+    },
+    {
+      "old_name": "sale_order_count",
+      "new_name": "count_sale_order",
+      "module": "sale",
+      "model": "res.partner",
+      "change_type": "field"
+    },
+    {
       "old_name": "commitment_date",
       "new_name": "date_commitment",
       "module": "sale",
       "model": "sale.order",
       "change_type": "field"
+    },
+    {
+      "old_name": "validity_date",
+      "new_name": "date_validity",
+      "module": "sale",
+      "model": "sale.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "order_line",
+      "new_name": "line_ids",
+      "module": "sale",
+      "model": "sale.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "amount_to_invoice",
+      "new_name": "amount_to_invoice_taxinc",
+      "module": "sale",
+      "model": "sale.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "amount_invoiced",
+      "new_name": "amount_invoiced_taxinc",
+      "module": "sale",
+      "model": "sale.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "invoice_status",
+      "new_name": "invoice_state",
+      "module": "sale",
+      "model": "sale.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "order_partner_id",
+      "new_name": "partner_id",
+      "module": "sale",
+      "model": "sale.order.line",
+      "change_type": "field"
+    },
+    {
+      "old_name": "qty_delivered",
+      "new_name": "qty_transfered",
+      "module": "sale",
+      "model": "sale.order.line",
+      "change_type": "field"
+    },
+    {
+      "old_name": "invoice_status",
+      "new_name": "invoice_state",
+      "module": "sale",
+      "model": "sale.order.line",
+      "change_type": "field"
+    },
+    {
+      "old_name": "amount_invoiced",
+      "new_name": "amount_invoiced_taxinc",
+      "module": "sale",
+      "model": "sale.order.line",
+      "change_type": "field"
+    },
+    {
+      "old_name": "amount_to_invoice",
+      "new_name": "amount_to_invoice_taxinc",
+      "module": "sale",
+      "model": "sale.order.line",
+      "change_type": "field"
+    },
+    {
+      "old_name": "quotation_count",
+      "new_name": "count_quotation",
+      "module": "sale",
+      "model": "utm.campaign",
+      "change_type": "field"
+    },
+    {
+      "old_name": "sale_orders_count",
+      "new_name": "count_sale_orders",
+      "module": "sale",
+      "model": "sale.mass.cancel.orders",
+      "change_type": "field"
+    },
+    {
+      "old_name": "view_draft_invoices",
+      "new_name": "action_view_draft_invoices",
+      "module": "sale",
+      "model": "sale.advance.payment.inv",
+      "change_type": "method"
+    },
+    {
+      "old_name": "sale_order_count",
+      "new_name": "count_sale_order",
+      "module": "sale_purchase",
+      "model": "purchase.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "purchase_order_count",
+      "new_name": "count_purchase_order",
+      "module": "sale_purchase",
+      "model": "sale.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "effective_date",
+      "new_name": "date_effective",
+      "module": "sale_stock",
+      "model": "sale.order",
+      "change_type": "field"
+    },
+    {
+      "old_name": "forecast_expected_date",
+      "new_name": "date_planned_forecast",
+      "module": "sale_stock",
+      "model": "sale.order.line",
+      "change_type": "field"
+    },
+    {
+      "old_name": "free_qty_today",
+      "new_name": "qty_free_today",
+      "module": "sale_stock",
+      "model": "sale.order.line",
+      "change_type": "field"
+    },
+    {
+      "old_name": "delay_alert_date",
+      "new_name": "date_delay_alert",
+      "module": "stock",
+      "model": "stock.move",
+      "change_type": "field"
+    },
+    {
+      "old_name": "reservation_date",
+      "new_name": "date_reservation",
+      "module": "stock",
+      "model": "stock.move",
+      "change_type": "field"
+    },
+    {
+      "old_name": "delay_alert_date",
+      "new_name": "date_delay_alert",
+      "module": "stock",
+      "model": "stock.picking",
+      "change_type": "field"
+    },
+    {
+      "old_name": "_compute_supplier_invoice_count",
+      "new_name": "_compute_count_supplier_invoice",
+      "module": "account",
+      "model": "res.partner",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_get_display_price",
+      "new_name": "_get_price_display",
+      "module": "event_booth_sale",
+      "model": "sale.order.line",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_get_display_price",
+      "new_name": "_get_price_display",
+      "module": "event_sale",
+      "model": "sale.order.line",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_get_destination_location",
+      "new_name": "_get_location_destination",
+      "module": "mrp_subcontracting_dropshipping",
+      "model": "purchase.order",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_product_count",
+      "new_name": "_compute_count_product",
+      "module": "product",
+      "model": "product.category",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_combo_item_count",
+      "new_name": "_compute_count_combo_item",
+      "module": "product",
+      "model": "product.combo",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_product_document_count",
+      "new_name": "_compute_count_product_document",
+      "module": "product",
+      "model": "product.product",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_product_document_count",
+      "new_name": "_compute_count_product_document",
+      "module": "product",
+      "model": "product.template",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_product_variant_count",
+      "new_name": "_compute_count_product_variant",
+      "module": "product",
+      "model": "product.template",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_packaging_barcodes_count",
+      "new_name": "_compute_count_packaging_barcodes",
+      "module": "product",
+      "model": "uom.uom",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_product_count",
+      "new_name": "_compute_count_product",
+      "module": "product",
+      "model": "update.product.attribute.value",
+      "change_type": "method"
+    },
+    {
+      "old_name": "action_rfq_send",
+      "new_name": "action_send_rfq",
+      "module": "purchase",
+      "model": "purchase.order",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_get_gross_price_unit",
+      "new_name": "_get_price_unit_gross",
+      "module": "purchase",
+      "model": "purchase.order.line",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_purchase_order_count",
+      "new_name": "_compute_count_purchase_order",
+      "module": "purchase",
+      "model": "res.partner",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_purchase_order_count",
+      "new_name": "_compute_count_purchase_order",
+      "module": "purchase_mrp",
+      "model": "mrp.production",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_get_qty_procurement",
+      "new_name": "_get_procurement_qty",
+      "module": "purchase_mrp",
+      "model": "purchase.order.line",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_effective_date",
+      "new_name": "_compute_date_effective",
+      "module": "purchase_stock",
+      "model": "purchase.order",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_get_destination_location",
+      "new_name": "_get_location_destination",
+      "module": "purchase_stock",
+      "model": "purchase.order",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_create_or_update_picking",
+      "new_name": "_update_or_create_picking",
+      "module": "purchase_stock",
+      "model": "purchase.order.line",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_get_qty_procurement",
+      "new_name": "_get_procurement_qty",
+      "module": "purchase_stock",
+      "model": "purchase.order.line",
+      "change_type": "method"
     },
     {
       "old_name": "_compute_sale_order_count",
@@ -242,615 +704,6 @@
       "change_type": "method"
     },
     {
-      "old_name": "view_draft_invoices",
-      "new_name": "action_view_draft_invoices",
-      "module": "sale",
-      "model": "sale.advance.payment.inv",
-      "change_type": "field"
-    },
-    {
-      "old_name": "sale_order_count",
-      "new_name": "count_sale_order",
-      "module": "sale",
-      "model": "account.move",
-      "change_type": "field"
-    },
-    {
-      "old_name": "sale_order_count",
-      "new_name": "count_sale_order",
-      "module": "sale",
-      "model": "crm.team",
-      "change_type": "field"
-    },
-    {
-      "old_name": "sale_order_count",
-      "new_name": "count_sale_order",
-      "module": "sale",
-      "model": "res.partner",
-      "change_type": "field"
-    },
-    {
-      "old_name": "validity_date",
-      "new_name": "date_validity",
-      "module": "sale",
-      "model": "sale.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "order_line",
-      "new_name": "line_ids",
-      "module": "sale",
-      "model": "sale.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "quotation_count",
-      "new_name": "count_quotation",
-      "module": "sale",
-      "model": "utm.campaign",
-      "change_type": "field"
-    },
-    {
-      "old_name": "sale_orders_count",
-      "new_name": "count_sale_orders",
-      "module": "sale",
-      "model": "sale.mass.cancel.orders",
-      "change_type": "field"
-    },
-    {
-      "old_name": "amount_to_invoice",
-      "new_name": "amount_to_invoice_taxinc",
-      "module": "sale",
-      "model": "sale.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "amount_invoiced",
-      "new_name": "amount_invoiced_taxinc",
-      "module": "sale",
-      "model": "sale.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "amount_invoiced",
-      "new_name": "amount_invoiced_taxinc",
-      "module": "sale",
-      "model": "sale.order.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "amount_to_invoice",
-      "new_name": "amount_to_invoice_taxinc",
-      "module": "sale",
-      "model": "sale.order.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "partner_bank_id",
-      "new_name": "bank_partner_id",
-      "module": "account",
-      "model": "account.move",
-      "change_type": "field"
-    },
-    {
-      "old_name": "bank_partner_id",
-      "new_name": "partner_bank_id",
-      "module": "account",
-      "model": "account.move",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_compute_partner_bank_id",
-      "new_name": "_compute_bank_partner_id",
-      "module": "account",
-      "model": "account.move",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_compute_bank_partner_id",
-      "new_name": "_compute_partner_bank_id",
-      "module": "account",
-      "model": "account.move",
-      "change_type": "method"
-    },
-    {
-      "old_name": "group_tax_id",
-      "new_name": "tax_group_id",
-      "module": "account",
-      "model": "account.move.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "tax_group_id",
-      "new_name": "group_tax_id",
-      "module": "account",
-      "model": "account.move.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "supplier_invoice_count",
-      "new_name": "count_supplier_invoice",
-      "module": "account",
-      "model": "res.partner",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_compute_supplier_invoice_count",
-      "new_name": "_compute_count_supplier_invoice",
-      "module": "account",
-      "model": "res.partner",
-      "change_type": "method"
-    },
-    {
-      "old_name": "product_count",
-      "new_name": "count_product",
-      "module": "product",
-      "model": "product.category",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_compute_product_count",
-      "new_name": "_compute_count_product",
-      "module": "product",
-      "model": "product.category",
-      "change_type": "method"
-    },
-    {
-      "old_name": "combo_item_count",
-      "new_name": "count_combo_item",
-      "module": "product",
-      "model": "product.combo",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_compute_combo_item_count",
-      "new_name": "_compute_count_combo_item",
-      "module": "product",
-      "model": "product.combo",
-      "change_type": "method"
-    },
-    {
-      "old_name": "product_variant_count",
-      "new_name": "count_product_variant",
-      "module": "product",
-      "model": "product.pricelist.item",
-      "change_type": "field"
-    },
-    {
-      "old_name": "pricelist_item_count",
-      "new_name": "count_pricelist_item",
-      "module": "product",
-      "model": "product.product",
-      "change_type": "field"
-    },
-    {
-      "old_name": "product_document_count",
-      "new_name": "count_product_document",
-      "module": "product",
-      "model": "product.product",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_compute_product_document_count",
-      "new_name": "_compute_count_product_document",
-      "module": "product",
-      "model": "product.product",
-      "change_type": "method"
-    },
-    {
-      "old_name": "open_pricelist_rules",
-      "new_name": "action_open_pricelist_rules",
-      "module": "product",
-      "model": "product.product",
-      "change_type": "field"
-    },
-    {
-      "old_name": "open_product_template",
-      "new_name": "action_open_product_template",
-      "module": "product",
-      "model": "product.product",
-      "change_type": "field"
-    },
-    {
-      "old_name": "get_contextual_price",
-      "new_name": "_get_contextual_price",
-      "module": "product",
-      "model": "product.product",
-      "change_type": "method"
-    },
-    {
-      "old_name": "product_variant_count",
-      "new_name": "count_product_variant",
-      "module": "product",
-      "model": "product.supplierinfo",
-      "change_type": "field"
-    },
-    {
-      "old_name": "product_product_ids",
-      "new_name": "product_ids",
-      "module": "product",
-      "model": "product.tag",
-      "change_type": "field"
-    },
-    {
-      "old_name": "product_ids",
-      "new_name": "product_product_ids",
-      "module": "product",
-      "model": "product.tag",
-      "change_type": "field"
-    },
-    {
-      "old_name": "product_variant_count",
-      "new_name": "count_product_variant",
-      "module": "product",
-      "model": "product.template",
-      "change_type": "field"
-    },
-    {
-      "old_name": "pricelist_item_count",
-      "new_name": "count_pricelist_item",
-      "module": "product",
-      "model": "product.template",
-      "change_type": "field"
-    },
-    {
-      "old_name": "product_document_count",
-      "new_name": "count_product_document",
-      "module": "product",
-      "model": "product.template",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_compute_product_document_count",
-      "new_name": "_compute_count_product_document",
-      "module": "product",
-      "model": "product.template",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_compute_product_variant_count",
-      "new_name": "_compute_count_product_variant",
-      "module": "product",
-      "model": "product.template",
-      "change_type": "method"
-    },
-    {
-      "old_name": "open_pricelist_rules",
-      "new_name": "action_open_pricelist_rules",
-      "module": "product",
-      "model": "product.template",
-      "change_type": "field"
-    },
-    {
-      "old_name": "get_contextual_price",
-      "new_name": "_get_contextual_price",
-      "module": "product",
-      "model": "product.template",
-      "change_type": "method"
-    },
-    {
-      "old_name": "packaging_barcodes_count",
-      "new_name": "count_packaging_barcodes",
-      "module": "product",
-      "model": "uom.uom",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_compute_packaging_barcodes_count",
-      "new_name": "_compute_count_packaging_barcodes",
-      "module": "product",
-      "model": "uom.uom",
-      "change_type": "method"
-    },
-    {
-      "old_name": "product_count",
-      "new_name": "count_product",
-      "module": "product",
-      "model": "update.product.attribute.value",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_compute_product_count",
-      "new_name": "_compute_count_product",
-      "module": "product",
-      "model": "update.product.attribute.value",
-      "change_type": "method"
-    },
-    {
-      "old_name": "invoice_status",
-      "new_name": "invoice_state",
-      "module": "sale",
-      "model": "sale.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "order_partner_id",
-      "new_name": "partner_id",
-      "module": "sale",
-      "model": "sale.order.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "qty_delivered",
-      "new_name": "qty_transfered",
-      "module": "sale",
-      "model": "sale.order.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "invoice_status",
-      "new_name": "invoice_state",
-      "module": "sale",
-      "model": "sale.order.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "product_qty",
-      "new_name": "product_uom_qty",
-      "module": "stock",
-      "model": "stock.move",
-      "change_type": "field"
-    },
-    {
-      "old_name": "delay_alert_date",
-      "new_name": "date_delay_alert",
-      "module": "stock",
-      "model": "stock.move",
-      "change_type": "field"
-    },
-    {
-      "old_name": "reservation_date",
-      "new_name": "date_reservation",
-      "module": "stock",
-      "model": "stock.move",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_compute_delay_alert_date",
-      "new_name": "_compute_date_delay_alert",
-      "module": "stock",
-      "model": "stock.move",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_compute_reservation_date",
-      "new_name": "_compute_date_reservation",
-      "module": "stock",
-      "model": "stock.move",
-      "change_type": "method"
-    },
-    {
-      "old_name": "delay_alert_date",
-      "new_name": "date_delay_alert",
-      "module": "stock",
-      "model": "stock.picking",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_compute_delay_alert_date",
-      "new_name": "_compute_date_delay_alert",
-      "module": "stock",
-      "model": "stock.picking",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_compute_bulk_weight",
-      "new_name": "_compute_weight_bulk",
-      "module": "stock",
-      "model": "stock.picking",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_search_delay_alert_date",
-      "new_name": "_search_date_delay_alert",
-      "module": "stock",
-      "model": "stock.picking",
-      "change_type": "method"
-    },
-    {
-      "old_name": "product_qty",
-      "new_name": "product_uom_qty",
-      "module": "mrp",
-      "model": "mrp.production",
-      "change_type": "field"
-    },
-    {
-      "old_name": "invoice_status",
-      "new_name": "invoice_state",
-      "module": "point_of_sale",
-      "model": "pos.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "get_milestones",
-      "new_name": "_get_milestones",
-      "module": "project",
-      "model": "project.project",
-      "change_type": "method"
-    },
-    {
-      "old_name": "order_line",
-      "new_name": "line_ids",
-      "module": "purchase",
-      "model": "purchase.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "invoice_status",
-      "new_name": "invoice_state",
-      "module": "purchase",
-      "model": "purchase.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "onchange_date_planned",
-      "new_name": "_onchange_date_planned",
-      "module": "purchase",
-      "model": "purchase.order",
-      "change_type": "method"
-    },
-    {
-      "old_name": "product_qty",
-      "new_name": "product_uom_qty",
-      "module": "purchase",
-      "model": "purchase.order.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "price_unit_discounted",
-      "new_name": "price_unit_discounted_taxinc",
-      "module": "purchase",
-      "model": "purchase.order.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "qty_received",
-      "new_name": "qty_transfered",
-      "module": "purchase",
-      "model": "purchase.order.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "purchase_order_count",
-      "new_name": "count_purchase_order",
-      "module": "purchase",
-      "model": "res.partner",
-      "change_type": "field"
-    },
-    {
-      "old_name": "purchase_order_count",
-      "new_name": "count_purchase_order",
-      "module": "purchase_mrp",
-      "model": "mrp.production",
-      "change_type": "field"
-    },
-    {
-      "old_name": "effective_date",
-      "new_name": "date_effective",
-      "module": "purchase_stock",
-      "model": "purchase.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "sale_order_count",
-      "new_name": "count_sale_order",
-      "module": "sale_purchase",
-      "model": "purchase.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "purchase_order_count",
-      "new_name": "count_purchase_order",
-      "module": "sale_purchase",
-      "model": "sale.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "effective_date",
-      "new_name": "date_effective",
-      "module": "sale_stock",
-      "model": "sale.order",
-      "change_type": "field"
-    },
-    {
-      "old_name": "forecast_expected_date",
-      "new_name": "date_planned_forecast",
-      "module": "sale_stock",
-      "model": "sale.order.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "free_qty_today",
-      "new_name": "qty_free_today",
-      "module": "sale_stock",
-      "model": "sale.order.line",
-      "change_type": "field"
-    },
-    {
-      "old_name": "_get_display_price",
-      "new_name": "_get_price_display",
-      "module": "event_booth_sale",
-      "model": "sale.order.line",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_get_display_price",
-      "new_name": "_get_price_display",
-      "module": "event_sale",
-      "model": "sale.order.line",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_get_destination_location",
-      "new_name": "_get_location_destination",
-      "module": "mrp_subcontracting_dropshipping",
-      "model": "purchase.order",
-      "change_type": "method"
-    },
-    {
-      "old_name": "action_rfq_send",
-      "new_name": "action_send_rfq",
-      "module": "purchase",
-      "model": "purchase.order",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_get_gross_price_unit",
-      "new_name": "_get_price_unit_gross",
-      "module": "purchase",
-      "model": "purchase.order.line",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_compute_purchase_order_count",
-      "new_name": "_compute_count_purchase_order",
-      "module": "purchase",
-      "model": "res.partner",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_compute_purchase_order_count",
-      "new_name": "_compute_count_purchase_order",
-      "module": "purchase_mrp",
-      "model": "mrp.production",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_get_qty_procurement",
-      "new_name": "_get_procurement_qty",
-      "module": "purchase_mrp",
-      "model": "purchase.order.line",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_compute_effective_date",
-      "new_name": "_compute_date_effective",
-      "module": "purchase_stock",
-      "model": "purchase.order",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_get_destination_location",
-      "new_name": "_get_location_destination",
-      "module": "purchase_stock",
-      "model": "purchase.order",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_create_or_update_picking",
-      "new_name": "_update_or_create_picking",
-      "module": "purchase_stock",
-      "model": "purchase.order.line",
-      "change_type": "method"
-    },
-    {
-      "old_name": "_get_qty_procurement",
-      "new_name": "_get_procurement_qty",
-      "module": "purchase_stock",
-      "model": "purchase.order.line",
-      "change_type": "method"
-    },
-    {
       "old_name": "_get_display_price",
       "new_name": "_get_price_display",
       "module": "sale_loyalty",
@@ -914,6 +767,41 @@
       "change_type": "method"
     },
     {
+      "old_name": "_compute_delay_alert_date",
+      "new_name": "_compute_date_delay_alert",
+      "module": "stock",
+      "model": "stock.move",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_reservation_date",
+      "new_name": "_compute_date_reservation",
+      "module": "stock",
+      "model": "stock.move",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_delay_alert_date",
+      "new_name": "_compute_date_delay_alert",
+      "module": "stock",
+      "model": "stock.picking",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_compute_bulk_weight",
+      "new_name": "_compute_weight_bulk",
+      "module": "stock",
+      "model": "stock.picking",
+      "change_type": "method"
+    },
+    {
+      "old_name": "_search_delay_alert_date",
+      "new_name": "_search_date_delay_alert",
+      "module": "stock",
+      "model": "stock.picking",
+      "change_type": "method"
+    },
+    {
       "old_name": "_get_qty_procurement",
       "new_name": "_get_procurement_qty",
       "module": "stock_dropshipping",
@@ -926,595 +814,16 @@
       "module": "website_sale",
       "model": "sale.order.line",
       "change_type": "method"
+    },
+    {
+      "old_name": "invoice_status",
+      "new_name": "invoice_state",
+      "module": "point_of_sale",
+      "model": "pos.order",
+      "change_type": "field"
     }
   ],
   "results": [
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/crm_team.py",
-      "status": "success",
-      "changes_applied": 3,
-      "changes_details": [
-        "Field definition: sale_order_count \u2192 count_sale_order",
-        "Method definition: _compute_sale_order_count \u2192 _compute_count_sale_order",
-        "String reference (single quotes): '_compute_sale_order_count' \u2192 '_compute_count_sale_order'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/models/crm_team.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/crm_team_views.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/views/crm_team_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/sale_order.py",
-      "status": "success",
-      "changes_applied": 18,
-      "changes_details": [
-        "Field definition: amount_invoiced \u2192 amount_invoiced_taxinc",
-        "Field definition: amount_to_invoice \u2192 amount_to_invoice_taxinc",
-        "Field definition: commitment_date \u2192 date_commitment",
-        "Field definition: invoice_status \u2192 invoice_state",
-        "Field definition: order_line \u2192 line_ids",
-        "Field definition: validity_date \u2192 date_validity",
-        "Method definition: _compute_validity_date \u2192 _compute_date_validity",
-        "Method definition: _get_copiable_order_lines \u2192 _get_order_lines_copiable",
-        "Method definition: _onchange_commitment_date \u2192 _onchange_date_commitment",
-        "Method definition: action_quotation_send \u2192 action_send_quotation",
-        "Method call: _get_copiable_order_lines \u2192 _get_order_lines_copiable",
-        "String reference (single quotes): 'amount_invoiced' \u2192 'amount_invoiced_taxinc'",
-        "String reference (single quotes): 'amount_to_invoice' \u2192 'amount_to_invoice_taxinc'",
-        "String reference (single quotes): 'commitment_date' \u2192 'date_commitment'",
-        "String reference (single quotes): 'invoice_status' \u2192 'invoice_state'",
-        "String reference (single quotes): 'order_line' \u2192 'line_ids'",
-        "String reference (double quotes): \"order_line\" \u2192 \"line_ids\"",
-        "String reference (single quotes): '_compute_validity_date' \u2192 '_compute_date_validity'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/models/sale_order.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/sale_order_line.py",
-      "status": "success",
-      "changes_applied": 18,
-      "changes_details": [
-        "Field definition: amount_invoiced \u2192 amount_invoiced_taxinc",
-        "Field definition: amount_to_invoice \u2192 amount_to_invoice_taxinc",
-        "Field definition: invoice_status \u2192 invoice_state",
-        "Field definition: order_partner_id \u2192 partner_id",
-        "Field definition: qty_delivered \u2192 qty_transfered",
-        "Method definition: _get_combo_item_display_price \u2192 _get_price_display_combo_item",
-        "Method definition: _get_display_price \u2192 _get_price_display",
-        "Method definition: _get_display_price_ignore_combo \u2192 _get_price_display_ignore_combo",
-        "Method definition: _get_linked_line \u2192 _get_line_linked",
-        "Method definition: _get_linked_lines \u2192 _get_lines_linked",
-        "Method definition: _get_order_date \u2192 _get_date_order",
-        "Method call: _get_combo_item_display_price \u2192 _get_price_display_combo_item",
-        "Method call: _get_display_price \u2192 _get_price_display",
-        "Method call: _get_display_price_ignore_combo \u2192 _get_price_display_ignore_combo",
-        "Method call: _get_linked_line \u2192 _get_line_linked",
-        "Method call: _get_order_date \u2192 _get_date_order",
-        "String reference (single quotes): 'order_partner_id' \u2192 'partner_id'",
-        "String reference (single quotes): 'qty_delivered' \u2192 'qty_transfered'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/models/sale_order_line.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/wizard/sale_make_invoice_advance.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/wizard/sale_make_invoice_advance.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/wizard/sale_order_discount.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_views.xml",
-      "status": "success",
-      "changes_applied": 17,
-      "changes_details": [
-        "Field reference: commitment_date \u2192 date_commitment (2 occurrences)",
-        "Field reference: commitment_date \u2192 date_commitment (1 occurrences)",
-        "Field reference: commitment_date \u2192 date_commitment (1 occurrences)",
-        "Field reference: invoice_status \u2192 invoice_state (4 occurrences)",
-        "Field reference: invoice_status \u2192 invoice_state (1 occurrences)",
-        "Field reference: invoice_status \u2192 invoice_state (6 occurrences)",
-        "Field reference: invoice_status \u2192 invoice_state (5 occurrences)",
-        "Field reference: invoice_status \u2192 invoice_state (2 occurrences)",
-        "Field reference: order_line \u2192 line_ids (2 occurrences)",
-        "Field reference: order_line \u2192 line_ids (1 occurrences)",
-        "Field reference: order_line \u2192 line_ids (2 occurrences)",
-        "Field reference: validity_date \u2192 date_validity (2 occurrences)",
-        "Method reference: action_quotation_send \u2192 action_send_quotation (1 occurrences)",
-        "ElementTree button: action_quotation_send \u2192 action_send_quotation",
-        "ElementTree button: action_quotation_send \u2192 action_send_quotation",
-        "ElementTree button: action_quotation_send \u2192 action_send_quotation",
-        "ElementTree button: action_quotation_send \u2192 action_send_quotation"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/res_company.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/res_partner.py",
-      "status": "success",
-      "changes_applied": 4,
-      "changes_details": [
-        "Field definition: sale_order_count \u2192 count_sale_order",
-        "Method definition: _compute_sale_order_count \u2192 _compute_count_sale_order",
-        "String reference (single quotes): 'sale_order_count' \u2192 'count_sale_order'",
-        "String reference (single quotes): '_compute_sale_order_count' \u2192 '_compute_count_sale_order'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/models/res_partner.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/wizard/res_config_settings.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/res_partner_views.xml",
-      "status": "success",
-      "changes_applied": 1,
-      "changes_details": [
-        "ElementTree field: sale_order_count \u2192 count_sale_order"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/views/res_partner_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_line_views.xml",
-      "status": "success",
-      "changes_applied": 3,
-      "changes_details": [
-        "Field reference: order_partner_id \u2192 partner_id (3 occurrences)",
-        "Field reference: qty_delivered \u2192 qty_transfered (2 occurrences)",
-        "Field reference: qty_delivered \u2192 qty_transfered (1 occurrences)"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_line_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/utm_campaign.py",
-      "status": "success",
-      "changes_applied": 5,
-      "changes_details": [
-        "Field definition: quotation_count \u2192 count_quotation",
-        "Method definition: _compute_quotation_count \u2192 _compute_count_quotation",
-        "Method definition: _compute_sale_invoiced_amount \u2192 _compute_sale_amount_invoiced",
-        "String reference (double quotes): \"_compute_quotation_count\" \u2192 \"_compute_count_quotation\"",
-        "String reference (double quotes): \"_compute_sale_invoiced_amount\" \u2192 \"_compute_sale_amount_invoiced\""
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/models/utm_campaign.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/utm_campaign_views.xml",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Field reference: quotation_count \u2192 count_quotation (2 occurrences)",
-        "Field reference: quotation_count \u2192 count_quotation (1 occurrences)"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/views/utm_campaign_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/account_move.py",
-      "status": "success",
-      "changes_applied": 1,
-      "changes_details": [
-        "Field definition: sale_order_count \u2192 count_sale_order"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/models/account_move.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/account_move_line.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/account_views.xml",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Field reference: sale_order_count \u2192 count_sale_order (1 occurrences)",
-        "Field reference: sale_order_count \u2192 count_sale_order (1 occurrences)"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale/views/account_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_account.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_account_tag.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_analytic_account.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_analytic_distribution_model.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_analytic_line.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_analytic_plan.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_bank_statement.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_bank_statement_line.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/account/models/account_bank_statement_line.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_cash_rounding.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_code_mapping.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_document_import_mixin.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_full_reconcile.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_incoterms.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_journal.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_journal_dashboard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_lock_exception.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_move.py",
-      "status": "success",
-      "changes_applied": 8,
-      "changes_details": [
-        "Field definition: bank_partner_id \u2192 partner_bank_id",
-        "Field definition: partner_bank_id \u2192 bank_partner_id",
-        "Method definition: _compute_bank_partner_id \u2192 _compute_partner_bank_id",
-        "Method definition: _compute_partner_bank_id \u2192 _compute_bank_partner_id",
-        "String reference (single quotes): 'bank_partner_id' \u2192 'partner_bank_id'",
-        "String reference (single quotes): 'partner_bank_id' \u2192 'bank_partner_id'",
-        "String reference (single quotes): '_compute_bank_partner_id' \u2192 '_compute_partner_bank_id'",
-        "String reference (single quotes): '_compute_partner_bank_id' \u2192 '_compute_bank_partner_id'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/account/models/account_move.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_move_line.py",
-      "status": "success",
-      "changes_applied": 4,
-      "changes_details": [
-        "Field definition: group_tax_id \u2192 tax_group_id",
-        "Field definition: tax_group_id \u2192 group_tax_id",
-        "String reference (single quotes): 'group_tax_id' \u2192 'tax_group_id'",
-        "String reference (single quotes): 'tax_group_id' \u2192 'group_tax_id'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/account/models/account_move_line.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_move_line_tax_details.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/account/models/account_move_line_tax_details.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_move_send.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_partial_reconcile.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_payment.py",
-      "status": "success",
-      "changes_applied": 4,
-      "changes_details": [
-        "Field definition: partner_bank_id \u2192 bank_partner_id",
-        "Method definition: _compute_partner_bank_id \u2192 _compute_bank_partner_id",
-        "String reference (single quotes): 'partner_bank_id' \u2192 'bank_partner_id'",
-        "String reference (single quotes): '_compute_partner_bank_id' \u2192 '_compute_bank_partner_id'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/account/models/account_payment.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_payment_method.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_payment_term.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_reconcile_model.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_report.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_root.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/account_tax.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/wizard/account_automatic_entry_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/wizard/account_autopost_bills_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/wizard/account_merge_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/wizard/account_move_reversal.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/wizard/account_move_send_batch_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/wizard/account_move_send_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/wizard/account_payment_register.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/wizard/account_resequence.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/wizard/account_secure_entries_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/wizard/account_validate_account_move.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/views/account_move_views.xml",
-      "status": "success",
-      "changes_applied": 9,
-      "changes_details": [
-        "Field reference: bank_partner_id \u2192 partner_bank_id (1 occurrences)",
-        "Field reference: bank_partner_id \u2192 partner_bank_id (2 occurrences)",
-        "Field reference: bank_partner_id \u2192 partner_bank_id (1 occurrences)",
-        "Field reference: partner_bank_id \u2192 bank_partner_id (3 occurrences)",
-        "Field reference: partner_bank_id \u2192 bank_partner_id (2 occurrences)",
-        "Field reference: partner_bank_id \u2192 bank_partner_id (1 occurrences)",
-        "ElementTree field: bank_partner_id \u2192 partner_bank_id",
-        "ElementTree field: bank_partner_id \u2192 partner_bank_id",
-        "ElementTree field: bank_partner_id \u2192 partner_bank_id"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/account/views/account_move_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/data/account_data.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/demo/account_demo.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/account/security/account_security.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/partner.py",
       "status": "success",
@@ -1525,7 +834,7 @@
         "String reference (single quotes): '_compute_supplier_invoice_count' \u2192 '_compute_count_supplier_invoice'"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/account/models/partner.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/account/models/partner.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/account/models/res_config_settings.py",
@@ -1617,7 +926,7 @@
         "String reference (single quotes): '_compute_product_count' \u2192 '_compute_count_product'"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/models/product_category.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/models/product_category.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/models/product_combo.py",
@@ -1629,7 +938,7 @@
         "String reference (single quotes): '_compute_combo_item_count' \u2192 '_compute_count_combo_item'"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/models/product_combo.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/models/product_combo.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/models/product_combo_item.py",
@@ -1663,7 +972,7 @@
         "Field definition: product_variant_count \u2192 count_product_variant"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/models/product_pricelist_item.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/models/product_pricelist_item.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/models/product_product.py",
@@ -1672,11 +981,11 @@
       "changes_details": [
         "Field definition: product_document_count \u2192 count_product_document",
         "Method definition: _compute_product_document_count \u2192 _compute_count_product_document",
-        "Method definition: get_contextual_price \u2192 _get_contextual_price",
+        "Method definition: open_product_template \u2192 action_open_product_template",
         "String reference (single quotes): '_compute_product_document_count' \u2192 '_compute_count_product_document'"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/models/product_product.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/models/product_product.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/models/product_supplierinfo.py",
@@ -1687,35 +996,30 @@
         "String reference (single quotes): 'product_variant_count' \u2192 'count_product_variant'"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/models/product_supplierinfo.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/models/product_supplierinfo.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/models/product_tag.py",
-      "status": "success",
-      "changes_applied": 3,
-      "changes_details": [
-        "Field definition: product_ids \u2192 product_product_ids",
-        "Field definition: product_product_ids \u2192 product_ids",
-        "String reference (single quotes): 'product_product_ids' \u2192 'product_ids'"
-      ],
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/models/product_tag.py"
+      "backup_path": null
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/models/product_template.py",
       "status": "success",
-      "changes_applied": 7,
+      "changes_applied": 6,
       "changes_details": [
         "Field definition: product_document_count \u2192 count_product_document",
         "Field definition: product_variant_count \u2192 count_product_variant",
         "Method definition: _compute_product_document_count \u2192 _compute_count_product_document",
         "Method definition: _compute_product_variant_count \u2192 _compute_count_product_variant",
-        "Method definition: get_contextual_price \u2192 _get_contextual_price",
         "String reference (single quotes): '_compute_product_document_count' \u2192 '_compute_count_product_document'",
         "String reference (single quotes): '_compute_product_variant_count' \u2192 '_compute_count_product_variant'"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/models/product_template.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/models/product_template.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/models/product_template_attribute_exclusion.py",
@@ -1762,35 +1066,23 @@
       "status": "success",
       "changes_applied": 1,
       "changes_details": [
-        "Field reference: product_count \u2192 count_product (1 occurrences)"
+        "Field: product_count \u2192 count_product (1 occurrences)"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/views/product_category_views.xml"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/views/product_category_views.xml"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/views/product_views.xml",
       "status": "success",
-      "changes_applied": 16,
+      "changes_applied": 4,
       "changes_details": [
-        "Field reference: product_variant_count \u2192 count_product_variant (1 occurrences)",
-        "Field reference: product_variant_count \u2192 count_product_variant (1 occurrences)",
-        "Field reference: product_variant_count \u2192 count_product_variant (10 occurrences)",
-        "Field reference: product_variant_count \u2192 count_product_variant (1 occurrences)",
-        "Field reference: product_variant_count \u2192 count_product_variant (1 occurrences)",
-        "Field reference: open_product_template \u2192 action_open_product_template (1 occurrences)",
-        "Field reference: open_product_template \u2192 action_open_product_template (1 occurrences)",
-        "Field reference: open_product_template \u2192 action_open_product_template (1 occurrences)",
-        "Field reference: open_product_template \u2192 action_open_product_template (1 occurrences)",
-        "Field reference: open_product_template \u2192 action_open_product_template (1 occurrences)",
-        "Field reference: open_product_template \u2192 action_open_product_template (1 occurrences)",
-        "Field reference: open_product_template \u2192 action_open_product_template (1 occurrences)",
-        "Field reference: product_document_count \u2192 count_product_document (1 occurrences)",
-        "Field reference: product_ids \u2192 product_product_ids (1 occurrences)",
-        "Field reference: product_ids \u2192 product_product_ids (1 occurrences)",
-        "Field reference: product_ids \u2192 product_product_ids (1 occurrences)"
+        "Field: product_variant_count \u2192 count_product_variant (1 occurrences)",
+        "Field: product_variant_count \u2192 count_product_variant (1 occurrences)",
+        "Field: product_document_count \u2192 count_product_document (1 occurrences)",
+        "Method: open_product_template \u2192 action_open_product_template (1 occurrences)"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/views/product_views.xml"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/views/product_views.xml"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/data/product_data.xml",
@@ -1798,7 +1090,7 @@
       "changes_applied": 0,
       "changes_details": [],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/data/product_data.xml"
+      "backup_path": null
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/security/product_security.xml",
@@ -1813,59 +1105,40 @@
       "status": "success",
       "changes_applied": 1,
       "changes_details": [
-        "Field reference: combo_item_count \u2192 count_combo_item (1 occurrences)"
+        "Field: combo_item_count \u2192 count_combo_item (1 occurrences)"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/views/product_combo_views.xml"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/views/product_combo_views.xml"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/views/product_pricelist_item_views.xml",
       "status": "success",
-      "changes_applied": 2,
+      "changes_applied": 1,
       "changes_details": [
-        "Field reference: product_variant_count \u2192 count_product_variant (1 occurrences)",
-        "Field reference: product_variant_count \u2192 count_product_variant (1 occurrences)"
+        "Field: product_variant_count \u2192 count_product_variant (1 occurrences)"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/views/product_pricelist_item_views.xml"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/views/product_pricelist_item_views.xml"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/views/product_supplierinfo_views.xml",
       "status": "success",
       "changes_applied": 1,
       "changes_details": [
-        "Field reference: product_variant_count \u2192 count_product_variant (1 occurrences)"
+        "Field: product_variant_count \u2192 count_product_variant (1 occurrences)"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/views/product_supplierinfo_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/product/views/product_tag_views.xml",
-      "status": "success",
-      "changes_applied": 5,
-      "changes_details": [
-        "Field reference: product_ids \u2192 product_product_ids (1 occurrences)",
-        "Field reference: product_ids \u2192 product_product_ids (1 occurrences)",
-        "Field reference: product_product_ids \u2192 product_ids (1 occurrences)",
-        "Field reference: product_product_ids \u2192 product_ids (1 occurrences)",
-        "ElementTree field: product_product_ids \u2192 product_ids"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/views/product_tag_views.xml"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/views/product_supplierinfo_views.xml"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/views/product_template_views.xml",
       "status": "success",
-      "changes_applied": 5,
+      "changes_applied": 1,
       "changes_details": [
-        "Field reference: product_variant_count \u2192 count_product_variant (2 occurrences)",
-        "Field reference: product_variant_count \u2192 count_product_variant (1 occurrences)",
-        "Field reference: product_variant_count \u2192 count_product_variant (4 occurrences)",
-        "Field reference: product_variant_count \u2192 count_product_variant (1 occurrences)",
-        "ElementTree field: product_variant_count \u2192 count_product_variant"
+        "Field: product_variant_count \u2192 count_product_variant (3 occurrences)"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/views/product_template_views.xml"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/views/product_template_views.xml"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/models/uom_uom.py",
@@ -1873,7 +1146,7 @@
       "changes_applied": 0,
       "changes_details": [],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/models/uom_uom.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/models/uom_uom.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/views/uom_views.xml",
@@ -1881,7 +1154,7 @@
       "changes_applied": 0,
       "changes_details": [],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/views/uom_views.xml"
+      "backup_path": null
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/product/wizard/update_product_attribute_value.py",
@@ -1894,7 +1167,480 @@
         "String reference (single quotes): '_compute_product_count' \u2192 '_compute_count_product'"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/product/wizard/update_product_attribute_value.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/product/wizard/update_product_attribute_value.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_bill_line_match.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order.py",
+      "status": "success",
+      "changes_applied": 5,
+      "changes_details": [
+        "Field definition: invoice_status \u2192 invoice_state",
+        "Field definition: order_line \u2192 line_ids",
+        "Method definition: action_rfq_send \u2192 action_send_rfq",
+        "Method definition: onchange_date_planned \u2192 _onchange_date_planned",
+        "String reference (single quotes): 'order_line' \u2192 'line_ids'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order_line.py",
+      "status": "success",
+      "changes_applied": 4,
+      "changes_details": [
+        "Field definition: price_unit_discounted \u2192 price_unit_discounted_taxinc",
+        "Field definition: qty_received \u2192 qty_transfered",
+        "Method definition: _get_gross_price_unit \u2192 _get_price_unit_gross",
+        "String reference (single quotes): 'qty_received' \u2192 'qty_transfered'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order_line.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/views/purchase_views.xml",
+      "status": "success",
+      "changes_applied": 4,
+      "changes_details": [
+        "Field: invoice_status \u2192 invoice_state (4 occurrences)",
+        "Field: order_line \u2192 line_ids (1 occurrences)",
+        "Field: qty_received \u2192 qty_transfered (2 occurrences)",
+        "Method: action_rfq_send \u2192 action_send_rfq (3 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase/views/purchase_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/data/purchase_data.xml",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/security/purchase_security.xml",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase/security/purchase_security.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/res_company.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/res_config_settings.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/res_partner.py",
+      "status": "success",
+      "changes_applied": 3,
+      "changes_details": [
+        "Field definition: purchase_order_count \u2192 count_purchase_order",
+        "Method definition: _compute_purchase_order_count \u2192 _compute_count_purchase_order",
+        "String reference (single quotes): '_compute_purchase_order_count' \u2192 '_compute_count_purchase_order'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase/models/res_partner.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/views/res_partner_views.xml",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Field: purchase_order_count \u2192 count_purchase_order (1 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase/views/res_partner_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/mrp_bom.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/mrp_production.py",
+      "status": "success",
+      "changes_applied": 3,
+      "changes_details": [
+        "Field definition: purchase_order_count \u2192 count_purchase_order",
+        "Method definition: _compute_purchase_order_count \u2192 _compute_count_purchase_order",
+        "String reference (single quotes): '_compute_purchase_order_count' \u2192 '_compute_count_purchase_order'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/mrp_production.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_mrp/views/mrp_production_views.xml",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Field: purchase_order_count \u2192 count_purchase_order (1 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase_mrp/views/mrp_production_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order.py",
+      "status": "success",
+      "changes_applied": 6,
+      "changes_details": [
+        "Field definition: effective_date \u2192 date_effective",
+        "Method definition: _compute_effective_date \u2192 _compute_date_effective",
+        "Method definition: _get_destination_location \u2192 _get_location_destination",
+        "Method call: _get_destination_location \u2192 _get_location_destination",
+        "String reference (single quotes): 'effective_date' \u2192 'date_effective'",
+        "String reference (single quotes): '_compute_effective_date' \u2192 '_compute_date_effective'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order_line.py",
+      "status": "success",
+      "changes_applied": 4,
+      "changes_details": [
+        "Method definition: _create_or_update_picking \u2192 _update_or_create_picking",
+        "Method definition: _get_qty_procurement \u2192 _get_procurement_qty",
+        "Method call: _create_or_update_picking \u2192 _update_or_create_picking",
+        "Method call: _get_qty_procurement \u2192 _get_procurement_qty"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order_line.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_stock/views/purchase_views.xml",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Field: effective_date \u2192 date_effective (2 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase_stock/views/purchase_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/account_move.py",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Field definition: sale_order_count \u2192 count_sale_order"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/models/account_move.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/account_move_line.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/account_views.xml",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Field: sale_order_count \u2192 count_sale_order (1 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/views/account_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/crm_team.py",
+      "status": "success",
+      "changes_applied": 3,
+      "changes_details": [
+        "Field definition: sale_order_count \u2192 count_sale_order",
+        "Method definition: _compute_sale_order_count \u2192 _compute_count_sale_order",
+        "String reference (single quotes): '_compute_sale_order_count' \u2192 '_compute_count_sale_order'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/models/crm_team.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/crm_team_views.xml",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/res_company.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/res_partner.py",
+      "status": "success",
+      "changes_applied": 4,
+      "changes_details": [
+        "Field definition: sale_order_count \u2192 count_sale_order",
+        "Method definition: _compute_sale_order_count \u2192 _compute_count_sale_order",
+        "String reference (single quotes): 'sale_order_count' \u2192 'count_sale_order'",
+        "String reference (single quotes): '_compute_sale_order_count' \u2192 '_compute_count_sale_order'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/models/res_partner.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/wizard/res_config_settings.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/res_partner_views.xml",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Field: sale_order_count \u2192 count_sale_order (1 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/views/res_partner_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/sale_order.py",
+      "status": "success",
+      "changes_applied": 18,
+      "changes_details": [
+        "Field definition: amount_invoiced \u2192 amount_invoiced_taxinc",
+        "Field definition: amount_to_invoice \u2192 amount_to_invoice_taxinc",
+        "Field definition: commitment_date \u2192 date_commitment",
+        "Field definition: invoice_status \u2192 invoice_state",
+        "Field definition: order_line \u2192 line_ids",
+        "Field definition: validity_date \u2192 date_validity",
+        "Method definition: _compute_validity_date \u2192 _compute_date_validity",
+        "Method definition: _get_copiable_order_lines \u2192 _get_order_lines_copiable",
+        "Method definition: _onchange_commitment_date \u2192 _onchange_date_commitment",
+        "Method definition: action_quotation_send \u2192 action_send_quotation",
+        "Method call: _get_copiable_order_lines \u2192 _get_order_lines_copiable",
+        "String reference (single quotes): 'amount_invoiced' \u2192 'amount_invoiced_taxinc'",
+        "String reference (single quotes): 'amount_to_invoice' \u2192 'amount_to_invoice_taxinc'",
+        "String reference (single quotes): 'commitment_date' \u2192 'date_commitment'",
+        "String reference (single quotes): 'invoice_status' \u2192 'invoice_state'",
+        "String reference (single quotes): 'order_line' \u2192 'line_ids'",
+        "String reference (double quotes): \"order_line\" \u2192 \"line_ids\"",
+        "String reference (single quotes): '_compute_validity_date' \u2192 '_compute_date_validity'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/models/sale_order.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/sale_order_line.py",
+      "status": "success",
+      "changes_applied": 18,
+      "changes_details": [
+        "Field definition: amount_invoiced \u2192 amount_invoiced_taxinc",
+        "Field definition: amount_to_invoice \u2192 amount_to_invoice_taxinc",
+        "Field definition: invoice_status \u2192 invoice_state",
+        "Field definition: order_partner_id \u2192 partner_id",
+        "Field definition: qty_delivered \u2192 qty_transfered",
+        "Method definition: _get_combo_item_display_price \u2192 _get_price_display_combo_item",
+        "Method definition: _get_display_price \u2192 _get_price_display",
+        "Method definition: _get_display_price_ignore_combo \u2192 _get_price_display_ignore_combo",
+        "Method definition: _get_linked_line \u2192 _get_line_linked",
+        "Method definition: _get_linked_lines \u2192 _get_lines_linked",
+        "Method definition: _get_order_date \u2192 _get_date_order",
+        "Method call: _get_combo_item_display_price \u2192 _get_price_display_combo_item",
+        "Method call: _get_display_price \u2192 _get_price_display",
+        "Method call: _get_display_price_ignore_combo \u2192 _get_price_display_ignore_combo",
+        "Method call: _get_linked_line \u2192 _get_line_linked",
+        "Method call: _get_order_date \u2192 _get_date_order",
+        "String reference (single quotes): 'order_partner_id' \u2192 'partner_id'",
+        "String reference (single quotes): 'qty_delivered' \u2192 'qty_transfered'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/models/sale_order_line.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/wizard/sale_make_invoice_advance.py",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Method definition: view_draft_invoices \u2192 action_view_draft_invoices"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/wizard/sale_make_invoice_advance.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/wizard/sale_order_discount.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_views.xml",
+      "status": "success",
+      "changes_applied": 5,
+      "changes_details": [
+        "Field: commitment_date \u2192 date_commitment (2 occurrences)",
+        "Field: invoice_status \u2192 invoice_state (4 occurrences)",
+        "Field: order_line \u2192 line_ids (2 occurrences)",
+        "Field: validity_date \u2192 date_validity (2 occurrences)",
+        "Method: action_quotation_send \u2192 action_send_quotation (4 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_line_views.xml",
+      "status": "success",
+      "changes_applied": 2,
+      "changes_details": [
+        "Field: order_partner_id \u2192 partner_id (3 occurrences)",
+        "Field: qty_delivered \u2192 qty_transfered (2 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_line_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/models/utm_campaign.py",
+      "status": "success",
+      "changes_applied": 5,
+      "changes_details": [
+        "Field definition: quotation_count \u2192 count_quotation",
+        "Method definition: _compute_quotation_count \u2192 _compute_count_quotation",
+        "Method definition: _compute_sale_invoiced_amount \u2192 _compute_sale_amount_invoiced",
+        "String reference (double quotes): \"_compute_quotation_count\" \u2192 \"_compute_count_quotation\"",
+        "String reference (double quotes): \"_compute_sale_invoiced_amount\" \u2192 \"_compute_sale_amount_invoiced\""
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/models/utm_campaign.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale/views/utm_campaign_views.xml",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Field: quotation_count \u2192 count_quotation (2 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale/views/utm_campaign_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase/models/purchase_order.py",
+      "status": "success",
+      "changes_applied": 3,
+      "changes_details": [
+        "Field definition: sale_order_count \u2192 count_sale_order",
+        "Method definition: _compute_sale_order_count \u2192 _compute_count_sale_order",
+        "String reference (single quotes): '_compute_sale_order_count' \u2192 '_compute_count_sale_order'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_purchase/models/purchase_order.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase/views/purchase_order_views.xml",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Field: sale_order_count \u2192 count_sale_order (1 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_purchase/views/purchase_order_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase/models/sale_order.py",
+      "status": "success",
+      "changes_applied": 3,
+      "changes_details": [
+        "Field definition: purchase_order_count \u2192 count_purchase_order",
+        "Method definition: _compute_purchase_order_count \u2192 _compute_count_purchase_order",
+        "String reference (single quotes): '_compute_purchase_order_count' \u2192 '_compute_count_purchase_order'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_purchase/models/sale_order.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase/models/sale_order_line.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase/views/sale_order_views.xml",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Field: purchase_order_count \u2192 count_purchase_order (1 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_purchase/views/sale_order_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order.py",
+      "status": "success",
+      "changes_applied": 3,
+      "changes_details": [
+        "Field definition: effective_date \u2192 date_effective",
+        "Method definition: _compute_effective_date \u2192 _compute_date_effective",
+        "String reference (single quotes): '_compute_effective_date' \u2192 '_compute_date_effective'"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order_line.py",
+      "status": "success",
+      "changes_applied": 4,
+      "changes_details": [
+        "Field definition: forecast_expected_date \u2192 date_planned_forecast",
+        "Field definition: free_qty_today \u2192 qty_free_today",
+        "Method definition: _get_qty_procurement \u2192 _get_procurement_qty",
+        "Method call: _get_qty_procurement \u2192 _get_procurement_qty"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order_line.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_stock/views/sale_order_views.xml",
+      "status": "success",
+      "changes_applied": 1,
+      "changes_details": [
+        "Field: effective_date \u2192 date_effective (1 occurrences)"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_stock/views/sale_order_views.xml"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_stock/views/sale_order_line_views.xml",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/stock/models/stock_location.py",
@@ -1915,20 +1661,18 @@
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/stock/models/stock_move.py",
       "status": "success",
-      "changes_applied": 9,
+      "changes_applied": 7,
       "changes_details": [
         "Field definition: delay_alert_date \u2192 date_delay_alert",
-        "Field definition: product_qty \u2192 product_uom_qty",
         "Field definition: reservation_date \u2192 date_reservation",
         "Method definition: _compute_delay_alert_date \u2192 _compute_date_delay_alert",
         "Method definition: _compute_reservation_date \u2192 _compute_date_reservation",
-        "String reference (single quotes): 'product_qty' \u2192 'product_uom_qty'",
         "String reference (single quotes): 'reservation_date' \u2192 'date_reservation'",
         "String reference (double quotes): \"_compute_delay_alert_date\" \u2192 \"_compute_date_delay_alert\"",
         "String reference (single quotes): '_compute_reservation_date' \u2192 '_compute_date_reservation'"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/stock/models/stock_move.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/stock/models/stock_move.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/stock/models/stock_move_line.py",
@@ -1985,7 +1729,7 @@
         "String reference (single quotes): '_search_delay_alert_date' \u2192 '_search_date_delay_alert'"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/stock/models/stock_picking.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/stock/models/stock_picking.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/stock/models/stock_quant.py",
@@ -2173,14 +1917,11 @@
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/stock/views/stock_move_views.xml",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Field reference: product_qty \u2192 product_uom_qty (2 occurrences)",
-        "Field reference: product_qty \u2192 product_uom_qty (1 occurrences)"
-      ],
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/stock/views/stock_move_views.xml"
+      "backup_path": null
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/stock/data/stock_data.xml",
@@ -2204,10 +1945,10 @@
       "changes_applied": 0,
       "changes_details": [],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/stock/views/stock_picking_views.xml"
+      "backup_path": null
     },
     {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/models/mrp_bom.py",
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/event_booth_sale/models/sale_order.py",
       "status": "no_changes",
       "changes_applied": 0,
       "changes_details": [],
@@ -2215,18 +1956,18 @@
       "backup_path": null
     },
     {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/models/mrp_production.py",
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/event_booth_sale/models/sale_order_line.py",
       "status": "success",
       "changes_applied": 2,
       "changes_details": [
-        "Field definition: product_qty \u2192 product_uom_qty",
-        "String reference (single quotes): 'product_qty' \u2192 'product_uom_qty'"
+        "Method definition: _get_display_price \u2192 _get_price_display",
+        "Method call: _get_display_price \u2192 _get_price_display"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/mrp/models/mrp_production.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/event_booth_sale/models/sale_order_line.py"
     },
     {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/models/mrp_routing.py",
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/event_sale/models/sale_order.py",
       "status": "no_changes",
       "changes_applied": 0,
       "changes_details": [],
@@ -2234,74 +1975,29 @@
       "backup_path": null
     },
     {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/models/mrp_unbuild.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/models/mrp_workcenter.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/models/mrp_workorder.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/wizard/mrp_consumption_warning.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/wizard/mrp_production_backorder.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/wizard/mrp_production_serial_numbers.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/wizard/mrp_production_split.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/views/mrp_production_views.xml",
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/event_sale/models/sale_order_line.py",
       "status": "success",
       "changes_applied": 2,
       "changes_details": [
-        "Field reference: product_qty \u2192 product_uom_qty (6 occurrences)",
-        "Field reference: product_qty \u2192 product_uom_qty (8 occurrences)"
+        "Method definition: _get_display_price \u2192 _get_price_display",
+        "Method call: _get_display_price \u2192 _get_price_display"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/mrp/views/mrp_production_views.xml"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/event_sale/models/sale_order_line.py"
     },
     {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/data/mrp_data.xml",
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp_subcontracting_dropshipping/models/purchase.py",
+      "status": "success",
+      "changes_applied": 2,
+      "changes_details": [
+        "Method definition: _get_destination_location \u2192 _get_location_destination",
+        "Method call: _get_destination_location \u2192 _get_location_destination"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/mrp_subcontracting_dropshipping/models/purchase.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp_subcontracting_dropshipping/views/purchase_order_views.xml",
       "status": "no_changes",
       "changes_applied": 0,
       "changes_details": [],
@@ -2309,12 +2005,188 @@
       "backup_path": null
     },
     {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp/security/mrp_security.xml",
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/purchase.py",
+      "status": "success",
+      "changes_applied": 2,
+      "changes_details": [
+        "Method definition: _get_qty_procurement \u2192 _get_procurement_qty",
+        "Method call: _get_qty_procurement \u2192 _get_procurement_qty"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/purchase.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_loyalty/models/sale_order.py",
       "status": "no_changes",
       "changes_applied": 0,
       "changes_details": [],
       "error_message": null,
       "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_loyalty/models/sale_order_coupon_points.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_loyalty/models/sale_order_line.py",
+      "status": "success",
+      "changes_applied": 2,
+      "changes_details": [
+        "Method definition: _get_display_price \u2192 _get_price_display",
+        "Method call: _get_display_price \u2192 _get_price_display"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_loyalty/models/sale_order_line.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_loyalty/wizard/sale_loyalty_coupon_wizard.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_loyalty/wizard/sale_loyalty_reward_wizard.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order.py",
+      "status": "success",
+      "changes_applied": 2,
+      "changes_details": [
+        "Method definition: _compute_validity_date \u2192 _compute_date_validity",
+        "Method call: _compute_validity_date \u2192 _compute_date_validity"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order_line.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order_template.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order_template_line.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_management/views/sale_order_views.xml",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_mrp/models/sale_order.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_mrp/models/sale_order_line.py",
+      "status": "success",
+      "changes_applied": 2,
+      "changes_details": [
+        "Method definition: _get_qty_procurement \u2192 _get_procurement_qty",
+        "Method call: _get_qty_procurement \u2192 _get_procurement_qty"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_mrp/models/sale_order_line.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/purchase_order.py",
+      "status": "success",
+      "changes_applied": 2,
+      "changes_details": [
+        "Method definition: _compute_sale_order_count \u2192 _compute_count_sale_order",
+        "Method call: _compute_sale_order_count \u2192 _compute_count_sale_order"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/purchase_order.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/views/purchase_order_views.xml",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/sale_order.py",
+      "status": "success",
+      "changes_applied": 2,
+      "changes_details": [
+        "Method definition: _compute_purchase_order_count \u2192 _compute_count_purchase_order",
+        "Method call: _compute_purchase_order_count \u2192 _compute_count_purchase_order"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/sale_order.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/stock_dropshipping/models/sale.py",
+      "status": "success",
+      "changes_applied": 2,
+      "changes_details": [
+        "Method definition: _get_qty_procurement \u2192 _get_procurement_qty",
+        "Method call: _get_qty_procurement \u2192 _get_procurement_qty"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/stock_dropshipping/models/sale.py"
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/website_sale/controllers/sale.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/website_sale/models/sale_order.py",
+      "status": "no_changes",
+      "changes_applied": 0,
+      "changes_details": [],
+      "error_message": null,
+      "backup_path": null
+    },
+    {
+      "file_path": "/home/suniagajose/Instancias/odoo/addons/website_sale/models/sale_order_line.py",
+      "status": "success",
+      "changes_applied": 2,
+      "changes_details": [
+        "Method definition: _get_order_date \u2192 _get_date_order",
+        "Method call: _get_order_date \u2192 _get_date_order"
+      ],
+      "error_message": null,
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/website_sale/models/sale_order_line.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/point_of_sale/models/pos_bill.py",
@@ -2372,7 +2244,7 @@
         "Field definition: invoice_status \u2192 invoice_state"
       ],
       "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/point_of_sale/models/pos_order.py"
+      "backup_path": ".backups/20250919_082729/home/suniagajose/Instancias/odoo/addons/point_of_sale/models/pos_order.py"
     },
     {
       "file_path": "/home/suniagajose/Instancias/odoo/addons/point_of_sale/models/pos_payment.py",
@@ -2461,704 +2333,6 @@
       "changes_details": [],
       "error_message": null,
       "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/controllers/project_sharing_chatter.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_collaborator.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_milestone.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_project.py",
-      "status": "success",
-      "changes_applied": 1,
-      "changes_details": [
-        "Method definition: get_milestones \u2192 _get_milestones"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/project/models/project_project.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_project_stage.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_role.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_tags.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_task.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_task_recurrence.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_task_stage_personal.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_task_type.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/models/project_update.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/wizard/project_project_stage_delete.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/wizard/project_share_collaborator_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/wizard/project_share_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/wizard/project_task_share_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/wizard/project_task_type_delete.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/wizard/project_template_create_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/views/project_project_views.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/project/views/project_project_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/data/project_data.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/project/security/project_security.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_bill_line_match.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order.py",
-      "status": "success",
-      "changes_applied": 5,
-      "changes_details": [
-        "Field definition: invoice_status \u2192 invoice_state",
-        "Field definition: order_line \u2192 line_ids",
-        "Method definition: action_rfq_send \u2192 action_send_rfq",
-        "Method definition: onchange_date_planned \u2192 _onchange_date_planned",
-        "String reference (single quotes): 'order_line' \u2192 'line_ids'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order_line.py",
-      "status": "success",
-      "changes_applied": 7,
-      "changes_details": [
-        "Field definition: price_unit_discounted \u2192 price_unit_discounted_taxinc",
-        "Field definition: product_qty \u2192 product_uom_qty",
-        "Field definition: qty_received \u2192 qty_transfered",
-        "Method definition: _get_gross_price_unit \u2192 _get_price_unit_gross",
-        "String reference (single quotes): 'product_qty' \u2192 'product_uom_qty'",
-        "String reference (double quotes): \"product_qty\" \u2192 \"product_uom_qty\"",
-        "String reference (single quotes): 'qty_received' \u2192 'qty_transfered'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order_line.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/views/purchase_views.xml",
-      "status": "success",
-      "changes_applied": 15,
-      "changes_details": [
-        "Field reference: invoice_status \u2192 invoice_state (4 occurrences)",
-        "Field reference: invoice_status \u2192 invoice_state (1 occurrences)",
-        "Field reference: invoice_status \u2192 invoice_state (1 occurrences)",
-        "Field reference: invoice_status \u2192 invoice_state (4 occurrences)",
-        "Field reference: invoice_status \u2192 invoice_state (2 occurrences)",
-        "Field reference: order_line \u2192 line_ids (1 occurrences)",
-        "Field reference: order_line \u2192 line_ids (1 occurrences)",
-        "Field reference: order_line \u2192 line_ids (1 occurrences)",
-        "Field reference: order_line \u2192 line_ids (1 occurrences)",
-        "Field reference: product_qty \u2192 product_uom_qty (5 occurrences)",
-        "Field reference: product_qty \u2192 product_uom_qty (1 occurrences)",
-        "Field reference: product_qty \u2192 product_uom_qty (3 occurrences)",
-        "Field reference: qty_received \u2192 qty_transfered (2 occurrences)",
-        "Field reference: qty_received \u2192 qty_transfered (5 occurrences)",
-        "Method reference: action_rfq_send \u2192 action_send_rfq (3 occurrences)"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase/views/purchase_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/data/purchase_data.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/security/purchase_security.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase/security/purchase_security.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/res_company.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/res_config_settings.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/models/res_partner.py",
-      "status": "success",
-      "changes_applied": 3,
-      "changes_details": [
-        "Field definition: purchase_order_count \u2192 count_purchase_order",
-        "Method definition: _compute_purchase_order_count \u2192 _compute_count_purchase_order",
-        "String reference (single quotes): '_compute_purchase_order_count' \u2192 '_compute_count_purchase_order'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase/models/res_partner.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase/views/res_partner_views.xml",
-      "status": "success",
-      "changes_applied": 1,
-      "changes_details": [
-        "Field reference: purchase_order_count \u2192 count_purchase_order (1 occurrences)"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase/views/res_partner_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/mrp_bom.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/mrp_production.py",
-      "status": "success",
-      "changes_applied": 3,
-      "changes_details": [
-        "Field definition: purchase_order_count \u2192 count_purchase_order",
-        "Method definition: _compute_purchase_order_count \u2192 _compute_count_purchase_order",
-        "String reference (single quotes): '_compute_purchase_order_count' \u2192 '_compute_count_purchase_order'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/mrp_production.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_mrp/views/mrp_production_views.xml",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Field reference: purchase_order_count \u2192 count_purchase_order (1 occurrences)",
-        "Field reference: purchase_order_count \u2192 count_purchase_order (1 occurrences)"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase_mrp/views/mrp_production_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order.py",
-      "status": "success",
-      "changes_applied": 6,
-      "changes_details": [
-        "Field definition: effective_date \u2192 date_effective",
-        "Method definition: _compute_effective_date \u2192 _compute_date_effective",
-        "Method definition: _get_destination_location \u2192 _get_location_destination",
-        "Method call: _get_destination_location \u2192 _get_location_destination",
-        "String reference (single quotes): 'effective_date' \u2192 'date_effective'",
-        "String reference (single quotes): '_compute_effective_date' \u2192 '_compute_date_effective'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order_line.py",
-      "status": "success",
-      "changes_applied": 4,
-      "changes_details": [
-        "Method definition: _create_or_update_picking \u2192 _update_or_create_picking",
-        "Method definition: _get_qty_procurement \u2192 _get_procurement_qty",
-        "Method call: _create_or_update_picking \u2192 _update_or_create_picking",
-        "Method call: _get_qty_procurement \u2192 _get_procurement_qty"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order_line.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_stock/views/purchase_views.xml",
-      "status": "success",
-      "changes_applied": 4,
-      "changes_details": [
-        "Field reference: effective_date \u2192 date_effective (2 occurrences)",
-        "Field reference: effective_date \u2192 date_effective (3 occurrences)",
-        "Field reference: effective_date \u2192 date_effective (1 occurrences)",
-        "Field reference: effective_date \u2192 date_effective (1 occurrences)"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase_stock/views/purchase_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase/models/purchase_order.py",
-      "status": "success",
-      "changes_applied": 3,
-      "changes_details": [
-        "Field definition: sale_order_count \u2192 count_sale_order",
-        "Method definition: _compute_sale_order_count \u2192 _compute_count_sale_order",
-        "String reference (single quotes): '_compute_sale_order_count' \u2192 '_compute_count_sale_order'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_purchase/models/purchase_order.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase/views/purchase_order_views.xml",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Field reference: sale_order_count \u2192 count_sale_order (1 occurrences)",
-        "Field reference: sale_order_count \u2192 count_sale_order (1 occurrences)"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_purchase/views/purchase_order_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase/models/sale_order.py",
-      "status": "success",
-      "changes_applied": 3,
-      "changes_details": [
-        "Field definition: purchase_order_count \u2192 count_purchase_order",
-        "Method definition: _compute_purchase_order_count \u2192 _compute_count_purchase_order",
-        "String reference (single quotes): '_compute_purchase_order_count' \u2192 '_compute_count_purchase_order'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_purchase/models/sale_order.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase/models/sale_order_line.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase/views/sale_order_views.xml",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Field reference: purchase_order_count \u2192 count_purchase_order (1 occurrences)",
-        "Field reference: purchase_order_count \u2192 count_purchase_order (1 occurrences)"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_purchase/views/sale_order_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order.py",
-      "status": "success",
-      "changes_applied": 3,
-      "changes_details": [
-        "Field definition: effective_date \u2192 date_effective",
-        "Method definition: _compute_effective_date \u2192 _compute_date_effective",
-        "String reference (single quotes): '_compute_effective_date' \u2192 '_compute_date_effective'"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order_line.py",
-      "status": "success",
-      "changes_applied": 4,
-      "changes_details": [
-        "Field definition: forecast_expected_date \u2192 date_planned_forecast",
-        "Field definition: free_qty_today \u2192 qty_free_today",
-        "Method definition: _get_qty_procurement \u2192 _get_procurement_qty",
-        "Method call: _get_qty_procurement \u2192 _get_procurement_qty"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order_line.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_stock/views/sale_order_views.xml",
-      "status": "success",
-      "changes_applied": 3,
-      "changes_details": [
-        "Field reference: effective_date \u2192 date_effective (1 occurrences)",
-        "Field reference: effective_date \u2192 date_effective (4 occurrences)",
-        "Field reference: effective_date \u2192 date_effective (1 occurrences)"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_stock/views/sale_order_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_stock/views/sale_order_line_views.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_stock/views/sale_order_line_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/event_booth_sale/models/sale_order.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/event_booth_sale/models/sale_order_line.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _get_display_price \u2192 _get_price_display",
-        "Method call: _get_display_price \u2192 _get_price_display"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/event_booth_sale/models/sale_order_line.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/event_sale/models/sale_order.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/event_sale/models/sale_order_line.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _get_display_price \u2192 _get_price_display",
-        "Method call: _get_display_price \u2192 _get_price_display"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/event_sale/models/sale_order_line.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp_subcontracting_dropshipping/models/purchase.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _get_destination_location \u2192 _get_location_destination",
-        "Method call: _get_destination_location \u2192 _get_location_destination"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/mrp_subcontracting_dropshipping/models/purchase.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/mrp_subcontracting_dropshipping/views/purchase_order_views.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/mrp_subcontracting_dropshipping/views/purchase_order_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/purchase.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _get_qty_procurement \u2192 _get_procurement_qty",
-        "Method call: _get_qty_procurement \u2192 _get_procurement_qty"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/purchase.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_loyalty/models/sale_order.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_loyalty/models/sale_order_coupon_points.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_loyalty/models/sale_order_line.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _get_display_price \u2192 _get_price_display",
-        "Method call: _get_display_price \u2192 _get_price_display"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_loyalty/models/sale_order_line.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_loyalty/wizard/sale_loyalty_coupon_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_loyalty/wizard/sale_loyalty_reward_wizard.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _compute_validity_date \u2192 _compute_date_validity",
-        "Method call: _compute_validity_date \u2192 _compute_date_validity"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order_line.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order_template.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order_template_line.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_management/views/sale_order_views.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_management/views/sale_order_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_mrp/models/sale_order.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_mrp/models/sale_order_line.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _get_qty_procurement \u2192 _get_procurement_qty",
-        "Method call: _get_qty_procurement \u2192 _get_procurement_qty"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_mrp/models/sale_order_line.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/purchase_order.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _compute_sale_order_count \u2192 _compute_count_sale_order",
-        "Method call: _compute_sale_order_count \u2192 _compute_count_sale_order"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/purchase_order.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/views/purchase_order_views.xml",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/views/purchase_order_views.xml"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/sale_order.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _compute_purchase_order_count \u2192 _compute_count_purchase_order",
-        "Method call: _compute_purchase_order_count \u2192 _compute_count_purchase_order"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/sale_order.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/stock_dropshipping/models/sale.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _get_qty_procurement \u2192 _get_procurement_qty",
-        "Method call: _get_qty_procurement \u2192 _get_procurement_qty"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/stock_dropshipping/models/sale.py"
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/website_sale/controllers/sale.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/website_sale/models/sale_order.py",
-      "status": "no_changes",
-      "changes_applied": 0,
-      "changes_details": [],
-      "error_message": null,
-      "backup_path": null
-    },
-    {
-      "file_path": "/home/suniagajose/Instancias/odoo/addons/website_sale/models/sale_order_line.py",
-      "status": "success",
-      "changes_applied": 2,
-      "changes_details": [
-        "Method definition: _get_order_date \u2192 _get_date_order",
-        "Method call: _get_order_date \u2192 _get_date_order"
-      ],
-      "error_message": null,
-      "backup_path": ".backups/20250918_083151/home/suniagajose/Instancias/odoo/addons/website_sale/models/sale_order_line.py"
     }
   ]
 }

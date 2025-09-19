@@ -22,7 +22,6 @@ Example:
 import argparse
 import json
 import logging
-import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -295,9 +294,6 @@ class FieldMethodRenamingTool:
             # Display results
             self._display_results(results)
 
-            # Format XML files after processing
-            self._format_xml_files(results)
-
             # Generate report if requested
             if self.config.output_report:
                 self._generate_report(results, changes)
@@ -500,72 +496,6 @@ class FieldMethodRenamingTool:
                 f"   Total backup size: {backup_stats.get('total_disk_usage', 0)} bytes"
             )
 
-    def _format_xml_files(self, results: list[ProcessResult]):
-        """Format XML files after processing to ensure consistent indentation"""
-        xml_files = []
-
-        # Collect all successfully processed XML files
-        for result in results:
-            if (
-                result.status == ProcessingStatus.SUCCESS
-                and result.file_path.suffix.lower() == ".xml"
-                and result.changes_applied > 0
-            ):
-                xml_files.append(result.file_path)
-
-        if not xml_files:
-            self.logger.debug("No XML files to format")
-            return
-
-        self.logger.info(f"Formatting {len(xml_files)} XML files...")
-        print(
-            f"\n🎨 Formatting {len(xml_files)} XML files for consistent indentation..."
-        )
-
-        # Run the XML formatter
-        formatter_path = current_dir / "format_odoo_xml.py"
-
-        if not formatter_path.exists():
-            self.logger.warning("XML formatter not found, skipping formatting")
-            print("⚠️  XML formatter not found, skipping formatting")
-            return
-
-        formatted_count = 0
-        failed_count = 0
-
-        for xml_file in xml_files:
-            try:
-                result = subprocess.run(
-                    [sys.executable, str(formatter_path), str(xml_file)],
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                )
-
-                if result.returncode == 0:
-                    formatted_count += 1
-                    self.logger.debug(f"Formatted: {xml_file}")
-                else:
-                    failed_count += 1
-                    self.logger.error(f"Failed to format {xml_file}: {result.stderr}")
-
-            except subprocess.TimeoutExpired:
-                failed_count += 1
-                self.logger.error(f"Timeout formatting {xml_file}")
-            except Exception as e:
-                failed_count += 1
-                self.logger.error(f"Error formatting {xml_file}: {e}")
-
-        if formatted_count > 0:
-            print(f"✅ Successfully formatted {formatted_count} XML files")
-        if failed_count > 0:
-            print(
-                f"⚠️  Failed to format {failed_count} XML files (check logs for details)"
-            )
-
-        self.logger.info(
-            f"XML formatting completed: {formatted_count} success, {failed_count} failed"
-        )
 
     def _generate_report(
         self, results: list[ProcessResult], changes: list[FieldChange]

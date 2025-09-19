@@ -22,20 +22,7 @@ class FieldChange:
     new_name: str
     module: str
     model: str
-    change_type: str = "field"  # 'field' or 'method'
-
-    def __post_init__(self):
-        """Determine change type based on naming patterns"""
-        if self.change_type == "field":
-            # Detect if it's actually a method based on naming patterns
-            if (
-                self.old_name.startswith("_")
-                or self.old_name.startswith("action_")
-                or self.old_name.startswith("get_")
-                or self.old_name.startswith("compute_")
-                or self.old_name.startswith("onchange_")
-            ):
-                self.change_type = "method"
+    change_type: str  # 'field' or 'method' - now explicitly provided from CSV
 
     @property
     def is_field(self) -> bool:
@@ -61,7 +48,7 @@ class CSVReader:
     """Reader for CSV files containing field/method changes"""
 
     # Required CSV headers
-    REQUIRED_HEADERS = ["old_name", "new_name", "module", "model"]
+    REQUIRED_HEADERS = ["old_name", "new_name", "item_type", "module", "model"]
 
     def __init__(self, csv_file_path: str):
         """
@@ -111,6 +98,7 @@ class CSVReader:
                         new_name=cleaned_row["new_name"],
                         module=cleaned_row["module"],
                         model=cleaned_row["model"],
+                        change_type=cleaned_row["item_type"],
                     )
                     changes.append(change)
 

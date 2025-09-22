@@ -3677,3 +3677,218 @@ SyntaxError: unterminated string literal (detected at line 99)
 2025-09-18 08:31:54,368 - utils.backup_manager - INFO - Finalized backup session: .backups/20250918_083151
 2025-09-18 08:31:54,398 - __main__ - INFO - Formatting 22 XML files...
 2025-09-18 08:31:55,009 - __main__ - INFO - XML formatting completed: 22 success, 0 failed
+2025-09-19 08:06:24,039 - __main__ - INFO - Initializing Field/Method Renaming Tool...
+2025-09-19 08:06:24,039 - __main__ - INFO - Initialization completed successfully
+2025-09-19 08:06:24,039 - __main__ - INFO - Loading changes from CSV...
+2025-09-19 08:06:24,040 - utils.csv_reader - INFO - Loaded 103 changes from odoo_field_changes_detected.csv
+2025-09-19 08:06:24,040 - __main__ - INFO - Discovering files...
+2025-09-19 08:06:24,044 - utils.file_finder - INFO - Found 6 files for account.res.partner
+2025-09-19 08:06:24,047 - utils.file_finder - INFO - Found 24 files for product.product.category
+2025-09-19 08:06:24,049 - utils.file_finder - INFO - Found 24 files for product.product.combo
+2025-09-19 08:06:24,051 - utils.file_finder - INFO - Found 24 files for product.product.pricelist.item
+2025-09-19 08:06:24,053 - utils.file_finder - INFO - Found 23 files for product.product.product
+2025-09-19 08:06:24,055 - utils.file_finder - INFO - Found 24 files for product.product.supplierinfo
+2025-09-19 08:06:24,057 - utils.file_finder - INFO - Found 24 files for product.product.template
+2025-09-19 08:06:24,059 - utils.file_finder - INFO - Found 2 files for product.uom.uom
+2025-09-19 08:06:24,062 - utils.file_finder - INFO - Found 1 files for product.update.product.attribute.value
+2025-09-19 08:06:24,064 - utils.file_finder - INFO - Found 6 files for purchase.purchase.order
+2025-09-19 08:06:24,066 - utils.file_finder - INFO - Found 6 files for purchase.purchase.order.line
+2025-09-19 08:06:24,067 - utils.file_finder - INFO - Found 4 files for purchase.res.partner
+2025-09-19 08:06:24,069 - utils.file_finder - INFO - Found 3 files for purchase_mrp.mrp.production
+2025-09-19 08:06:24,070 - utils.file_finder - INFO - Found 3 files for purchase_stock.purchase.order
+2025-09-19 08:06:24,072 - utils.file_finder - INFO - Found 3 files for sale.account.move
+2025-09-19 08:06:24,075 - utils.file_finder - INFO - Found 2 files for sale.crm.team
+2025-09-19 08:06:24,076 - utils.file_finder - INFO - Found 4 files for sale.res.partner
+2025-09-19 08:06:24,079 - utils.file_finder - INFO - Found 5 files for sale.sale.order
+2025-09-19 08:06:24,081 - utils.file_finder - INFO - Found 5 files for sale.sale.order.line
+2025-09-19 08:06:24,083 - utils.file_finder - INFO - Found 2 files for sale.utm.campaign
+2025-09-19 08:06:24,085 - utils.file_finder - INFO - Found 4 files for sale.sale.mass.cancel.orders
+2025-09-19 08:06:24,087 - utils.file_finder - INFO - Found 4 files for sale.sale.advance.payment.inv
+2025-09-19 08:06:24,088 - utils.file_finder - INFO - Found 2 files for sale_purchase.purchase.order
+2025-09-19 08:06:24,089 - utils.file_finder - INFO - Found 3 files for sale_purchase.sale.order
+2025-09-19 08:06:24,090 - utils.file_finder - INFO - Found 3 files for sale_stock.sale.order
+2025-09-19 08:06:24,090 - utils.file_finder - INFO - Found 3 files for sale_stock.sale.order.line
+2025-09-19 08:06:24,093 - utils.file_finder - INFO - Found 35 files for stock.stock.move
+2025-09-19 08:06:24,096 - utils.file_finder - INFO - Found 35 files for stock.stock.picking
+2025-09-19 08:06:24,097 - utils.file_finder - INFO - Found 2 files for event_booth_sale.sale.order.line
+2025-09-19 08:06:24,097 - utils.file_finder - INFO - Found 2 files for event_sale.sale.order.line
+2025-09-19 08:06:24,098 - utils.file_finder - INFO - Found 2 files for mrp_subcontracting_dropshipping.purchase.order
+2025-09-19 08:06:24,099 - utils.file_finder - INFO - Found 1 files for purchase_mrp.purchase.order.line
+2025-09-19 08:06:24,099 - utils.file_finder - INFO - Found 3 files for purchase_stock.purchase.order.line
+2025-09-19 08:06:24,100 - utils.file_finder - INFO - Found 5 files for sale_loyalty.sale.order.line
+2025-09-19 08:06:24,101 - utils.file_finder - INFO - Found 5 files for sale_management.sale.order
+2025-09-19 08:06:24,101 - utils.file_finder - INFO - Found 2 files for sale_mrp.sale.order.line
+2025-09-19 08:06:24,102 - utils.file_finder - INFO - Found 2 files for sale_purchase_stock.purchase.order
+2025-09-19 08:06:24,102 - utils.file_finder - INFO - Found 1 files for sale_purchase_stock.sale.order
+2025-09-19 08:06:24,103 - utils.file_finder - INFO - Found 1 files for stock_dropshipping.sale.order.line
+2025-09-19 08:06:24,104 - utils.file_finder - INFO - Found 3 files for website_sale.sale.order.line
+2025-09-19 08:06:24,107 - utils.file_finder - INFO - Found 18 files for point_of_sale.pos.order
+2025-09-19 08:06:24,107 - __main__ - INFO - Discovered 159 files to process
+2025-09-19 08:06:24,107 - utils.backup_manager - INFO - Started backup session: .backups/20250919_080624
+2025-09-19 08:06:24,107 - __main__ - INFO - Started backup session: .backups/20250919_080624
+2025-09-19 08:06:24,108 - __main__ - INFO - Processing files...
+2025-09-19 08:06:24,144 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/account/models/partner.py: 3 changes applied
+2025-09-19 08:06:24,164 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_category.py: 3 changes applied
+2025-09-19 08:06:24,168 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_combo.py: 3 changes applied
+2025-09-19 08:06:24,189 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_pricelist_item.py: 1 changes applied
+2025-09-19 08:06:24,223 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_product.py: 3 changes applied
+2025-09-19 08:06:24,227 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_supplierinfo.py: 2 changes applied
+2025-09-19 08:06:24,270 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_template.py: 6 changes applied
+2025-09-19 08:06:24,277 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_category_views.xml: 1 changes applied
+2025-09-19 08:06:24,280 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_views.xml: 4 changes applied
+2025-09-19 08:06:24,281 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_combo_views.xml: 1 changes applied
+2025-09-19 08:06:24,282 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_pricelist_item_views.xml: 1 changes applied
+2025-09-19 08:06:24,283 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_supplierinfo_views.xml: 1 changes applied
+2025-09-19 08:06:24,284 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_template_views.xml: 1 changes applied
+2025-09-19 08:06:24,289 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/wizard/update_product_attribute_value.py: 4 changes applied
+2025-09-19 08:06:24,342 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order.py: 5 changes applied
+2025-09-19 08:06:24,367 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order_line.py: 4 changes applied
+2025-09-19 08:06:24,371 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase/views/purchase_views.xml: 4 changes applied
+2025-09-19 08:06:24,376 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase/models/res_partner.py: 3 changes applied
+2025-09-19 08:06:24,377 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase/views/res_partner_views.xml: 1 changes applied
+2025-09-19 08:06:24,380 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/mrp_production.py: 3 changes applied
+2025-09-19 08:06:24,380 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_mrp/views/mrp_production_views.xml: 1 changes applied
+2025-09-19 08:06:24,399 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order.py: 6 changes applied
+2025-09-19 08:06:24,417 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order_line.py: 4 changes applied
+2025-09-19 08:06:24,418 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_stock/views/purchase_views.xml: 1 changes applied
+2025-09-19 08:06:24,425 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/account_move.py: 1 changes applied
+2025-09-19 08:06:24,429 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/views/account_views.xml: 1 changes applied
+2025-09-19 08:06:24,434 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/crm_team.py: 3 changes applied
+2025-09-19 08:06:24,438 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/res_partner.py: 4 changes applied
+2025-09-19 08:06:24,441 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/views/res_partner_views.xml: 1 changes applied
+2025-09-19 08:06:24,525 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/sale_order.py: 18 changes applied
+2025-09-19 08:06:24,577 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/sale_order_line.py: 18 changes applied
+2025-09-19 08:06:24,585 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_views.xml: 5 changes applied
+2025-09-19 08:06:24,586 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_line_views.xml: 2 changes applied
+2025-09-19 08:06:24,589 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/utm_campaign.py: 5 changes applied
+2025-09-19 08:06:24,590 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/views/utm_campaign_views.xml: 1 changes applied
+2025-09-19 08:06:24,592 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase/models/purchase_order.py: 3 changes applied
+2025-09-19 08:06:24,593 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase/views/purchase_order_views.xml: 1 changes applied
+2025-09-19 08:06:24,594 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase/models/sale_order.py: 3 changes applied
+2025-09-19 08:06:24,598 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase/views/sale_order_views.xml: 1 changes applied
+2025-09-19 08:06:24,605 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order.py: 3 changes applied
+2025-09-19 08:06:24,616 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order_line.py: 4 changes applied
+2025-09-19 08:06:24,617 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_stock/views/sale_order_views.xml: 1 changes applied
+2025-09-19 08:06:24,691 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/stock/models/stock_move.py: 7 changes applied
+2025-09-19 08:06:24,759 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/stock/models/stock_picking.py: 8 changes applied
+2025-09-19 08:06:24,796 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/event_booth_sale/models/sale_order_line.py: 2 changes applied
+2025-09-19 08:06:24,798 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/event_sale/models/sale_order_line.py: 2 changes applied
+2025-09-19 08:06:24,799 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/mrp_subcontracting_dropshipping/models/purchase.py: 2 changes applied
+2025-09-19 08:06:24,802 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/purchase.py: 2 changes applied
+2025-09-19 08:06:24,819 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_loyalty/models/sale_order_line.py: 2 changes applied
+2025-09-19 08:06:24,821 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order.py: 2 changes applied
+2025-09-19 08:06:24,827 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_mrp/models/sale_order_line.py: 2 changes applied
+2025-09-19 08:06:24,828 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/purchase_order.py: 2 changes applied
+2025-09-19 08:06:24,829 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/sale_order.py: 2 changes applied
+2025-09-19 08:06:24,831 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/stock_dropshipping/models/sale.py: 2 changes applied
+2025-09-19 08:06:24,837 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/website_sale/models/sale_order_line.py: 2 changes applied
+2025-09-19 08:06:24,886 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/point_of_sale/models/pos_order.py: 1 changes applied
+2025-09-19 08:06:24,907 - utils.backup_manager - INFO - Finalized backup session: .backups/20250919_080624
+2025-09-19 08:27:29,289 - __main__ - INFO - Initializing Field/Method Renaming Tool...
+2025-09-19 08:27:29,289 - __main__ - INFO - Initialization completed successfully
+2025-09-19 08:27:29,289 - __main__ - INFO - Loading changes from CSV...
+2025-09-19 08:27:29,290 - utils.csv_reader - INFO - Loaded 103 changes from odoo_field_changes_detected.csv
+2025-09-19 08:27:29,290 - __main__ - INFO - Discovering files...
+2025-09-19 08:27:29,293 - utils.file_finder - INFO - Found 6 files for account.res.partner
+2025-09-19 08:27:29,294 - utils.file_finder - INFO - Found 24 files for product.product.category
+2025-09-19 08:27:29,296 - utils.file_finder - INFO - Found 24 files for product.product.combo
+2025-09-19 08:27:29,297 - utils.file_finder - INFO - Found 24 files for product.product.pricelist.item
+2025-09-19 08:27:29,298 - utils.file_finder - INFO - Found 23 files for product.product.product
+2025-09-19 08:27:29,300 - utils.file_finder - INFO - Found 24 files for product.product.supplierinfo
+2025-09-19 08:27:29,301 - utils.file_finder - INFO - Found 24 files for product.product.template
+2025-09-19 08:27:29,303 - utils.file_finder - INFO - Found 2 files for product.uom.uom
+2025-09-19 08:27:29,304 - utils.file_finder - INFO - Found 1 files for product.update.product.attribute.value
+2025-09-19 08:27:29,306 - utils.file_finder - INFO - Found 6 files for purchase.purchase.order
+2025-09-19 08:27:29,307 - utils.file_finder - INFO - Found 6 files for purchase.purchase.order.line
+2025-09-19 08:27:29,308 - utils.file_finder - INFO - Found 4 files for purchase.res.partner
+2025-09-19 08:27:29,309 - utils.file_finder - INFO - Found 3 files for purchase_mrp.mrp.production
+2025-09-19 08:27:29,309 - utils.file_finder - INFO - Found 3 files for purchase_stock.purchase.order
+2025-09-19 08:27:29,311 - utils.file_finder - INFO - Found 3 files for sale.account.move
+2025-09-19 08:27:29,312 - utils.file_finder - INFO - Found 2 files for sale.crm.team
+2025-09-19 08:27:29,313 - utils.file_finder - INFO - Found 4 files for sale.res.partner
+2025-09-19 08:27:29,315 - utils.file_finder - INFO - Found 5 files for sale.sale.order
+2025-09-19 08:27:29,316 - utils.file_finder - INFO - Found 5 files for sale.sale.order.line
+2025-09-19 08:27:29,317 - utils.file_finder - INFO - Found 2 files for sale.utm.campaign
+2025-09-19 08:27:29,318 - utils.file_finder - INFO - Found 4 files for sale.sale.mass.cancel.orders
+2025-09-19 08:27:29,319 - utils.file_finder - INFO - Found 4 files for sale.sale.advance.payment.inv
+2025-09-19 08:27:29,320 - utils.file_finder - INFO - Found 2 files for sale_purchase.purchase.order
+2025-09-19 08:27:29,320 - utils.file_finder - INFO - Found 3 files for sale_purchase.sale.order
+2025-09-19 08:27:29,321 - utils.file_finder - INFO - Found 3 files for sale_stock.sale.order
+2025-09-19 08:27:29,321 - utils.file_finder - INFO - Found 3 files for sale_stock.sale.order.line
+2025-09-19 08:27:29,323 - utils.file_finder - INFO - Found 35 files for stock.stock.move
+2025-09-19 08:27:29,324 - utils.file_finder - INFO - Found 35 files for stock.stock.picking
+2025-09-19 08:27:29,325 - utils.file_finder - INFO - Found 2 files for event_booth_sale.sale.order.line
+2025-09-19 08:27:29,325 - utils.file_finder - INFO - Found 2 files for event_sale.sale.order.line
+2025-09-19 08:27:29,325 - utils.file_finder - INFO - Found 2 files for mrp_subcontracting_dropshipping.purchase.order
+2025-09-19 08:27:29,326 - utils.file_finder - INFO - Found 1 files for purchase_mrp.purchase.order.line
+2025-09-19 08:27:29,326 - utils.file_finder - INFO - Found 3 files for purchase_stock.purchase.order.line
+2025-09-19 08:27:29,327 - utils.file_finder - INFO - Found 5 files for sale_loyalty.sale.order.line
+2025-09-19 08:27:29,327 - utils.file_finder - INFO - Found 5 files for sale_management.sale.order
+2025-09-19 08:27:29,327 - utils.file_finder - INFO - Found 2 files for sale_mrp.sale.order.line
+2025-09-19 08:27:29,328 - utils.file_finder - INFO - Found 2 files for sale_purchase_stock.purchase.order
+2025-09-19 08:27:29,328 - utils.file_finder - INFO - Found 1 files for sale_purchase_stock.sale.order
+2025-09-19 08:27:29,328 - utils.file_finder - INFO - Found 1 files for stock_dropshipping.sale.order.line
+2025-09-19 08:27:29,329 - utils.file_finder - INFO - Found 3 files for website_sale.sale.order.line
+2025-09-19 08:27:29,331 - utils.file_finder - INFO - Found 18 files for point_of_sale.pos.order
+2025-09-19 08:27:29,331 - __main__ - INFO - Discovered 159 files to process
+2025-09-19 08:27:29,331 - utils.backup_manager - INFO - Started backup session: .backups/20250919_082729
+2025-09-19 08:27:29,331 - __main__ - INFO - Started backup session: .backups/20250919_082729
+2025-09-19 08:27:29,331 - __main__ - INFO - Processing files...
+2025-09-19 08:27:29,353 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/account/models/partner.py: 3 changes applied
+2025-09-19 08:27:29,364 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_category.py: 3 changes applied
+2025-09-19 08:27:29,366 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_combo.py: 3 changes applied
+2025-09-19 08:27:29,378 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_pricelist_item.py: 1 changes applied
+2025-09-19 08:27:29,396 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_product.py: 4 changes applied
+2025-09-19 08:27:29,398 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_supplierinfo.py: 2 changes applied
+2025-09-19 08:27:29,420 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/models/product_template.py: 6 changes applied
+2025-09-19 08:27:29,424 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_category_views.xml: 1 changes applied
+2025-09-19 08:27:29,426 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_views.xml: 4 changes applied
+2025-09-19 08:27:29,426 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_combo_views.xml: 1 changes applied
+2025-09-19 08:27:29,427 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_pricelist_item_views.xml: 1 changes applied
+2025-09-19 08:27:29,427 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_supplierinfo_views.xml: 1 changes applied
+2025-09-19 08:27:29,428 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/views/product_template_views.xml: 1 changes applied
+2025-09-19 08:27:29,430 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/product/wizard/update_product_attribute_value.py: 4 changes applied
+2025-09-19 08:27:29,459 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order.py: 5 changes applied
+2025-09-19 08:27:29,472 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase/models/purchase_order_line.py: 4 changes applied
+2025-09-19 08:27:29,475 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase/views/purchase_views.xml: 4 changes applied
+2025-09-19 08:27:29,477 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase/models/res_partner.py: 3 changes applied
+2025-09-19 08:27:29,478 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase/views/res_partner_views.xml: 1 changes applied
+2025-09-19 08:27:29,479 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/mrp_production.py: 3 changes applied
+2025-09-19 08:27:29,480 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_mrp/views/mrp_production_views.xml: 1 changes applied
+2025-09-19 08:27:29,490 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order.py: 6 changes applied
+2025-09-19 08:27:29,499 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_stock/models/purchase_order_line.py: 4 changes applied
+2025-09-19 08:27:29,500 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_stock/views/purchase_views.xml: 1 changes applied
+2025-09-19 08:27:29,504 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/account_move.py: 1 changes applied
+2025-09-19 08:27:29,506 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/views/account_views.xml: 1 changes applied
+2025-09-19 08:27:29,508 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/crm_team.py: 3 changes applied
+2025-09-19 08:27:29,511 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/res_partner.py: 4 changes applied
+2025-09-19 08:27:29,512 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/views/res_partner_views.xml: 1 changes applied
+2025-09-19 08:27:29,557 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/sale_order.py: 18 changes applied
+2025-09-19 08:27:29,591 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/sale_order_line.py: 18 changes applied
+2025-09-19 08:27:29,595 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/wizard/sale_make_invoice_advance.py: 1 changes applied
+2025-09-19 08:27:29,598 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_views.xml: 5 changes applied
+2025-09-19 08:27:29,599 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/views/sale_order_line_views.xml: 2 changes applied
+2025-09-19 08:27:29,601 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/models/utm_campaign.py: 5 changes applied
+2025-09-19 08:27:29,602 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale/views/utm_campaign_views.xml: 1 changes applied
+2025-09-19 08:27:29,604 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase/models/purchase_order.py: 3 changes applied
+2025-09-19 08:27:29,604 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase/views/purchase_order_views.xml: 1 changes applied
+2025-09-19 08:27:29,605 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase/models/sale_order.py: 3 changes applied
+2025-09-19 08:27:29,608 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase/views/sale_order_views.xml: 1 changes applied
+2025-09-19 08:27:29,614 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order.py: 3 changes applied
+2025-09-19 08:27:29,622 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_stock/models/sale_order_line.py: 4 changes applied
+2025-09-19 08:27:29,623 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_stock/views/sale_order_views.xml: 1 changes applied
+2025-09-19 08:27:29,690 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/stock/models/stock_move.py: 7 changes applied
+2025-09-19 08:27:29,757 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/stock/models/stock_picking.py: 8 changes applied
+2025-09-19 08:27:29,794 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/event_booth_sale/models/sale_order_line.py: 2 changes applied
+2025-09-19 08:27:29,796 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/event_sale/models/sale_order_line.py: 2 changes applied
+2025-09-19 08:27:29,797 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/mrp_subcontracting_dropshipping/models/purchase.py: 2 changes applied
+2025-09-19 08:27:29,803 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/purchase_mrp/models/purchase.py: 2 changes applied
+2025-09-19 08:27:29,815 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_loyalty/models/sale_order_line.py: 2 changes applied
+2025-09-19 08:27:29,819 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_management/models/sale_order.py: 2 changes applied
+2025-09-19 08:27:29,825 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_mrp/models/sale_order_line.py: 2 changes applied
+2025-09-19 08:27:29,826 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/purchase_order.py: 2 changes applied
+2025-09-19 08:27:29,827 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/sale_purchase_stock/models/sale_order.py: 2 changes applied
+2025-09-19 08:27:29,828 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/stock_dropshipping/models/sale.py: 2 changes applied
+2025-09-19 08:27:29,835 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/website_sale/models/sale_order_line.py: 2 changes applied
+2025-09-19 08:27:29,880 - processors.base_processor - INFO - Successfully processed /home/suniagajose/Instancias/odoo/addons/point_of_sale/models/pos_order.py: 1 changes applied
+2025-09-19 08:27:29,900 - utils.backup_manager - INFO - Finalized backup session: .backups/20250919_082729

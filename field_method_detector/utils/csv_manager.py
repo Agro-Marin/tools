@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 
 from analyzers.matching_engine import RenameCandidate
-from config.settings import CSV_ENCODING, CSV_HEADERS
+from config.settings import CSV_ENCODING, CSV_HEADERS, VALID_ITEM_TYPES
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +101,14 @@ class CSVManager:
         if row["old_name"] == row["new_name"]:
             logger.warning(
                 f"Row {row_num}: old_name and new_name are identical: {row['old_name']}"
+            )
+            return False
+
+        # Validate item_type if present
+        item_type = row.get("item_type", "").strip()
+        if item_type and item_type not in VALID_ITEM_TYPES:
+            logger.warning(
+                f"Row {row_num}: Invalid item_type '{item_type}'. Valid types: {VALID_ITEM_TYPES}"
             )
             return False
 

@@ -43,6 +43,9 @@ INTERACTIVE_COLORS = {
 CSV_HEADERS = ["old_name", "new_name", "item_type", "module", "model"]
 CSV_ENCODING = "utf-8"
 
+# Valid item types for validation
+VALID_ITEM_TYPES = {"field", "method"}
+
 # File filtering settings
 PYTHON_FILE_EXTENSIONS = [".py"]
 XML_FILE_EXTENSIONS = [".xml"]

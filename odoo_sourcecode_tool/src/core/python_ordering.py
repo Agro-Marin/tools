@@ -87,8 +87,8 @@ class ModuleInfo:
     constants: dict[str, Any] = field(default_factory=dict)
 
 
-class Ordering:
-    """Centralized Odoo-specific patterns and reorganization logic."""
+class PythonOrdering:
+    """Python/AST-specific ordering and reorganization logic for Odoo files."""
 
     def __init__(
         self,
@@ -1268,6 +1268,27 @@ class Ordering:
 
         return info
 
+    def is_odoo_field(self, node: ast.Assign) -> bool:
+        """Check if an assignment node is an Odoo field declaration.
+
+        Args:
+            node: AST Assign node to check
+
+        Returns:
+            bool: True if this is an Odoo field declaration
+        """
+        if not isinstance(node, ast.Assign):
+            return False
+        if not isinstance(node.value, ast.Call):
+            return False
+        if not (
+            isinstance(node.value.func, ast.Attribute)
+            and isinstance(node.value.func.value, ast.Name)
+            and node.value.func.value.id == "fields"
+        ):
+            return False
+        return True
+
     def get_field_type(self, node: ast.Assign) -> str | None:
         """Detect the Odoo field type from an AST node.
 
@@ -1385,18 +1406,65 @@ class Ordering:
             logger.debug(f"Failed to unparse node: {e}")
             return f"{indent}# [unparseable node]"
 
-    def reorganize_node(self, node: ast.AST, level: str = "module") -> str | list[str]:
+    def reorganize_node(
+        self, node: ast.AST | str = None, level: str = "module"
+    ) -> str | list[str]:
         """
-        Reorganize any AST node (module or class) according to Odoo conventions.
+        Reorganize any AST node (module or class) or content string according to Odoo conventions.
 
         Args:
-            node: AST node to reorganize (Module or ClassDef)
-            level: "module" or "class" to determine organization rules
+            node: AST node to reorganize (Module or ClassDef) or string content
+            level: "module", "class", or "field_attributes" to determine organization rules
 
         Returns:
-            str: Reorganized source code (for module level)
+            str: Reorganized source code (for module level or field_attributes)
             list[str]: Reorganized lines (for class level, to be integrated)
         """
+        # Handle field_attributes level
+        if level == "field_attributes":
+            if isinstance(node, str):
+                content = node
+            elif node is None:
+                content = self.content
+            else:
+                content = self.unparse_node(node)
+
+            # Parse the content
+            try:
+                tree = ast.parse(content)
+            except SyntaxError:
+                return content
+
+            # Create a transformer to reorder field attributes
+            class FieldAttributeReorderer(ast.NodeTransformer):
+                def __init__(self, ordering):
+                    self.ordering = ordering
+
+                def visit_Assign(self, node):
+                    if self.ordering.is_odoo_field(node):
+                        reordered = self.ordering.sort_field_attributes(node)
+                        if reordered:
+                            return reordered
+                    return node
+
+            # Apply the transformer
+            transformer = FieldAttributeReorderer(self)
+            tree = transformer.visit(tree)
+
+            # Return the unparsed tree
+            return self.unparse_node(tree)
+
+        # Handle string content for module level
+        if isinstance(node, str):
+            # Parse the string content
+            try:
+                parsed_tree = ast.parse(node)
+                # Call recursively with the parsed tree
+                return self.reorganize_node(parsed_tree, level=level)
+            except SyntaxError as e:
+                logger.error(f"Failed to parse content: {e}")
+                return node
+
         result_lines = []
 
         # Extract elements based on node type

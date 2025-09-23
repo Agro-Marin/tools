@@ -199,9 +199,11 @@ class PythonProcessor(BaseProcessor):
         logger.debug(f"Method changes: {method_changes}")
 
         try:
-            # Use regex-based approach to preserve formatting
-            modified_content, changes_applied = self._apply_regex_only_transformations(
-                content, field_changes, method_changes
+            # Apply comprehensive regex-based transformations preserving original formatting
+            modified_content, changes_applied = (
+                self._apply_comprehensive_regex_transformations(
+                    content, field_changes, method_changes
+                )
             )
 
             return modified_content, changes_applied
@@ -213,98 +215,22 @@ class PythonProcessor(BaseProcessor):
             logger.error(f"Error processing Python file {file_path}: {e}")
             raise
 
-    def _apply_regex_transformations(
-        self,
-        content: str,
-        field_changes: dict[str, str],
-        method_changes: dict[str, str],
-    ) -> str:
-        """
-        Apply additional regex-based transformations for patterns AST might miss.
-
-        Args:
-            content: Python content to transform
-            field_changes: Dict of field name changes
-            method_changes: Dict of method name changes
-
-        Returns:
-            Modified content
-        """
-        applied_changes = []
-
-        # Patterns for @api.depends decorators
-        for old_name, new_name in field_changes.items():
-            # @api.depends('field_name')
-            pattern = rf"@api\.depends\(([^)]*['\"]){re.escape(old_name)}(['\"][^)]*)\)"
-            replacement = rf"@api.depends(\g<1>{new_name}\g<2>)"
-
-            if re.search(pattern, content):
-                content = re.sub(pattern, replacement, content)
-                applied_changes.append(
-                    f"@api.depends decorator: {old_name} → {new_name}"
-                )
-
-        # Patterns for compute field references
-        for old_name, new_name in field_changes.items():
-            # compute='_compute_field_name'
-            compute_pattern = rf"compute\s*=\s*['\"]_compute_{re.escape(old_name)}['\"]"
-            compute_replacement = f"compute='_compute_{new_name}'"
-
-            if re.search(compute_pattern, content):
-                content = re.sub(compute_pattern, compute_replacement, content)
-                applied_changes.append(
-                    f"Compute method reference: _compute_{old_name} → _compute_{new_name}"
-                )
-
-        # Patterns for inverse and search method references
-        for old_name, new_name in field_changes.items():
-            # inverse='_inverse_field_name'
-            inverse_pattern = rf"inverse\s*=\s*['\"]_inverse_{re.escape(old_name)}['\"]"
-            inverse_replacement = f"inverse='_inverse_{new_name}'"
-
-            if re.search(inverse_pattern, content):
-                content = re.sub(inverse_pattern, inverse_replacement, content)
-                applied_changes.append(
-                    f"Inverse method reference: _inverse_{old_name} → _inverse_{new_name}"
-                )
-
-            # search='_search_field_name'
-            search_pattern = rf"search\s*=\s*['\"]_search_{re.escape(old_name)}['\"]"
-            search_replacement = f"search='_search_{new_name}'"
-
-            if re.search(search_pattern, content):
-                content = re.sub(search_pattern, search_replacement, content)
-                applied_changes.append(
-                    f"Search method reference: _search_{old_name} → _search_{new_name}"
-                )
-
-        # Patterns for domain and context field references
-        for old_name, new_name in field_changes.items():
-            # Domain references: [('field_name', '=', value)]
-            domain_pattern = rf"\(\s*['\"]({re.escape(old_name)})['\"]"
-
-            def domain_replacement(match):
-                return match.group(0).replace(old_name, new_name)
-
-            new_content = re.sub(domain_pattern, domain_replacement, content)
-            if new_content != content:
-                content = new_content
-                applied_changes.append(f"Domain reference: {old_name} → {new_name}")
-
-        # Log applied regex changes
-        for change in applied_changes:
-            logger.debug(f"Regex transformation: {change}")
-
-        return content
-
-    def _apply_regex_only_transformations(
+    def _apply_comprehensive_regex_transformations(
         self,
         content: str,
         field_changes: dict[str, str],
         method_changes: dict[str, str],
     ) -> tuple[str, list[str]]:
         """
-        Apply all transformations using only regex to preserve formatting.
+        Apply comprehensive regex-based transformations preserving original formatting.
+
+        This method handles all transformation patterns:
+        - Field and method definitions
+        - Attribute access and assignments (self.field, obj.field)
+        - Augmented assignments (obj.field += value)
+        - Dictionary access (["field"], ['field'])
+        - String references and compound strings
+        - Odoo-specific patterns (@api.depends, compute=, etc.)
 
         Args:
             content: Python content to transform
@@ -317,9 +243,8 @@ class PythonProcessor(BaseProcessor):
         modified_content = content
         applied_changes = []
 
-        # 1. Field assignments: field_name = fields.Type(...)
+        # 1. Field definitions: field_name = fields.Type(...)
         for old_name, new_name in field_changes.items():
-            # Match field definitions with proper word boundaries
             pattern = rf"\b{re.escape(old_name)}\s*=\s*fields\."
             if re.search(pattern, modified_content):
                 modified_content = re.sub(
@@ -340,7 +265,21 @@ class PythonProcessor(BaseProcessor):
                 )
                 applied_changes.append(f"Method definition: {old_name} → {new_name}")
 
-        # 3. Method calls: self.method_name(...) or obj.method_name(...)
+        # 3. Attribute access and assignments: self.field, record.field = value, obj.field += 1
+        for old_name, new_name in field_changes.items():
+            # Pattern for attribute access/assignment (handles =, +=, -=, *=, etc.)
+            pattern = rf"\.{re.escape(old_name)}\b"
+            if re.search(pattern, modified_content):
+                modified_content = re.sub(
+                    rf"\.{re.escape(old_name)}\b",
+                    f".{new_name}",
+                    modified_content,
+                )
+                applied_changes.append(
+                    f"Attribute access/assignment: *.{old_name} → *.{new_name}"
+                )
+
+        # 4. Method calls: self.method(...) or obj.method(...)
         for old_name, new_name in method_changes.items():
             pattern = rf"\.{re.escape(old_name)}\s*\("
             if re.search(pattern, modified_content):
@@ -349,16 +288,124 @@ class PythonProcessor(BaseProcessor):
                     f".{new_name}",
                     modified_content,
                 )
-                applied_changes.append(f"Method call: {old_name} → {new_name}")
+                applied_changes.append(f"Method call: *.{old_name}() → *.{new_name}()")
 
-        # 4. String references in quotes
+        # 5. Dictionary access: vals['field'], data["field"]
         for old_name, new_name in field_changes.items():
+            # Single quotes in dictionary keys
+            pattern = rf"\['{re.escape(old_name)}'\]"
+            if re.search(pattern, modified_content):
+                modified_content = re.sub(pattern, f"['{new_name}']", modified_content)
+                applied_changes.append(
+                    f"Dictionary access: ['{old_name}'] → ['{new_name}']"
+                )
+
+            # Double quotes in dictionary keys
+            pattern = rf'\["{re.escape(old_name)}"\]'
+            if re.search(pattern, modified_content):
+                modified_content = re.sub(pattern, f'["{new_name}"]', modified_content)
+                applied_changes.append(
+                    f'Dictionary access: ["{old_name}"] → ["{new_name}"]'
+                )
+
+        # 6. String references (exact matches)
+        for old_name, new_name in field_changes.items():
+            # Single quotes - exact match
+            pattern = rf"'{re.escape(old_name)}'"
+            if re.search(pattern, modified_content):
+                modified_content = re.sub(pattern, f"'{new_name}'", modified_content)
+                applied_changes.append(f"String reference: '{old_name}' → '{new_name}'")
+
+            # Double quotes - exact match
+            pattern = rf'"{re.escape(old_name)}"'
+            if re.search(pattern, modified_content):
+                modified_content = re.sub(pattern, f'"{new_name}"', modified_content)
+                applied_changes.append(f'String reference: "{old_name}" → "{new_name}"')
+
+        # 7. Compound strings: 'default_field_name', 'compute_field_name', etc.
+        # This handles compound strings that weren't already covered by exact matches
+        for old_name, new_name in field_changes.items():
+            # Only apply compound string replacement if it wasn't already covered
+            # Single quotes compound strings (avoid already processed exact matches)
+            pattern = rf"'([^']+){re.escape(old_name)}([^']+)'"
+            matches = re.findall(pattern, modified_content)
+            if matches:
+                replacement = rf"'\g<1>{new_name}\g<2>'"
+                modified_content = re.sub(pattern, replacement, modified_content)
+                for match in matches:
+                    old_full = f"{match[0]}{old_name}{match[1]}"
+                    new_full = f"{match[0]}{new_name}{match[1]}"
+                    applied_changes.append(
+                        f"Compound string: '{old_full}' → '{new_full}'"
+                    )
+
+            # Double quotes compound strings (avoid already processed exact matches)
+            pattern = rf'"([^"]+){re.escape(old_name)}([^"]+)"'
+            matches = re.findall(pattern, modified_content)
+            if matches:
+                replacement = rf'"\g<1>{new_name}\g<2>"'
+                modified_content = re.sub(pattern, replacement, modified_content)
+                for match in matches:
+                    old_full = f"{match[0]}{old_name}{match[1]}"
+                    new_full = f"{match[0]}{new_name}{match[1]}"
+                    applied_changes.append(
+                        f'Compound string: "{old_full}" → "{new_full}"'
+                    )
+
+        # 8. Odoo-specific patterns
+        # @api.depends decorators
+        for old_name, new_name in field_changes.items():
+            pattern = (
+                rf"@api\.depends\(([^)]*)(['\"]){re.escape(old_name)}(['\"])([^)]*)\)"
+            )
+            if re.search(pattern, modified_content):
+                replacement = rf"@api.depends(\g<1>\g<2>{new_name}\g<3>\g<4>)"
+                modified_content = re.sub(pattern, replacement, modified_content)
+                applied_changes.append(
+                    f"@api.depends decorator: {old_name} → {new_name}"
+                )
+
+        # compute, inverse, search method references
+        for old_name, new_name in field_changes.items():
+            patterns = [
+                (
+                    rf"compute\s*=\s*(['\"])_compute_{re.escape(old_name)}\1",
+                    rf"compute=\g<1>_compute_{new_name}\g<1>",
+                ),
+                (
+                    rf"inverse\s*=\s*(['\"])_inverse_{re.escape(old_name)}\1",
+                    rf"inverse=\g<1>_inverse_{new_name}\g<1>",
+                ),
+                (
+                    rf"search\s*=\s*(['\"])_search_{re.escape(old_name)}\1",
+                    rf"search=\g<1>_search_{new_name}\g<1>",
+                ),
+            ]
+
+            for pattern, replacement in patterns:
+                if re.search(pattern, modified_content):
+                    modified_content = re.sub(pattern, replacement, modified_content)
+                    method_type = pattern.split("\\")[0]  # compute, inverse, or search
+                    applied_changes.append(
+                        f"{method_type} method reference: _{method_type}_{old_name} → _{method_type}_{new_name}"
+                    )
+
+        # Domain references: [('field_name', '=', value)]
+        for old_name, new_name in field_changes.items():
+            pattern = rf"\(\s*(['\"]){re.escape(old_name)}\1\s*,"
+            if re.search(pattern, modified_content):
+                replacement = rf"(\g<1>{new_name}\g<1>,"
+                modified_content = re.sub(pattern, replacement, modified_content)
+                applied_changes.append(f"Domain reference: {old_name} → {new_name}")
+
+        # Method string references
+        for old_name, new_name in method_changes.items():
             # Single quotes
             pattern = rf"'{re.escape(old_name)}'"
             if re.search(pattern, modified_content):
                 modified_content = re.sub(pattern, f"'{new_name}'", modified_content)
                 applied_changes.append(
-                    f"String reference (single quotes): '{old_name}' → '{new_name}'"
+                    f"Method string reference: '{old_name}' → '{new_name}'"
                 )
 
             # Double quotes
@@ -366,30 +413,8 @@ class PythonProcessor(BaseProcessor):
             if re.search(pattern, modified_content):
                 modified_content = re.sub(pattern, f'"{new_name}"', modified_content)
                 applied_changes.append(
-                    f'String reference (double quotes): "{old_name}" → "{new_name}"'
+                    f'Method string reference: "{old_name}" → "{new_name}"'
                 )
-
-        for old_name, new_name in method_changes.items():
-            # Single quotes for method names
-            pattern = rf"'{re.escape(old_name)}'"
-            if re.search(pattern, modified_content):
-                modified_content = re.sub(pattern, f"'{new_name}'", modified_content)
-                applied_changes.append(
-                    f"String reference (single quotes): '{old_name}' → '{new_name}'"
-                )
-
-            # Double quotes for method names
-            pattern = rf'"{re.escape(old_name)}"'
-            if re.search(pattern, modified_content):
-                modified_content = re.sub(pattern, f'"{new_name}"', modified_content)
-                applied_changes.append(
-                    f'String reference (double quotes): "{old_name}" → "{new_name}"'
-                )
-
-        # Apply the existing regex transformations for decorators and other patterns
-        modified_content = self._apply_regex_transformations(
-            modified_content, field_changes, method_changes
-        )
 
         return modified_content, applied_changes
 

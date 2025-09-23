@@ -25,7 +25,7 @@ class OdooXMLReorderer:
         # Define attribute order for different element types
         self.attribute_orders = self._build_attribute_orders()
 
-    def _build_attribute_orders(self) -> Dict[str, List[str]]:
+    def _build_attribute_orders(self) -> dict[str, list[str]]:
         """Define the preferred attribute order for different XML elements."""
         return {
             # View elements

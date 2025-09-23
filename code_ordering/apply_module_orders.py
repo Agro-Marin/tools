@@ -13,15 +13,14 @@ Usage:
 import argparse
 import json
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from config import OdooConfig, ReorderConfig
 
 # Import components from the main tool
 from core import FileOperations
 from odoo_reorder import CodeReorganizer
-
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

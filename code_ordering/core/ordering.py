@@ -16,13 +16,12 @@ The module provides:
 """
 
 import ast
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import isort
-
 from core.classification_rule_field import (
     ClassificationRuleField,
     get_default_field_rules,
@@ -31,7 +30,6 @@ from core.classification_rule_method import (
     ClassificationRuleMethod,
     get_default_method_rules,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -1301,7 +1299,7 @@ class Ordering:
             node: AST node to get line range for
 
         Returns:
-            Tuple[int, int]: (start_line, end_line) or (0, 0) if not available
+            tuple[int, int]: (start_line, end_line) or (0, 0) if not available
         """
         if hasattr(node, "lineno") and hasattr(node, "end_lineno"):
             return (node.lineno, node.end_lineno or node.lineno)

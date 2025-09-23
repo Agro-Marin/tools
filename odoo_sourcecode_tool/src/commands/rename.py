@@ -107,7 +107,10 @@ class RenameCommand:
             logger.error(f"Error during renaming: {e}")
             return False
 
-    def _load_changes(self, csv_file: Path) -> list[FieldChange]:
+    def _load_changes(
+        self,
+        csv_file: Path,
+    ) -> list[FieldChange]:
         """Load changes from CSV file"""
         try:
             df = pd.read_csv(csv_file)
@@ -146,7 +149,8 @@ class RenameCommand:
             return []
 
     def _interactive_confirm_changes(
-        self, changes: list[FieldChange]
+        self,
+        changes: list[FieldChange],
     ) -> list[FieldChange]:
         """Interactive confirmation of changes"""
         confirmed = []
@@ -175,7 +179,8 @@ class RenameCommand:
         return confirmed
 
     def _group_changes(
-        self, changes: list[FieldChange]
+        self,
+        changes: list[FieldChange],
     ) -> dict[str, list[FieldChange]]:
         """Group changes by module.model"""
         grouped = {}
@@ -211,7 +216,10 @@ class RenameCommand:
 
         return results
 
-    def _find_files_for_module(self, module_path: Path) -> list[Path]:
+    def _find_files_for_module(
+        self,
+        module_path: Path,
+    ) -> list[Path]:
         """Find all relevant files in a module"""
         include_python = (
             self.config.renaming.file_types
@@ -240,7 +248,9 @@ class RenameCommand:
         return files
 
     def _process_file(
-        self, file_path: Path, changes: list[FieldChange]
+        self,
+        file_path: Path,
+        changes: list[FieldChange],
     ) -> ProcessResult:
         """Process a single file with changes"""
         try:
@@ -267,7 +277,9 @@ class RenameCommand:
             )
 
     def _process_python_file(
-        self, file_path: Path, changes: list[FieldChange]
+        self,
+        file_path: Path,
+        changes: list[FieldChange],
     ) -> ProcessResult:
         """Process Python file for renames"""
         content = file_path.read_text(encoding="utf-8")
@@ -314,7 +326,9 @@ class RenameCommand:
         )
 
     def _process_xml_file(
-        self, file_path: Path, changes: list[FieldChange]
+        self,
+        file_path: Path,
+        changes: list[FieldChange],
     ) -> ProcessResult:
         """Process XML file for field and method references"""
         field_changes = {c.old_name: c.new_name for c in changes if c.is_field}
@@ -397,7 +411,11 @@ class RenameCommand:
 class ASTRenameTransformer(ast.NodeTransformer):
     """AST transformer for renaming fields and methods"""
 
-    def __init__(self, field_changes: dict[str, str], method_changes: dict[str, str]):
+    def __init__(
+        self,
+        field_changes: dict[str, str],
+        method_changes: dict[str, str],
+    ):
         self.field_changes = field_changes
         self.method_changes = method_changes
         self.changes_made = []

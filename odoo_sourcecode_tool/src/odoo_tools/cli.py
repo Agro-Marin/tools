@@ -12,6 +12,7 @@ import click
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.config import Config
+from core.base_processor import ProcessingStatus
 from odoo_tools import __version__
 
 # Configure logging
@@ -148,7 +149,7 @@ def reorder(
     result = command.execute(target, Path(path), recursive, **options)
 
     # Exit with appropriate code
-    sys.exit(0 if result else 1)
+    sys.exit(0 if result.status == ProcessingStatus.SUCCESS else 1)
 
 
 @cli.command()
@@ -224,7 +225,7 @@ def detect(
     command = DetectCommand(config)
     result = command.execute(from_commit, to_commit, output)
 
-    sys.exit(0 if result else 1)
+    sys.exit(0 if result.status == ProcessingStatus.SUCCESS else 1)
 
 
 @cli.command()
@@ -289,7 +290,7 @@ def rename(
     command = RenameCommand(config)
     result = command.execute(Path(csv_file))
 
-    sys.exit(0 if result else 1)
+    sys.exit(0 if result.status == ProcessingStatus.SUCCESS else 1)
 
 
 @cli.command()
@@ -328,7 +329,7 @@ def workflow(
     command = WorkflowCommand(config)
     result = command.execute(Path(config_file), pipeline)
 
-    sys.exit(0 if result else 1)
+    sys.exit(0 if result.status == ProcessingStatus.SUCCESS else 1)
 
 
 @cli.command()

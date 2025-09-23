@@ -11,6 +11,7 @@ from core.ordering import Ordering
 from core.config import Config
 from core.git_manager import GitManager
 from core.odoo_module_utils import OdooModuleUtils
+from core.base_processor import ProcessingStatus, ProcessResult
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class DetectCommand:
         from_commit: str | None,
         to_commit: str | None,
         output_file: str,
-    ) -> bool:
+    ) -> ProcessResult:
         """
         Execute detection operation
 
@@ -54,7 +55,7 @@ class DetectCommand:
             output_file: Output CSV file path
 
         Returns:
-            True if successful, False if errors occurred
+            ProcessResult with status and details
         """
         try:
             # Resolve commits
@@ -67,7 +68,11 @@ class DetectCommand:
                 from_commit = self.git_manager.get_merge_base("main", to_commit)
                 if not from_commit:
                     logger.error("Could not auto-detect base commit")
-                    return False
+                    return ProcessResult(
+                        file_path=Path(self.config.repo_path),
+                        status=ProcessingStatus.ERROR,
+                        error_message="Could not auto-detect base commit",
+                    )
 
             from_sha = self.git_manager.resolve_commit(from_commit)
 
@@ -120,11 +125,21 @@ class DetectCommand:
             df = pd.DataFrame(data)
             df.to_csv(output_file, index=False)
             logger.info(f"Saved {len(filtered)} changes to {output_file}")
-            return True
+            return ProcessResult(
+                file_path=Path(output_file),
+                status=ProcessingStatus.SUCCESS,
+                changes_applied=len(filtered),
+            )
 
         except Exception as e:
             logger.error(f"Error during detection: {e}")
-            return False
+            return ProcessResult(
+                file_path=(
+                    Path(output_file) if output_file else Path(self.config.repo_path)
+                ),
+                status=ProcessingStatus.ERROR,
+                error_message=str(e),
+            )
 
     def _analyze_file(
         self,

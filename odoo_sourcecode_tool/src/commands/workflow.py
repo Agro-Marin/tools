@@ -11,6 +11,7 @@ from commands.detect import DetectCommand
 from commands.rename import RenameCommand
 from commands.reorder import UnifiedReorderCommand
 from core.config import Config
+from core.base_processor import ProcessingStatus, ProcessResult
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,11 @@ class WorkflowCommand:
             "rename": RenameCommand(config),
         }
 
-    def execute(self, workflow_file: Path, pipeline_name: str | None = None) -> bool:
+    def execute(
+        self,
+        workflow_file: Path,
+        pipeline_name: str | None = None,
+    ) -> ProcessResult:
         """
         Execute a workflow from configuration file
 
@@ -36,7 +41,7 @@ class WorkflowCommand:
             pipeline_name: Specific pipeline to execute (optional)
 
         Returns:
-            True if successful, False if errors occurred
+            ProcessResult with status and details
         """
         try:
             # Load workflow configuration
@@ -48,13 +53,21 @@ class WorkflowCommand:
 
             if not pipelines:
                 logger.error("No pipelines defined in workflow file")
-                return False
+                return ProcessResult(
+                    file_path=workflow_file,
+                    status=ProcessingStatus.ERROR,
+                    error_message="No pipelines defined in workflow file",
+                )
 
             # Select pipeline
             if pipeline_name:
                 if pipeline_name not in pipelines:
                     logger.error(f"Pipeline '{pipeline_name}' not found")
-                    return False
+                    return ProcessResult(
+                        file_path=workflow_file,
+                        status=ProcessingStatus.ERROR,
+                        error_message=f"Pipeline '{pipeline_name}' not found",
+                    )
                 selected_pipelines = {pipeline_name: pipelines[pipeline_name]}
             else:
                 # Execute all pipelines
@@ -65,16 +78,32 @@ class WorkflowCommand:
                 logger.info(f"Executing pipeline: {name}")
                 if not self._execute_pipeline(name, pipeline):
                     logger.error(f"Pipeline '{name}' failed")
-                    return False
+                    return ProcessResult(
+                        file_path=workflow_file,
+                        status=ProcessingStatus.ERROR,
+                        error_message=f"Pipeline '{name}' failed",
+                    )
 
             logger.info("All pipelines executed successfully")
-            return True
+            return ProcessResult(
+                file_path=workflow_file,
+                status=ProcessingStatus.SUCCESS,
+                changes_applied=len(selected_pipelines),
+            )
 
         except Exception as e:
             logger.error(f"Error executing workflow: {e}")
-            return False
+            return ProcessResult(
+                file_path=workflow_file,
+                status=ProcessingStatus.ERROR,
+                error_message=str(e),
+            )
 
-    def _execute_pipeline(self, name: str, pipeline: list[dict[str, Any]]) -> bool:
+    def _execute_pipeline(
+        self,
+        name: str,
+        pipeline: list[dict[str, Any]],
+    ) -> bool:
         """Execute a single pipeline"""
         logger.info(f"Starting pipeline: {name}")
 
@@ -86,8 +115,8 @@ class WorkflowCommand:
 
             logger.info(f"Step {step_num}/{len(pipeline)}: {step_type}")
 
-            if step_type == "order":
-                if not self._execute_order_step(step):
+            if step_type == "reorder":
+                if not self._execute_reorder_step(step):
                     return False
 
             elif step_type == "detect":
@@ -108,23 +137,30 @@ class WorkflowCommand:
 
         return True
 
-    def _execute_order_step(self, step: dict[str, Any]) -> bool:
-        """Execute order command step"""
+    def _execute_reorder_step(
+        self,
+        step: dict[str, Any],
+    ) -> bool:
+        """Execute reorder command step"""
         try:
             path = Path(step.get("path", "."))
-            recursive = step.get("recursive", False)
+            target = step.get("target", "all")
 
             # Override config if step specifies
             if "strategy" in step:
                 self.config.ordering.strategy = step["strategy"]
 
-            return self.commands["order"].execute(path, recursive)
+            result = self.commands["reorder"].execute(path, target)
+            return result.status == ProcessingStatus.SUCCESS
 
         except Exception as e:
-            logger.error(f"Order step failed: {e}")
+            logger.error(f"Reorder step failed: {e}")
             return False
 
-    def _execute_detect_step(self, step: dict[str, Any]) -> bool:
+    def _execute_detect_step(
+        self,
+        step: dict[str, Any],
+    ) -> bool:
         """Execute detect command step"""
         try:
             from_commit = step.get("from")
@@ -135,13 +171,17 @@ class WorkflowCommand:
             if "threshold" in step:
                 self.config.detection.confidence_threshold = step["threshold"]
 
-            return self.commands["detect"].execute(from_commit, to_commit, output)
+            result = self.commands["detect"].execute(from_commit, to_commit, output)
+            return result.status == ProcessingStatus.SUCCESS
 
         except Exception as e:
             logger.error(f"Detect step failed: {e}")
             return False
 
-    def _execute_rename_step(self, step: dict[str, Any]) -> bool:
+    def _execute_rename_step(
+        self,
+        step: dict[str, Any],
+    ) -> bool:
         """Execute rename command step"""
         try:
             csv_file = Path(step.get("csv", "changes.csv"))
@@ -150,13 +190,17 @@ class WorkflowCommand:
                 logger.error(f"CSV file not found: {csv_file}")
                 return False
 
-            return self.commands["rename"].execute(csv_file)
+            result = self.commands["rename"].execute(csv_file)
+            return result.status == ProcessingStatus.SUCCESS
 
         except Exception as e:
             logger.error(f"Rename step failed: {e}")
             return False
 
-    def _execute_shell_step(self, step: dict[str, Any]) -> bool:
+    def _execute_shell_step(
+        self,
+        step: dict[str, Any],
+    ) -> bool:
         """Execute shell command step"""
         import subprocess
 

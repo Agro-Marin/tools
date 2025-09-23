@@ -1,0 +1,59 @@
+backup:
+  compression: true
+  directory: .backups
+  enabled: true
+  keep_sessions: 10
+detection:
+  analyze_xml: true
+  auto_approve_threshold: 0.9
+  confidence_threshold: 0.75
+  include_fields: true
+  include_methods: true
+dry_run: false
+interactive: false
+modules: []
+ordering:
+  add_section_headers: true
+  black_line_length: 88
+  check_file_naming: true
+  consolidate_menus: true
+  isort_combine_as_imports: true
+  isort_ensure_newline_before_comments: true
+  isort_force_alphabetical_sort_within_sections: true
+  isort_force_grid_wrap: 0
+  isort_force_sort_within_sections: true
+  isort_include_trailing_comma: true
+  isort_known_odoo:
+  - odoo
+  - openerp
+  isort_known_odoo_addons:
+  - odoo.addons
+  isort_line_length: 85
+  isort_lines_between_sections: 1
+  isort_multi_line_output: 3
+  isort_sections:
+  - FUTURE
+  - STDLIB
+  - THIRDPARTY
+  - ODOO
+  - ODOO_ADDONS
+  - FIRSTPARTY
+  - LOCALFOLDER
+  isort_use_parentheses: true
+  magic_trailing_comma: true
+  menu_file_name: menu.xml
+  preserve_comments: true
+  single_class_per_file: true
+  strategy: semantic
+output_dir: output
+quiet: false
+renaming:
+  file_types:
+  - python
+  - xml
+  - yaml
+  max_workers: 4
+  parallel_processing: false
+  validate_syntax: true
+repo_path: null
+verbose: false

@@ -23,7 +23,6 @@ from pathlib import Path
 from typing import Any
 
 import isort
-from core.config import Config
 from core.classification_rule_field import (
     ClassificationRuleField,
     get_default_field_rules,
@@ -32,6 +31,7 @@ from core.classification_rule_method import (
     ClassificationRuleMethod,
     get_default_method_rules,
 )
+from core.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ class Ordering:
         """Initialize Ordering with configuration and optional content.
 
         Args:
-            config: Configuration object with field_strategy, add_section_headers, etc.
+            config: Configuration object with add_section_headers, etc.
             content: Python source code content for processing
             filepath: Optional path to the source file
         """

@@ -115,7 +115,7 @@ class ClassificationRuleField:
 
 
 def get_default_field_rules() -> list[ClassificationRuleField]:
-    """Get the default set of field classification rules for semantic strategy.
+    """Get the default set of field classification rules.
 
     Returns rules that classify fields by their semantic meaning in the business domain.
     """

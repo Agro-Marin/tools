@@ -12,29 +12,19 @@ import black
 import isort
 from core.backup_manager import BackupManager
 from core.base_processor import ProcessingStatus, ProcessResult
-from core.classification_rule_field import get_default_field_rules
-from core.classification_rule_method import get_default_method_rules
 from core.config import Config
 from core.ordering import Ordering
 
 logger = logging.getLogger(__name__)
 
 
-class UnifiedReorderCommand:
+class ReorderCommand:
     """Unified command handler for all reordering operations"""
 
     def __init__(self, config: Config):
         """Initialize unified reorder command with configuration"""
         self.config = config
         self.backup_manager = None
-
-        # Initialize for code reordering
-        self.field_rules = get_default_field_rules()
-        self.method_rules = get_default_method_rules()
-
-        # Initialize for XML reordering
-        self.xml_attribute_orders = self._init_xml_attribute_orders()
-
         if config.backup.enabled:
             self.backup_manager = BackupManager(
                 backup_dir=config.backup.directory,
@@ -43,8 +33,12 @@ class UnifiedReorderCommand:
             )
 
     def execute(
-        self, target: str, path: Path, recursive: bool = False, **options
-    ) -> bool:
+        self,
+        target: str,
+        path: Path,
+        recursive: bool = False,
+        **options,
+    ) -> ProcessResult:
         """
         Execute reordering operation based on target type
 
@@ -52,10 +46,10 @@ class UnifiedReorderCommand:
             target: 'code', 'attributes', 'xml', or 'all'
             path: File or directory to process
             recursive: Process directories recursively
-            **options: Additional options (strategy, etc.)
+            **options: Additional options
 
         Returns:
-            True if successful, False if errors occurred
+            ProcessResult with status and details
         """
         try:
             # Start backup session if needed
@@ -67,20 +61,22 @@ class UnifiedReorderCommand:
             if target == "all":
                 results = []
 
-                # Reorder code
-                logger.info("Reordering code...")
-                code_result = self._execute_code_reorder(path, recursive, **options)
-                results.append(("Code", code_result))
-
-                # Reorder attributes
+                # Reorder only Odoo field's attributes
                 logger.info("Reordering field attributes...")
-                attr_result = self._execute_attributes_reorder(path, recursive)
-                results.append(("Attributes", attr_result))
+                attr_result = self._execute_field_attr_reorder(path, recursive)
+                results.append(
+                    ("Attributes", attr_result.status == ProcessingStatus.SUCCESS)
+                )
 
-                # Reorder XML
+                # Reorder all Python code including field attributes
+                logger.info("Reordering code...")
+                code_result = self._execute_python_reorder(path, recursive, **options)
+                results.append(("Code", code_result.status == ProcessingStatus.SUCCESS))
+
+                # Reorder only XML node attributes
                 logger.info("Reordering XML attributes...")
                 xml_result = self._execute_xml_reorder(path, recursive)
-                results.append(("XML", xml_result))
+                results.append(("XML", xml_result.status == ProcessingStatus.SUCCESS))
 
                 # Summary
                 self._print_summary(results)
@@ -89,17 +85,37 @@ class UnifiedReorderCommand:
                 if self.backup_manager and not self.config.dry_run:
                     self.backup_manager.finalize_session()
 
-                return all(r[1] for r in results)
+                # Return success if all operations succeeded
+                success = all(r[1] for r in results)
+                return ProcessResult(
+                    file_path=path,
+                    status=(
+                        ProcessingStatus.SUCCESS if success else ProcessingStatus.ERROR
+                    ),
+                    message=f"Processed {len(results)} targets",
+                )
 
-            elif target == "code":
-                result = self._execute_code_reorder(path, recursive, **options)
-            elif target == "attributes":
-                result = self._execute_attributes_reorder(path, recursive)
-            elif target == "xml":
+            elif target == "python_code":
+                result = self._execute_python_reorder(path, recursive, **options)
+            elif target == "python_field_attr":
+                result = self._execute_field_attr_reorder(path, recursive)
+            elif target == "xml_code":
                 result = self._execute_xml_reorder(path, recursive)
+            elif target == "xml_node_attr":
+                # TODO: Implement XML node attribute reordering
+                logger.error(f"Target '{target}' not yet implemented")
+                return ProcessResult(
+                    file_path=path,
+                    status=ProcessingStatus.ERROR,
+                    error_message=f"Target '{target}' not yet implemented",
+                )
             else:
                 logger.error(f"Unknown target: {target}")
-                return False
+                return ProcessResult(
+                    file_path=path,
+                    status=ProcessingStatus.ERROR,
+                    error_message=f"Unknown target: {target}",
+                )
 
             # Finalize backup for single operations
             if self.backup_manager and not self.config.dry_run:
@@ -109,29 +125,44 @@ class UnifiedReorderCommand:
 
         except Exception as e:
             logger.error(f"Error during reordering: {e}")
-            return False
+            return ProcessResult(
+                file_path=path, status=ProcessingStatus.ERROR, error_message=str(e)
+            )
 
     # ========================================================================
-    # CODE REORDERING (from order.py)
+    # CODE REORDERING
     # ========================================================================
 
-    def _execute_code_reorder(self, path: Path, recursive: bool, **options) -> bool:
+    def _execute_python_reorder(
+        self,
+        path: Path,
+        recursive: bool,
+        **options,
+    ) -> ProcessResult:
         """Execute code reordering operation on path"""
-        # Apply strategy if provided
-        if "strategy" in options:
-            self.config.ordering.strategy = options["strategy"]
 
         # Process path
         if path.is_file():
-            result = self._process_code_file(path)
-            return result.status == ProcessingStatus.SUCCESS
+            return self._process_code_file(path)
         elif path.is_directory():
-            return self._process_code_directory(path, recursive)
+            success = self._process_code_directory(path, recursive)
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.SUCCESS if success else ProcessingStatus.ERROR,
+                message=f"Directory processing {'completed' if success else 'failed'}",
+            )
         else:
             logger.error(f"Invalid path: {path}")
-            return False
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.ERROR,
+                error_message=f"Invalid path: {path}",
+            )
 
-    def _process_code_file(self, file_path: Path) -> ProcessResult:
+    def _process_code_file(
+        self,
+        file_path: Path,
+    ) -> ProcessResult:
         """Process single Python file for code reordering"""
         if not file_path.suffix == ".py":
             return ProcessResult(
@@ -228,16 +259,24 @@ class UnifiedReorderCommand:
     # ATTRIBUTES REORDERING (from reorder_attributes.py)
     # ========================================================================
 
-    def _execute_attributes_reorder(self, path: Path, recursive: bool) -> bool:
+    def _execute_field_attr_reorder(self, path: Path, recursive: bool) -> ProcessResult:
         """Execute attribute reordering operation on path"""
         if path.is_file():
-            result = self._process_attributes_file(path)
-            return result.status == ProcessingStatus.SUCCESS
+            return self._process_attributes_file(path)
         elif path.is_directory():
-            return self._process_attributes_directory(path, recursive)
+            success = self._process_attributes_directory(path, recursive)
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.SUCCESS if success else ProcessingStatus.ERROR,
+                message=f"Attribute reordering {'completed' if success else 'failed'}",
+            )
         else:
             logger.error(f"Invalid path: {path}")
-            return False
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.ERROR,
+                error_message=f"Invalid path: {path}",
+            )
 
     def _process_attributes_file(self, file_path: Path) -> ProcessResult:
         """Process single Python file for attribute reordering"""
@@ -407,16 +446,24 @@ class UnifiedReorderCommand:
     # XML REORDERING (from reorder_xml.py)
     # ========================================================================
 
-    def _execute_xml_reorder(self, path: Path, recursive: bool) -> bool:
+    def _execute_xml_reorder(self, path: Path, recursive: bool) -> ProcessResult:
         """Execute XML reordering operation on path"""
         if path.is_file():
-            result = self._process_xml_file(path)
-            return result.status == ProcessingStatus.SUCCESS
+            return self._process_xml_file(path)
         elif path.is_directory():
-            return self._process_xml_directory(path, recursive)
+            success = self._process_xml_directory(path, recursive)
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.SUCCESS if success else ProcessingStatus.ERROR,
+                message=f"XML reordering {'completed' if success else 'failed'}",
+            )
         else:
             logger.error(f"Invalid path: {path}")
-            return False
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.ERROR,
+                error_message=f"Invalid path: {path}",
+            )
 
     def _process_xml_file(self, file_path: Path) -> ProcessResult:
         """Process single XML file for attribute reordering"""

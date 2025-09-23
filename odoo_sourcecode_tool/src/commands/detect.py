@@ -7,11 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
-from core.ordering import Ordering
+from core.base_processor import ProcessingStatus, ProcessResult
 from core.config import Config
 from core.git_manager import GitManager
 from core.odoo_module_utils import OdooModuleUtils
-from core.base_processor import ProcessingStatus, ProcessResult
+from core.ordering import Ordering
 
 logger = logging.getLogger(__name__)
 

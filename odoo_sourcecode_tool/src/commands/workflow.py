@@ -9,9 +9,9 @@ from typing import Any
 import yaml
 from commands.detect import DetectCommand
 from commands.rename import RenameCommand
-from commands.reorder import UnifiedReorderCommand
-from core.config import Config
+from commands.reorder import ReorderCommand
 from core.base_processor import ProcessingStatus, ProcessResult
+from core.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class WorkflowCommand:
         """Initialize workflow command with configuration"""
         self.config = config
         self.commands = {
-            "reorder": UnifiedReorderCommand(config),
+            "reorder": ReorderCommand(config),
             "detect": DetectCommand(config),
             "rename": RenameCommand(config),
         }
@@ -145,10 +145,6 @@ class WorkflowCommand:
         try:
             path = Path(step.get("path", "."))
             target = step.get("target", "all")
-
-            # Override config if step specifies
-            if "strategy" in step:
-                self.config.ordering.strategy = step["strategy"]
 
             result = self.commands["reorder"].execute(path, target)
             return result.status == ProcessingStatus.SUCCESS

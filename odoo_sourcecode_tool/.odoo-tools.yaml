@@ -44,7 +44,6 @@ ordering:
   menu_file_name: menu.xml
   preserve_comments: true
   single_class_per_file: true
-  strategy: semantic
 output_dir: output
 quiet: false
 renaming:

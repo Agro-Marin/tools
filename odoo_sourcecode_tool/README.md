@@ -167,7 +167,6 @@ modules:
 
 # Ordering settings
 ordering:
-  strategy: semantic
   add_section_headers: true
   single_class_per_file: true    # Enforce one class per file
   check_file_naming: true         # Verify file names match model names
@@ -229,8 +228,8 @@ These blueprints define:
 
 ### reorder
 ```bash
-# Reorder Python code with semantic strategy
-./odoo-tools reorder code ./module --strategy semantic
+# Reorder Python code
+./odoo-tools reorder code ./module
 
 # Reorder attributes in field definitions
 ./odoo-tools reorder attributes ./module/models -r

@@ -63,13 +63,13 @@ class TestWorkflowCommand:
         # Test command step
         step_data = {
             "command": "order",
-            "args": {"path": "./models", "strategy": "semantic"},
+            "args": {"path": "./models"},
         }
 
         step = command._parse_step(step_data)
 
         assert step.command == "order"
-        assert step.args == {"path": "./models", "strategy": "semantic"}
+        assert step.args == {"path": "./models"}
         assert step.shell_command is None
 
         # Test shell step
@@ -80,14 +80,14 @@ class TestWorkflowCommand:
         assert shell_step.command is None
         assert shell_step.shell_command == "echo 'Hello World'"
 
-    @patch("src.commands.workflow.UnifiedReorderCommand")
+    @patch("src.commands.workflow.Unified")
     def test_execute_order_step(self, mock_order_class, tmp_path):
         """Test executing order command step"""
         config = Config()
         config.repo_path = str(tmp_path)
         command = WorkflowCommand(config)
 
-        # Mock UnifiedReorderCommand
+        # Mock Unified
         mock_order = Mock()
         mock_order.execute.return_value = True
         mock_order_class.return_value = mock_order
@@ -95,7 +95,7 @@ class TestWorkflowCommand:
         # Create step
         step = WorkflowStep(
             command="order",
-            args={"path": "./models", "strategy": "semantic"},
+            args={"path": "./models"},
             shell_command=None,
         )
 

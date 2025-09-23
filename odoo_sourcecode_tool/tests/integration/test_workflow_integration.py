@@ -2,20 +2,15 @@
 Integration tests for complete workflows
 """
 
-import shutil
 import subprocess
-import tempfile
-from pathlib import Path
 
-import pandas as pd
 import pytest
 import yaml
 from src.commands.detect import DetectCommand
 from src.commands.rename import RenameCommand
-from src.commands.reorder import UnifiedReorderCommand
+from src.commands.reorder import ReorderCommand
 from src.commands.workflow import WorkflowCommand
 from src.core.config import Config
-from src.core.git_manager import GitManager
 
 
 class TestWorkflowIntegration:
@@ -128,12 +123,11 @@ class SaleOrder(models.Model):
         """Test code ordering workflow"""
         config = Config()
         config.repo_path = str(test_repo)
-        config.ordering.strategy = "semantic"
         config.dry_run = False
         config.backup.enabled = False
 
         # Execute ordering
-        order_cmd = UnifiedReorderCommand(config)
+        order_cmd = ReorderCommand(config)
         success = order_cmd.execute(test_repo / "sale", recursive=True)
 
         assert success is True
@@ -213,7 +207,6 @@ class SaleOrder(models.Model):
                             "args": {
                                 "path": "./sale",
                                 "recursive": True,
-                                "strategy": "semantic",
                             },
                         },
                         {"shell": "git add . && git commit -m 'Reorder code' || true"},
@@ -297,7 +290,7 @@ class PurchaseOrder(models.Model):
         config.backup.enabled = False
 
         # Order code
-        order_cmd = UnifiedReorderCommand(config)
+        order_cmd = ReorderCommand(config)
         order_cmd.execute(test_repo, recursive=True)
 
         # Sale module should be ordered
@@ -320,10 +313,9 @@ class PurchaseOrder(models.Model):
         config = Config()
         config.repo_path = str(test_repo)
         config.dry_run = True
-        config.ordering.strategy = "semantic"
 
         # Execute ordering in dry run
-        order_cmd = UnifiedReorderCommand(config)
+        order_cmd = ReorderCommand(config)
         success = order_cmd.execute(test_repo / "sale", recursive=True)
 
         assert success is True
@@ -344,7 +336,7 @@ class PurchaseOrder(models.Model):
         config.backup.enabled = False
 
         # Try to order - should handle error
-        order_cmd = UnifiedReorderCommand(config)
+        order_cmd = ReorderCommand(config)
         success = order_cmd.execute(test_repo / "sale", recursive=True)
 
         # Should return False but not crash
@@ -367,7 +359,7 @@ class PurchaseOrder(models.Model):
         original_content = sale_order_py.read_text()
 
         # Execute ordering with backup
-        order_cmd = UnifiedReorderCommand(config)
+        order_cmd = ReorderCommand(config)
         success = order_cmd.execute(test_repo / "sale", recursive=True)
 
         assert success is True

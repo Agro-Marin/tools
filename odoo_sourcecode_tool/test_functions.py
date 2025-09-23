@@ -7,8 +7,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from core.ordering import Ordering
 from core.config import Config
+from core.ordering import Ordering
 
 test_code = '''
 """Module with functions"""

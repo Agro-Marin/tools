@@ -9,8 +9,8 @@ import pandas as pd
 import pytest
 from git import Repo
 from src.commands.detect import DetectCommand, RenameCandidate
-from src.core.ordering import Ordering, FieldInfo, MethodInfo
 from src.core.config import Config, DetectionConfig
+from src.core.ordering import FieldInfo, MethodInfo, Ordering
 
 
 class TestDetectCommand:

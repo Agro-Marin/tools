@@ -42,7 +42,6 @@ class TestConfig:
         """Test ordering configuration defaults"""
         config = OrderingConfig()
 
-        assert config.strategy == "semantic"
         assert config.add_section_headers is True
         assert config.black_line_length == 88
         assert config.magic_trailing_comma is True
@@ -83,7 +82,7 @@ class TestConfig:
             "repo_path": "/test/repo",
             "interactive": True,
             "modules": ["sale", "purchase"],
-            "ordering": {"strategy": "type", "black_line_length": 120},
+            "ordering": {"black_line_length": 120},
             "detection": {"confidence_threshold": 0.6},
         }
 
@@ -95,7 +94,6 @@ class TestConfig:
         assert config.repo_path == "/test/repo"
         assert config.interactive is True
         assert config.modules == ["sale", "purchase"]
-        assert config.ordering.strategy == "type"
         assert config.ordering.black_line_length == 120
         assert config.detection.confidence_threshold == 0.6
 
@@ -125,13 +123,11 @@ class TestConfig:
 
         config2.repo_path = "/new/repo"
         config2.interactive = True
-        config2.ordering.strategy = "strict"
 
         config1.merge(config2)
 
         assert config1.repo_path == "/new/repo"
         assert config1.interactive is True
-        assert config1.ordering.strategy == "strict"
 
     def test_environment_variables(self):
         """Test environment variable application"""
@@ -174,18 +170,6 @@ class TestConfig:
         errors = config.validate()
         assert any("Repository path does not exist" in e for e in errors)
 
-        # Invalid ordering strategy
-        config.repo_path = None
-        config.ordering.strategy = "invalid"
-        errors = config.validate()
-        assert any("Invalid ordering strategy" in e for e in errors)
-
-        # Invalid thresholds
-        config.ordering.strategy = "semantic"
-        config.detection.confidence_threshold = 1.5
-        errors = config.validate()
-        assert any("Confidence threshold must be between 0 and 1" in e for e in errors)
-
         # Invalid file types
         config.detection.confidence_threshold = 0.75
         config.renaming.file_types = ["python", "invalid_type"]
@@ -196,7 +180,6 @@ class TestConfig:
         """Test saving configuration to file"""
         config = Config()
         config.repo_path = "/test/repo"
-        config.ordering.strategy = "type"
         config.modules = ["sale"]
 
         # Save to YAML
@@ -206,7 +189,6 @@ class TestConfig:
         # Load and verify
         loaded_config = Config.from_file(yaml_file)
         assert loaded_config.repo_path == "/test/repo"
-        assert loaded_config.ordering.strategy == "type"
         assert loaded_config.modules == ["sale"]
 
         # Save to JSON
@@ -216,7 +198,6 @@ class TestConfig:
         # Load and verify
         loaded_config = Config.from_file(json_file)
         assert loaded_config.repo_path == "/test/repo"
-        assert loaded_config.ordering.strategy == "type"
         assert loaded_config.modules == ["sale"]
 
     def test_hierarchy_loading(self, tmp_path, monkeypatch):

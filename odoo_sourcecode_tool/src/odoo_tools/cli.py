@@ -8,14 +8,16 @@ from pathlib import Path
 
 import click
 
-# Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.config import Config
+from commands.detect import DetectCommand
+from commands.rename import RenameCommand
+from commands.reorder import ReorderCommand
+from commands.workflow import WorkflowCommand
 from core.base_processor import ProcessingStatus
+from core.config import Config
 from odoo_tools import __version__
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
@@ -25,7 +27,7 @@ logger = logging.getLogger(__name__)
 @click.group()
 @click.version_option(
     version=__version__,
-    prog_name="odoo-tools",
+    prog_name="odoo-sourcecode-tools",
 )
 @click.option(
     "--config",
@@ -82,17 +84,19 @@ def cli(
 @cli.command()
 @click.argument(
     "target",
-    type=click.Choice(["code", "attributes", "xml", "all"]),
+    type=click.Choice(
+        [
+            "python_code",
+            "python_field_attr",
+            "xml_code",
+            "xml_node_attr",
+            "all",
+        ],
+    ),
 )
 @click.argument(
     "path",
     type=click.Path(exists=True),
-)
-@click.option(
-    "--strategy",
-    type=click.Choice(["semantic", "type", "strict"]),
-    default="semantic",
-    help="Field ordering strategy (for 'code' target)",
 )
 @click.option(
     "--recursive",
@@ -115,7 +119,6 @@ def reorder(
     ctx,
     target: str,
     path: str,
-    strategy: str,
     recursive: bool,
     dry_run: bool,
     no_backup: bool,
@@ -129,7 +132,7 @@ def reorder(
     - all: Apply all reordering operations
 
     Examples:
-        odoo-tools reorder code ./module --strategy semantic
+        odoo-tools reorder code ./module
         odoo-tools reorder attributes ./module
         odoo-tools reorder xml ./module/views
         odoo-tools reorder all ./module
@@ -137,16 +140,14 @@ def reorder(
     config = ctx.obj["config"]
     config.dry_run = dry_run
     config.backup.enabled = not no_backup
-
-    # Import unified command module
-    from commands.reorder import UnifiedReorderCommand
-
-    command = UnifiedReorderCommand(config)
+    command = ReorderCommand(config)
     options = {}
-    if target == "code" and strategy:
-        options["strategy"] = strategy
-
-    result = command.execute(target, Path(path), recursive, **options)
+    result = command.execute(
+        target,
+        Path(path),
+        recursive,
+        **options,
+    )
 
     # Exit with appropriate code
     sys.exit(0 if result.status == ProcessingStatus.SUCCESS else 1)
@@ -219,9 +220,6 @@ def detect(
     config.detection.confidence_threshold = threshold
     config.interactive = interactive
 
-    # Import command module
-    from commands.detect import DetectCommand
-
     command = DetectCommand(config)
     result = command.execute(from_commit, to_commit, output)
 
@@ -284,9 +282,6 @@ def rename(
     if module:
         config.modules = [module]
 
-    # Import command module
-    from commands.rename import RenameCommand
-
     command = RenameCommand(config)
     result = command.execute(Path(csv_file))
 
@@ -322,9 +317,6 @@ def workflow(
     """
     config = ctx.obj["config"]
     config.dry_run = dry_run
-
-    # Import command module
-    from commands.workflow import WorkflowCommand
 
     command = WorkflowCommand(config)
     result = command.execute(Path(config_file), pipeline)

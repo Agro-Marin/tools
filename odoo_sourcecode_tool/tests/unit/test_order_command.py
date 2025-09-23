@@ -2,26 +2,21 @@
 Unit tests for order command
 """
 
-import ast
-import subprocess
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
-import pytest
 from core.base_processor import ProcessingStatus, ProcessResult
-from src.commands.reorder import UnifiedReorderCommand
-from src.core.config import Config, OrderingConfig
+from src.commands.reorder import ReorderCommand
+from src.core.config import Config
 
 
-class TestUnifiedReorderCommand:
+class TestUnified:
     """Test order command functionality"""
 
     def test_initialization(self):
         """Test order command initialization"""
         config = Config()
-        config.ordering.strategy = "semantic"
 
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
 
         assert command.config == config
         assert command.backup_manager is not None
@@ -31,7 +26,7 @@ class TestUnifiedReorderCommand:
         config = Config()
         config.backup.enabled = False
 
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
 
         assert command.backup_manager is None
 
@@ -40,7 +35,6 @@ class TestUnifiedReorderCommand:
         """Test ordering a single Python file"""
         # Setup
         config = Config()
-        config.ordering.strategy = "semantic"
         config.dry_run = False
 
         test_file = tmp_path / "test.py"
@@ -56,7 +50,7 @@ class TestUnifiedReorderCommand:
         mock_ordering_class.return_value = mock_ordering
 
         # Execute
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
         success = command.execute("code", test_file)
 
         # Verify
@@ -68,7 +62,6 @@ class TestUnifiedReorderCommand:
         """Test ordering a directory recursively"""
         # Setup directory structure
         config = Config()
-        config.ordering.strategy = "type"
         config.ordering.recursive = True
 
         module_dir = tmp_path / "module"
@@ -88,7 +81,7 @@ class TestUnifiedReorderCommand:
         mock_ordering_class.return_value = mock_ordering
 
         # Execute
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
         success = command.execute("code", module_dir, recursive=True)
 
         # Verify
@@ -116,7 +109,7 @@ class TestUnifiedReorderCommand:
         mock_ordering_class.return_value = mock_ordering
 
         # Execute
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
 
         # Verify backup session is managed
         with patch.object(command.backup_manager, "start_session") as mock_start:
@@ -150,7 +143,7 @@ class TestUnifiedReorderCommand:
         mock_ordering_class.return_value = mock_ordering
 
         # Execute
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
         success = command.execute("code", test_file)
 
         # Verify file wasn't changed
@@ -175,7 +168,7 @@ class TestUnifiedReorderCommand:
         mock_ordering_class.return_value = mock_ordering
 
         # Execute
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
         success = command.execute("code", test_file)
 
         # Should return False on error
@@ -207,7 +200,7 @@ class TestUnifiedReorderCommand:
         mock_subprocess.return_value = Mock(returncode=0)
 
         # Execute
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
         success = command.execute("code", test_file)
 
         # Verify Black was called with correct arguments
@@ -236,7 +229,7 @@ class TestUnifiedReorderCommand:
         mock_subprocess.return_value = Mock(returncode=0)
 
         # Execute
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
         success = command.execute("code", test_file)
 
         # Verify isort was called
@@ -253,7 +246,7 @@ class TestUnifiedReorderCommand:
         init_file.write_text("# Init file")
 
         # Execute
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
         success = command.execute("code", init_file)
 
         # Should skip __init__.py files
@@ -263,7 +256,7 @@ class TestUnifiedReorderCommand:
     def test_find_python_files(self, tmp_path):
         """Test finding Python files in directory"""
         config = Config()
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
 
         # Create test structure
         (tmp_path / "models").mkdir()
@@ -294,7 +287,7 @@ class TestUnifiedReorderCommand:
     def test_process_multiple_files_stats(self, mock_ordering_class, tmp_path):
         """Test statistics collection for multiple files"""
         config = Config()
-        command = UnifiedReorderCommand(config)
+        command = ReorderCommand(config)
 
         # Create test files
         file1 = tmp_path / "file1.py"

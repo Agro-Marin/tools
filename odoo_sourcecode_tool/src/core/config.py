@@ -18,13 +18,14 @@ logger = logging.getLogger(__name__)
 class OrderingConfig:
     """Configuration for code ordering operations"""
 
-    strategy: str = "semantic"  # semantic, type, or strict
+    # Python
     add_section_headers: bool = True
     black_line_length: int = 88
     magic_trailing_comma: bool = True
     preserve_comments: bool = True
     single_class_per_file: bool = True  # Enforce one model class per file
     check_file_naming: bool = True  # Check that file names match model names
+    # XML
     consolidate_menus: bool = True  # Enforce all menus in single menu.xml file
     menu_file_name: str = "menu.xml"  # Standard name for menu file
 
@@ -258,10 +259,6 @@ class Config:
         # Validate repo path if specified
         if self.repo_path and not Path(self.repo_path).exists():
             errors.append(f"Repository path does not exist: {self.repo_path}")
-
-        # Validate ordering strategy
-        if self.ordering.strategy not in ["semantic", "type", "strict"]:
-            errors.append(f"Invalid ordering strategy: {self.ordering.strategy}")
 
         # Validate thresholds
         if not 0 <= self.detection.confidence_threshold <= 1:

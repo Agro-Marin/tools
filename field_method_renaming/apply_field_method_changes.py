@@ -35,9 +35,9 @@ from interactive.confirmation_ui import ConfirmationUI
 from processors.base_processor import ProcessingStatus, ProcessResult
 from processors.python_processor import PythonProcessor
 from processors.xml_processor import XMLProcessor
-from utils.backup_manager import BackupError, BackupManager
+from utils.backup_manager import BackupManager
 from utils.csv_reader import CSVReader, CSVValidationError, FieldChange
-from utils.file_finder import FileFinder, FileSet
+from utils.file_finder import FileFinder
 
 
 def setup_logging(verbose: bool = False):
@@ -495,7 +495,6 @@ class FieldMethodRenamingTool:
             print(
                 f"   Total backup size: {backup_stats.get('total_disk_usage', 0)} bytes"
             )
-
 
     def _generate_report(
         self, results: list[ProcessResult], changes: list[FieldChange]

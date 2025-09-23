@@ -73,7 +73,10 @@ class XMLProcessor(BaseProcessor):
         return modified_content, applied_changes
 
     def _apply_safe_text_replacements(
-        self, content: str, field_changes: dict[str, str], method_changes: dict[str, str]
+        self,
+        content: str,
+        field_changes: dict[str, str],
+        method_changes: dict[str, str],
     ) -> tuple[str, list[str]]:
         """
         Apply field and method changes using safe, minimal text replacements.
@@ -99,18 +102,22 @@ class XMLProcessor(BaseProcessor):
                 # <field name='old_name' ... (single quotes)
                 (f"name='{old_name}'", f"name='{new_name}'"),
             ]
-            
+
             for old_pattern, new_pattern in safe_field_patterns:
                 if old_pattern in modified_content:
                     count = modified_content.count(old_pattern)
-                    modified_content = modified_content.replace(old_pattern, new_pattern)
+                    modified_content = modified_content.replace(
+                        old_pattern, new_pattern
+                    )
                     if count > 0:
                         applied_changes.append(
                             f"Field: {old_name} → {new_name} ({count} occurrences)"
                         )
-                        logger.debug(f"Applied safe field replacement: {old_pattern} → {new_pattern}")
+                        logger.debug(
+                            f"Applied safe field replacement: {old_pattern} → {new_pattern}"
+                        )
 
-        # Apply method changes with safe patterns  
+        # Apply method changes with safe patterns
         for old_name, new_name in method_changes.items():
             # Only apply the most common and safe patterns
             safe_method_patterns = [
@@ -123,16 +130,20 @@ class XMLProcessor(BaseProcessor):
                 # action='old_method' ... (single quotes)
                 (f"action='{old_name}'", f"action='{new_name}'"),
             ]
-            
+
             for old_pattern, new_pattern in safe_method_patterns:
                 if old_pattern in modified_content:
                     count = modified_content.count(old_pattern)
-                    modified_content = modified_content.replace(old_pattern, new_pattern)
+                    modified_content = modified_content.replace(
+                        old_pattern, new_pattern
+                    )
                     if count > 0:
                         applied_changes.append(
                             f"Method: {old_name} → {new_name} ({count} occurrences)"
                         )
-                        logger.debug(f"Applied safe method replacement: {old_pattern} → {new_pattern}")
+                        logger.debug(
+                            f"Applied safe method replacement: {old_pattern} → {new_pattern}"
+                        )
 
         return modified_content, applied_changes
 
@@ -152,13 +163,15 @@ class XMLProcessor(BaseProcessor):
         """
         try:
             content = self._read_file_content(file_path)
-            
+
             # Simple filtering: check if old name exists in file content
             relevant_changes = []
             for change in changes:
                 if change.old_name in content:
                     relevant_changes.append(change)
-                    logger.debug(f"Relevant change for {file_path}: {change.old_name} → {change.new_name}")
+                    logger.debug(
+                        f"Relevant change for {file_path}: {change.old_name} → {change.new_name}"
+                    )
 
             return relevant_changes
 
@@ -166,4 +179,3 @@ class XMLProcessor(BaseProcessor):
             logger.warning(f"Could not filter changes for {file_path}: {e}")
             # If we can't determine, return all changes
             return changes
-

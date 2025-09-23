@@ -526,9 +526,7 @@ class NamingRuleEngine:
 
         return None
 
-    def check_contextual_similarity(
-        self, old_name: str, new_name: str
-    ) -> dict | None:
+    def check_contextual_similarity(self, old_name: str, new_name: str) -> dict | None:
         """Check for contextual similarity patterns"""
         for pattern in self.contextual_patterns:
             if re.match(pattern["old_pattern"], old_name) and re.match(

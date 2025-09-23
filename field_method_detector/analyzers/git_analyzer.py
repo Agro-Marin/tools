@@ -150,9 +150,7 @@ class GitAnalyzer:
         except GitRepositoryError:
             raise GitRepositoryError(f"Commit {commit_sha} does not exist")
 
-    def get_file_content_at_commit(
-        self, file_path: str, commit_sha: str
-    ) -> str | None:
+    def get_file_content_at_commit(self, file_path: str, commit_sha: str) -> str | None:
         """
         Get file content at a specific commit.
 

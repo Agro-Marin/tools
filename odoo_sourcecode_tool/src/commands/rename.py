@@ -11,7 +11,7 @@ import pandas as pd
 from core.backup_manager import BackupManager
 from core.base_processor import ProcessingStatus, ProcessResult
 from core.config import Config
-from core.odoo_module_utils import OdooModuleUtils
+from core.path_analyzer import PathAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class RenameCommand:
                 keep_sessions=config.backup.keep_sessions,
             )
 
-    def execute(self, csv_file: Path) -> bool:
+    def execute(self, csv_file: Path, path_info: dict = None) -> bool:
         """
         Execute renaming operation from CSV file
 
@@ -85,7 +85,7 @@ class RenameCommand:
             changes_by_model = self._group_changes(changes)
 
             # Find and process files
-            results = self._process_changes(changes_by_model)
+            results = self._process_changes(changes_by_model, path_info)
 
             # Finalize backup
             if self.backup_manager and not self.config.dry_run:
@@ -192,7 +192,7 @@ class RenameCommand:
         return grouped
 
     def _process_changes(
-        self, changes_by_model: dict[str, list[FieldChange]]
+        self, changes_by_model: dict[str, list[FieldChange]], path_info: dict = None
     ) -> list[ProcessResult]:
         """Process all changes grouped by model"""
         results = []
@@ -229,7 +229,8 @@ class RenameCommand:
             self.config.renaming.file_types and "xml" in self.config.renaming.file_types
         )
 
-        odoo_files = OdooModuleUtils.find_odoo_files(
+        analyzer = PathAnalyzer()
+        odoo_files = analyzer.find_odoo_files(
             module_path,
             include_python=include_python,
             include_xml=include_xml,

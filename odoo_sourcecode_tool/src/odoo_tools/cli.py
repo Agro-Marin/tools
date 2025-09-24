@@ -12,10 +12,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from commands.detect import DetectCommand
 from commands.rename import RenameCommand
-from commands.reorder import ReorderCommand
 from commands.workflow import WorkflowCommand
+from core.backup_manager import BackupManager
 from core.base_processor import ProcessingStatus
 from core.config import Config
+from src.core.order import OdooOrdering
+from core.path_analyzer import PathAnalyzer, PathType
 from odoo_tools import __version__
 
 logging.basicConfig(
@@ -83,6 +85,64 @@ def cli(
 
 @cli.command()
 @click.argument(
+    "path",
+    type=click.Path(exists=True),
+)
+def analyze(path: str):
+    """Analyze a path to determine its type and recommended processing.
+
+    This command inspects a file or directory to determine:
+    - Whether it's an Odoo module, Python project, or mixed content
+    - File type statistics (Python, XML, other)
+    - Recommended processing targets
+
+    Examples:
+        odoo-tools analyze ./my_module
+        odoo-tools analyze ./src/models.py
+    """
+    analyzer = PathAnalyzer()
+    analysis = analyzer.analyze(Path(path))
+
+    # Display analysis results
+    click.echo(f"\nPath Analysis: {path}")
+    click.echo("=" * 60)
+    click.echo(f"Type: {analysis.path_type.value}")
+    click.echo(f"Description: {analysis.description}")
+
+    if analysis.is_directory:
+        click.echo(f"\nFile Statistics:")
+        if analysis.python_files:
+            click.echo(f"  Python files: {len(analysis.python_files)}")
+        if analysis.xml_files:
+            click.echo(f"  XML files: {len(analysis.xml_files)}")
+        if analysis.other_files:
+            click.echo(f"  Other files: {len(analysis.other_files)}")
+
+        if analysis.is_odoo_module:
+            click.echo(f"\nOdoo Module Features:")
+            click.echo(f"  Has manifest: {analysis.has_manifest}")
+            click.echo(f"  Has models: {analysis.has_models}")
+            click.echo(f"  Has views: {analysis.has_views}")
+            click.echo(f"  Has security: {analysis.has_security}")
+
+        if analysis.odoo_modules and len(analysis.odoo_modules) > 1:
+            click.echo(f"\nDetected Odoo Modules:")
+            for module in analysis.odoo_modules:
+                click.echo(f"  - {module.name}")
+
+    if analysis.recommended_targets:
+        click.echo(f"\nRecommended Processing:")
+        click.echo(analyzer.get_recommendation_string(analysis))
+    else:
+        click.echo(f"\nNo recommended processing for this path type.")
+
+
+@cli.command()
+@click.argument(
+    "path",
+    type=click.Path(exists=True),
+)
+@click.argument(
     "target",
     type=click.Choice(
         [
@@ -91,12 +151,11 @@ def cli(
             "xml_code",
             "xml_node_attr",
             "all",
+            "auto",  # New auto option
         ],
     ),
-)
-@click.argument(
-    "path",
-    type=click.Path(exists=True),
+    required=False,
+    default="auto",
 )
 @click.option(
     "--recursive",
@@ -114,43 +173,150 @@ def cli(
     is_flag=True,
     help="Skip creating backup files",
 )
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    help="Skip confirmation prompts",
+)
 @click.pass_context
 def reorder(
     ctx,
-    target: str,
     path: str,
+    target: str,
     recursive: bool,
     dry_run: bool,
     no_backup: bool,
+    force: bool,
 ):
-    """Unified reordering command for Python and XML files
+    """Smart reordering command for Python and XML files
+
+    Automatically detects path type and suggests appropriate processing.
 
     Targets:
-    - code: Reorder fields, methods, and imports in Python files
-    - attributes: Reorder field attributes within field definitions
-    - xml: Reorder XML element attributes
+    - auto: Automatically detect and apply appropriate reordering (default)
+    - python_code: Reorder Python code structure
+    - python_field_attr: Reorder field attributes only
+    - xml_code: Reorder XML structure
+    - xml_node_attr: Reorder XML attributes only
     - all: Apply all reordering operations
 
     Examples:
-        odoo-tools reorder code ./module
-        odoo-tools reorder attributes ./module
-        odoo-tools reorder xml ./module/views
-        odoo-tools reorder all ./module
+        odoo-tools reorder ./my_module           # Auto-detect and process
+        odoo-tools reorder ./my_module all       # Process everything
+        odoo-tools reorder ./models.py          # Auto-detect Python file
+        odoo-tools reorder ./views xml_code     # Force XML structure reordering
     """
     config = ctx.obj["config"]
     config.dry_run = dry_run
     config.backup.enabled = not no_backup
-    command = ReorderCommand(config)
+
+    path_obj = Path(path)
+
+    # Always analyze the path to avoid redundant checks
+    analyzer = PathAnalyzer()
+    analysis = analyzer.analyze(path_obj)
+
+    # If target is auto, determine the best target
+    if target == "auto":
+        # Display analysis
+        click.echo(f"\n📁 Analyzing: {path}")
+        click.echo(f"   Type: {analysis.description}")
+
+        # Determine best target based on analysis
+        if not analysis.recommended_targets:
+            click.echo("   ⚠️  No processing recommended for this path type.")
+            sys.exit(0)
+
+        # Choose the most comprehensive target from recommendations
+        if "all" in analysis.recommended_targets:
+            target = "all"
+            click.echo(f"   ✓ Auto-selected: Process all (Python and XML)")
+        elif (
+            analysis.path_type == PathType.PYTHON_FILE
+            or analysis.path_type == PathType.PYTHON_PROJECT
+        ):
+            target = "python_code"
+            click.echo(f"   ✓ Auto-selected: Python code reordering")
+        elif analysis.path_type == PathType.XML_FILE:
+            target = "xml_code"
+            click.echo(f"   ✓ Auto-selected: XML structure reordering")
+        elif analysis.path_type == PathType.ODOO_MODULE:
+            target = "all"
+            click.echo(f"   ✓ Auto-selected: Process all (Odoo module)")
+        elif analysis.path_type == PathType.ODOO_MODULES_DIR:
+            target = "all"
+            click.echo(
+                f"   ✓ Auto-selected: Process all ({len(analysis.odoo_modules)} modules)"
+            )
+        else:
+            # Default to all for mixed projects
+            target = "all"
+            click.echo(f"   ✓ Auto-selected: Process all (mixed content)")
+
+        # Show what will be processed
+        if analysis.python_files:
+            click.echo(f"   📄 Python files: {len(analysis.python_files)}")
+        if analysis.xml_files:
+            click.echo(f"   📄 XML files: {len(analysis.xml_files)}")
+
+        # Confirm unless forced
+        if not force and not dry_run:
+            if not click.confirm("\nProceed with reordering?"):
+                click.echo("Operation cancelled.")
+                sys.exit(0)
+
+    # Convert PathAnalysis to dict for the command
+    path_info = {
+        "is_file": analysis.is_file,
+        "is_dir": analysis.is_directory,
+        "python_files": analysis.python_files,
+        "xml_files": analysis.xml_files,
+        "total_files": analysis.total_files,
+    }
+
+    # Initialize backup manager if needed
+    backup_manager = None
+    if config.backup.enabled and not dry_run:
+        backup_manager = BackupManager(
+            backup_dir=config.backup.directory,
+            compression=config.backup.compression,
+            keep_sessions=config.backup.keep_sessions,
+        )
+        # Start backup session
+        session_type = f"reorder_{target}"
+        backup_manager.start_session(session_type)
+
+    # Execute the reordering using OdooOrdering directly
+    ordering = OdooOrdering(config)
     options = {}
-    result = command.execute(
-        target,
-        Path(path),
-        recursive,
-        **options,
-    )
+
+    click.echo(f"\n🔧 Processing with target: {target}")
+
+    # Use getattr to dynamically call the appropriate method
+    method_name = f"process_{target}" if target != "all" else "process_all"
+    if hasattr(ordering, method_name):
+        process_method = getattr(ordering, method_name)
+        result = process_method(
+            path_obj,
+            path_info=path_info,
+            **options,
+        )
+    else:
+        click.echo(f"❌ Unknown target: {target}")
+        sys.exit(1)
+
+    # Finalize backup session if needed
+    if backup_manager and not dry_run:
+        backup_manager.finalize_session()
 
     # Exit with appropriate code
-    sys.exit(0 if result.status == ProcessingStatus.SUCCESS else 1)
+    if result.status == ProcessingStatus.SUCCESS:
+        click.echo("✅ Reordering completed successfully!")
+        sys.exit(0)
+    else:
+        click.echo("❌ Reordering failed!")
+        sys.exit(1)
 
 
 @cli.command()

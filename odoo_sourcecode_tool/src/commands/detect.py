@@ -10,8 +10,8 @@ import pandas as pd
 from core.base_processor import ProcessingStatus, ProcessResult
 from core.config import Config
 from core.git_manager import GitManager
-from core.odoo_module_utils import OdooModuleUtils
-from core.ordering import Ordering
+from core.path_analyzer import PathAnalyzer
+from src.core.order import OdooOrdering
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class DetectCommand:
         """Initialize detect command with configuration"""
         self.config = config
         self.git_manager = GitManager(config.repo_path)
-        self.ordering = Ordering(config)
+        self.ordering = OdooOrdering(config)
 
     def execute(
         self,
@@ -220,7 +220,7 @@ class DetectCommand:
 
                 if confidence >= 0.5:  # Minimum threshold
                     # Extract module and model from file path
-                    module = OdooModuleUtils.get_module_name_from_path(Path(file_path))
+                    module = PathAnalyzer.get_module_name_from_path(Path(file_path))
                     if not module:
                         module = "unknown"
                     model = old_field.get("class", "unknown")
@@ -273,7 +273,7 @@ class DetectCommand:
                 )
 
                 if confidence >= 0.5:
-                    module = OdooModuleUtils.get_module_name_from_path(Path(file_path))
+                    module = PathAnalyzer.get_module_name_from_path(Path(file_path))
                     if not module:
                         module = "unknown"
                     model = old_method.get("class", "unknown")

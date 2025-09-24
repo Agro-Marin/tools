@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from core.config import Config
-from core.ordering import Ordering
+from core.python_ordering import PythonOrdering
 
 test_code = '''
 """Module with functions"""
@@ -29,7 +29,7 @@ class TestClass:
 # Parse and test
 tree = ast.parse(test_code)
 config = Config()
-ordering = Ordering(config, test_code)
+ordering = PythonOrdering(config, test_code)
 ordering.set_tree(tree)
 
 # Check what extract_elements returns

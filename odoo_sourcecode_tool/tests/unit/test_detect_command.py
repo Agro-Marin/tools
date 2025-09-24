@@ -2,15 +2,12 @@
 Unit tests for detect command
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pandas as pd
-import pytest
-from git import Repo
 from src.commands.detect import DetectCommand, RenameCandidate
-from src.core.config import Config, DetectionConfig
-from src.core.ordering import FieldInfo, MethodInfo, Ordering
+from src.core.config import Config
+from src.core.order import FieldInfo, MethodInfo
 
 
 class TestDetectCommand:

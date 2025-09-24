@@ -18,11 +18,14 @@ The module provides:
 
 import ast
 import logging
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import black
 import isort
+from core.base_processor import ProcessingStatus, ProcessResult
 from core.classification_rule_field import (
     ClassificationRuleField,
     get_default_field_rules,
@@ -87,7 +90,7 @@ class ModuleInfo:
     constants: dict[str, Any] = field(default_factory=dict)
 
 
-class PythonOrdering:
+class OdooOrdering:
     """Python/AST-specific ordering and reorganization logic for Odoo files."""
 
     def __init__(
@@ -112,6 +115,343 @@ class PythonOrdering:
         self._tree = None
         self._method_rules = get_default_method_rules()
         self._field_rules = get_default_field_rules()
+        self.attribute_orders = self._init_attribute_orders()
+
+    # ========================================================================
+    # MAIN ENTRY POINTS - Called by CLI via getattr
+    # ========================================================================
+
+    def process_python_code(
+        self,
+        path: Path,
+        path_info: dict = None,
+        **options,
+    ) -> ProcessResult:
+        """Process Python code for full structural reordering"""
+        if not path_info:
+            logger.error("Path analysis required. Please use CLI interface.")
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.ERROR,
+                error_message="Path analysis required",
+            )
+
+        is_file = path_info.get("is_file", False)
+        python_files = path_info.get("python_files", [])
+
+        if is_file:
+            return self._process_single_python_file(path, "module")
+        elif python_files:
+            return self._process_file_list(
+                python_files, lambda f: self._process_single_python_file(f, "module")
+            )
+        else:
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.SUCCESS,
+                changes_applied=0,
+            )
+
+    def process_python_field_attr(
+        self,
+        path: Path,
+        path_info: dict = None,
+        **options,
+    ) -> ProcessResult:
+        """Process Python field attributes for reordering"""
+        if not path_info:
+            logger.error("Path analysis required. Please use CLI interface.")
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.ERROR,
+                error_message="Path analysis required",
+            )
+
+        is_file = path_info.get("is_file", False)
+        python_files = path_info.get("python_files", [])
+
+        if is_file:
+            return self._process_single_python_file(path, "field_attributes")
+        elif python_files:
+            return self._process_file_list(
+                python_files,
+                lambda f: self._process_single_python_file(f, "field_attributes"),
+            )
+        else:
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.SUCCESS,
+                changes_applied=0,
+            )
+
+    def process_xml_code(
+        self,
+        path: Path,
+        path_info: dict = None,
+        **options,
+    ) -> ProcessResult:
+        """Process XML for full structural reordering"""
+        if not path_info:
+            logger.error("Path analysis required. Please use CLI interface.")
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.ERROR,
+                error_message="Path analysis required",
+            )
+
+        is_file = path_info.get("is_file", False)
+        xml_files = path_info.get("xml_files", [])
+
+        if is_file:
+            return self._process_single_xml_file(path, "structure")
+        elif xml_files:
+            return self._process_file_list(
+                xml_files, lambda f: self._process_single_xml_file(f, "structure")
+            )
+        else:
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.SUCCESS,
+                changes_applied=0,
+            )
+
+    def process_xml_node_attr(
+        self,
+        path: Path,
+        path_info: dict = None,
+        **options,
+    ) -> ProcessResult:
+        """Process XML for attribute-only reordering"""
+        if not path_info:
+            logger.error("Path analysis required. Please use CLI interface.")
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.ERROR,
+                error_message="Path analysis required",
+            )
+
+        is_file = path_info.get("is_file", False)
+        xml_files = path_info.get("xml_files", [])
+
+        if is_file:
+            return self._process_single_xml_file(path, "attributes")
+        elif xml_files:
+            return self._process_file_list(
+                xml_files, lambda f: self._process_single_xml_file(f, "attributes")
+            )
+        else:
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.SUCCESS,
+                changes_applied=0,
+            )
+
+    def process_all(
+        self,
+        path: Path,
+        path_info: dict = None,
+        **options,
+    ) -> ProcessResult:
+        """Process all types of files (Python and XML)"""
+        if not path_info:
+            logger.error("Path analysis required. Please use CLI interface.")
+            return ProcessResult(
+                file_path=path,
+                status=ProcessingStatus.ERROR,
+                error_message="Path analysis required",
+            )
+
+        results = []
+
+        # Process Python field attributes first
+        logger.info("Reordering field attributes...")
+        attr_result = self.process_python_field_attr(path, path_info, **options)
+        results.append(
+            ("Field Attributes", attr_result.status == ProcessingStatus.SUCCESS)
+        )
+
+        # Then process Python code structure
+        logger.info("Reordering Python code...")
+        code_result = self.process_python_code(path, path_info, **options)
+        results.append(("Python Code", code_result.status == ProcessingStatus.SUCCESS))
+
+        # Finally process XML structure
+        logger.info("Reordering XML structure...")
+        xml_result = self.process_xml_code(path, path_info, **options)
+        results.append(("XML Structure", xml_result.status == ProcessingStatus.SUCCESS))
+
+        # Print summary
+        self._print_summary(results)
+
+        # Return aggregate result
+        success = all(r[1] for r in results)
+        return ProcessResult(
+            file_path=path,
+            status=ProcessingStatus.SUCCESS if success else ProcessingStatus.ERROR,
+            changes_applied=len(results) if success else 0,
+        )
+
+    # ========================================================================
+    # FILE PROCESSING LOGIC
+    # ========================================================================
+
+    def _process_file_list(
+        self,
+        file_list: list[Path],
+        processor_func,
+    ) -> ProcessResult:
+        """Process a list of files using the specified processor function"""
+        success_count = 0
+        error_count = 0
+
+        for file_path in file_list:
+            result = processor_func(file_path)
+            if result.status == ProcessingStatus.SUCCESS:
+                success_count += 1
+            elif result.status == ProcessingStatus.ERROR:
+                error_count += 1
+
+        logger.info(
+            f"Processed {success_count} files successfully, {error_count} errors"
+        )
+
+        return ProcessResult(
+            file_path=Path("."),
+            status=(
+                ProcessingStatus.SUCCESS if error_count == 0 else ProcessingStatus.ERROR
+            ),
+            changes_applied=success_count,
+        )
+
+    def _process_single_python_file(
+        self,
+        file_path: Path,
+        level: str,
+    ) -> ProcessResult:
+        """Process a single Python file"""
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            original_content = content
+
+            # Reorganize based on level
+            if level == "field_attributes":
+                # Set up content and filepath for processing
+                self.content = content
+                self.filepath = file_path
+                ordered_content = self.reorganize_node(
+                    content, level="field_attributes"
+                )
+            else:  # module level
+                self.content = content
+                self.filepath = file_path
+                ordered_content = self.reorganize_node(content, level="module")
+
+                # Apply formatting if configured
+                if getattr(self.config, "use_black", True):
+                    try:
+                        mode = black.Mode(line_length=88, target_versions=set())
+                        ordered_content = black.format_str(ordered_content, mode=mode)
+                    except Exception as e:
+                        logger.warning(f"Black formatting failed: {e}")
+
+                if getattr(self.config, "use_isort", True):
+                    try:
+                        ordered_content = isort.code(ordered_content)
+                    except Exception as e:
+                        logger.warning(f"isort formatting failed: {e}")
+
+            # Check if content changed
+            if ordered_content == original_content:
+                logger.info(f"No changes needed for {file_path}")
+                return ProcessResult(
+                    status=ProcessingStatus.SUCCESS,
+                    file_path=file_path,
+                )
+
+            # Save or preview changes
+            if self.config.dry_run:
+                logger.info(f"[DRY RUN] Would reorder {file_path}")
+            else:
+                file_path.write_text(ordered_content, encoding="utf-8")
+                logger.info(f"Reordered {file_path}")
+
+            return ProcessResult(
+                status=ProcessingStatus.SUCCESS,
+                file_path=file_path,
+                changes_applied=1,
+            )
+
+        except Exception as e:
+            logger.error(f"Error processing {file_path}: {e}")
+            return ProcessResult(
+                status=ProcessingStatus.ERROR,
+                file_path=file_path,
+                error_message=str(e),
+            )
+
+    def _process_single_xml_file(
+        self,
+        file_path: Path,
+        level: str,
+    ) -> ProcessResult:
+        """Process a single XML file"""
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            original_content = content
+
+            # Reorganize based on level
+            ordered_content = self.reorganize_xml(file_path, level)
+
+            if ordered_content == original_content:
+                logger.info(f"No changes needed for {file_path}")
+                return ProcessResult(
+                    status=ProcessingStatus.SUCCESS,
+                    file_path=file_path,
+                )
+
+            # Save or preview changes
+            if self.config.dry_run:
+                logger.info(f"[DRY RUN] Would reorder XML in {file_path}")
+            else:
+                file_path.write_text(ordered_content, encoding="utf-8")
+                logger.info(f"Reordered XML in {file_path}")
+
+            return ProcessResult(
+                status=ProcessingStatus.SUCCESS,
+                file_path=file_path,
+                changes_applied=1,
+            )
+
+        except Exception as e:
+            logger.error(f"Error processing {file_path}: {e}")
+            return ProcessResult(
+                status=ProcessingStatus.ERROR,
+                file_path=file_path,
+                error_message=str(e),
+            )
+
+    def _print_summary(
+        self,
+        results: list[tuple[str, bool]],
+    ) -> None:
+        """Print summary of all operations"""
+        print("\n" + "=" * 60)
+        print("REORDERING SUMMARY")
+        print("=" * 60)
+
+        for name, success in results:
+            status = "✓" if success else "✗"
+            print(f"{status} {name}: {'Success' if success else 'Failed'}")
+
+        print("=" * 60)
+
+        total = len(results)
+        successful = sum(1 for _, s in results if s)
+
+        if successful == total:
+            print(f"✓ All {total} operations completed successfully!")
+        else:
+            print(f"⚠ {successful}/{total} operations succeeded")
 
     @property
     def tree(self) -> ast.Module:
@@ -1055,7 +1395,10 @@ class PythonOrdering:
 
         return result
 
-    def sort_field_attributes(self, node: ast.Assign) -> ast.Assign | None:
+    def sort_field_attributes(
+        self,
+        node: ast.Assign,
+    ) -> ast.Assign | None:
         """Reorder attributes in Odoo field declarations using field-type specific ordering.
 
         Each field type has its own optimal attribute order. For example:
@@ -1162,7 +1505,10 @@ class PythonOrdering:
     # HELPERS
     # ============================================================
 
-    def add_method_classification_rule(self, rule: ClassificationRuleMethod):
+    def add_method_classification_rule(
+        self,
+        rule: ClassificationRuleMethod,
+    ):
         """
         Add a custom method classification rule.
         Allows users to extend classification without modifying code.
@@ -1173,7 +1519,10 @@ class PythonOrdering:
         self._method_rules.append(rule)
         self._method_rules.sort(key=lambda r: r.priority)
 
-    def add_field_classification_rule(self, rule: ClassificationRuleField):
+    def add_field_classification_rule(
+        self,
+        rule: ClassificationRuleField,
+    ):
         """
         Add a custom field classification rule.
         Allows users to extend field classification without modifying code.
@@ -1185,7 +1534,9 @@ class PythonOrdering:
         self._field_rules.sort(key=lambda r: r.priority)
 
     @staticmethod
-    def get_decorator_name(decorator: ast.expr) -> str | None:
+    def get_decorator_name(
+        decorator: ast.expr,
+    ) -> str | None:
         """Extract the name from a decorator node.
 
         Handles various decorator forms: @name, @module.name, @name(...)
@@ -1207,7 +1558,10 @@ class PythonOrdering:
                 return decorator.func.attr
         return None
 
-    def get_field_attribute_order(self, field_type: str) -> list[str]:
+    def get_field_attribute_order(
+        self,
+        field_type: str,
+    ) -> list[str]:
         """Get the optimal attribute order for a specific field type.
 
         Args:
@@ -1268,7 +1622,10 @@ class PythonOrdering:
 
         return info
 
-    def is_odoo_field(self, node: ast.Assign) -> bool:
+    def is_odoo_field(
+        self,
+        node: ast.Assign,
+    ) -> bool:
         """Check if an assignment node is an Odoo field declaration.
 
         Args:
@@ -1289,7 +1646,10 @@ class PythonOrdering:
             return False
         return True
 
-    def get_field_type(self, node: ast.Assign) -> str | None:
+    def get_field_type(
+        self,
+        node: ast.Assign,
+    ) -> str | None:
         """Detect the Odoo field type from an AST node.
 
         Args:
@@ -1311,7 +1671,10 @@ class PythonOrdering:
         # Extract field type from fields.FieldType
         return node.value.func.attr
 
-    def get_line_range(self, node: ast.AST) -> tuple[int, int]:
+    def get_line_range(
+        self,
+        node: ast.AST,
+    ) -> tuple[int, int]:
         """Get the line range for an AST node.
 
         Args:
@@ -1327,7 +1690,9 @@ class PythonOrdering:
         return (0, 0)
 
     @staticmethod
-    def get_node_name(node: ast.AST) -> str | None:
+    def get_node_name(
+        node: ast.AST,
+    ) -> str | None:
         """Extract the identifying name from various AST node types.
 
         Handles different node types:
@@ -1357,7 +1722,10 @@ class PythonOrdering:
             return node.target.id
         return None
 
-    def _is_property(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    def _is_property(
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+    ) -> bool:
         """Check if a function is decorated as a property.
 
         Args:
@@ -1407,7 +1775,9 @@ class PythonOrdering:
             return f"{indent}# [unparseable node]"
 
     def reorganize_node(
-        self, node: ast.AST | str = None, level: str = "module"
+        self,
+        node: ast.AST | str = None,
+        level: str = "module",
     ) -> str | list[str]:
         """
         Reorganize any AST node (module or class) or content string according to Odoo conventions.
@@ -1614,7 +1984,7 @@ class PythonOrdering:
             return result_lines
 
     # ============================================================
-    # FORMATTING UTILITIES (from formatting.py)
+    # FORMATTING UTILITIES
     # ============================================================
 
     def format_section_header(
@@ -1652,7 +2022,7 @@ class PythonOrdering:
         ]
 
     # ============================================================
-    # AST PARSER COMPATIBILITY (from ast_parser.py)
+    # AST PARSER COMPATIBILITY
     # ============================================================
 
     def extract_value(self, node: ast.AST) -> Any:
@@ -1834,3 +2204,447 @@ class PythonOrdering:
                             )
 
         return inventory
+
+    def reorganize_xml(self, file_path: Path, level: str = "attributes") -> str:
+        """Main entry point for XML reorganization.
+
+        Args:
+            file_path: Path to XML file
+            level: "attributes" (just reorder attrs) or "structure" (full reorganization)
+
+        Returns:
+            Reorganized XML content as string
+        """
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+
+        if level == "structure":
+            # Full structural reorganization
+            view_type = self.detect_view_type(root)
+
+            if view_type == "form":
+                root = self.reorganize_form_view(root)
+            elif view_type == "tree":
+                root = self.reorganize_tree_view(root)
+            elif view_type == "search":
+                root = self.reorganize_search_view(root)
+            elif view_type == "kanban":
+                root = self.reorganize_kanban_view(root)
+            else:
+                # Unknown type - just reorder attributes
+                self.reorder_element_attributes(root)
+        else:
+            # Attributes only
+            self.reorder_element_attributes(root)
+
+        return ET.tostring(root, encoding="unicode", xml_declaration=True)
+
+    def reorder_element_attributes(self, element: ET.Element) -> None:
+        """Recursively reorder attributes in XML element and its children.
+
+        Args:
+            element: XML element to process (modified in-place)
+        """
+        # Get the attribute order for this element type
+        tag_name = element.tag
+        attribute_order = self.attribute_orders.get(
+            tag_name, self.attribute_orders["_default"]
+        )
+
+        # Get current attributes
+        current_attrs = element.attrib.copy()
+
+        # Clear and reorder attributes
+        element.attrib.clear()
+
+        # Add attributes in order
+        for attr in attribute_order:
+            if attr in current_attrs:
+                element.set(attr, current_attrs.pop(attr))
+
+        # Add remaining attributes
+        for attr, value in current_attrs.items():
+            element.set(attr, value)
+
+        # Process children recursively
+        for child in element:
+            self.reorder_element_attributes(child)
+
+    def detect_view_type(self, root: ET.Element) -> str | None:
+        """Detect the type of Odoo view from XML root.
+
+        Args:
+            root: Root element of XML tree
+
+        Returns:
+            View type string ('form', 'tree', 'search', 'kanban', etc.) or None
+        """
+        # Check for explicit view type in record/field structure
+        for record in root.findall(".//record"):
+            for field in record.findall("field[@name='arch']"):
+                # The first child of arch field is usually the view type
+                if len(field) > 0:
+                    return field[0].tag
+
+        # Check for direct view elements
+        if root.tag in [
+            "form",
+            "tree",
+            "search",
+            "kanban",
+            "calendar",
+            "graph",
+            "pivot",
+            "qweb",
+        ]:
+            return root.tag
+
+        # Check first child
+        if len(root) > 0 and root[0].tag in ["form", "tree", "search", "kanban"]:
+            return root[0].tag
+
+        return None
+
+    def reorganize_form_view(self, root: ET.Element) -> ET.Element:
+        """Reorganize form view according to Odoo conventions.
+
+        Standard form view structure:
+        1. Header (buttons, statusbar)
+        2. Sheet
+           - Title elements (h1, h2, div with classes)
+           - Main content groups
+           - Notebook with pages
+        3. Chatter (mail.chatter widget)
+
+        Args:
+            root: Root element of form view
+
+        Returns:
+            Reorganized form view element
+        """
+        new_root = ET.Element(root.tag, root.attrib)
+
+        # Extract and categorize elements
+        elements = self._categorize_form_elements(root)
+
+        # 1. Add header if exists
+        if elements["header"]:
+            for elem in elements["header"]:
+                new_root.append(elem)
+
+        # 2. Add sheet content
+        if elements["sheet"] or elements["groups"] or elements["notebook"]:
+            sheet = ET.SubElement(new_root, "sheet")
+
+            # Add title elements
+            for elem in elements["titles"]:
+                sheet.append(elem)
+
+            # Add main groups
+            for elem in elements["groups"]:
+                sheet.append(elem)
+
+            # Add notebook
+            for elem in elements["notebook"]:
+                sheet.append(elem)
+
+            # Add other sheet elements
+            for elem in elements["sheet"]:
+                if elem.tag not in ["header", "div", "group", "notebook"]:
+                    sheet.append(elem)
+
+        # 3. Add chatter/footer elements
+        for elem in elements["chatter"]:
+            new_root.append(elem)
+
+        # Apply attribute reordering recursively
+        self.reorder_element_attributes(new_root)
+
+        return new_root
+
+    def reorganize_tree_view(self, root: ET.Element) -> ET.Element:
+        """Reorganize tree view according to conventions.
+
+        Tree view element order:
+        1. Control elements
+        2. Button columns
+        3. Regular field columns
+        4. Widget field columns
+
+        Args:
+            root: Root element of tree view
+
+        Returns:
+            Reorganized tree view element
+        """
+        new_root = ET.Element(root.tag, root.attrib)
+
+        # Categorize elements
+        buttons = []
+        fields = []
+        widget_fields = []
+        control_elements = []
+
+        for elem in root:
+            if elem.tag == "button":
+                buttons.append(elem)
+            elif elem.tag == "field":
+                if elem.get("widget"):
+                    widget_fields.append(elem)
+                else:
+                    fields.append(elem)
+            elif elem.tag == "control":
+                control_elements.append(elem)
+            else:
+                control_elements.append(elem)
+
+        # Add in order: control elements, buttons, regular fields, widget fields
+        for elem in control_elements + buttons + fields + widget_fields:
+            new_root.append(elem)
+
+        # Apply attribute reordering
+        self.reorder_element_attributes(new_root)
+
+        return new_root
+
+    def reorganize_search_view(self, root: ET.Element) -> ET.Element:
+        """Reorganize search view according to conventions.
+
+        Search view element order:
+        1. Search fields
+        2. Filter elements
+        3. Separator elements
+        4. Group by filters
+
+        Args:
+            root: Root element of search view
+
+        Returns:
+            Reorganized search view element
+        """
+        new_root = ET.Element(root.tag, root.attrib)
+
+        # Categorize elements
+        fields = []
+        filters = []
+        separators = []
+        groups = []
+
+        for elem in root:
+            if elem.tag == "field":
+                fields.append(elem)
+            elif elem.tag == "filter":
+                # Check if it's a group-by filter
+                if elem.get("context") and "group_by" in elem.get("context", ""):
+                    groups.append(elem)
+                else:
+                    filters.append(elem)
+            elif elem.tag == "separator":
+                separators.append(elem)
+            elif elem.tag == "group":
+                groups.append(elem)
+
+        # Add in order: fields, filters, separator, groups
+        for elem in fields + filters + separators + groups:
+            new_root.append(elem)
+
+        # Apply attribute reordering
+        self.reorder_element_attributes(new_root)
+
+        return new_root
+
+    def reorganize_kanban_view(self, root: ET.Element) -> ET.Element:
+        """Reorganize kanban view according to conventions.
+
+        Kanban view element order:
+        1. Progressbar
+        2. Field declarations
+        3. Control elements
+        4. Templates
+
+        Args:
+            root: Root element of kanban view
+
+        Returns:
+            Reorganized kanban view element
+        """
+        new_root = ET.Element(root.tag, root.attrib)
+
+        # Categorize elements
+        fields = []
+        templates = []
+        progressbar = []
+        control = []
+
+        for elem in root:
+            if elem.tag == "field":
+                fields.append(elem)
+            elif elem.tag == "templates":
+                templates.append(elem)
+            elif elem.tag == "progressbar":
+                progressbar.append(elem)
+            elif elem.tag == "control":
+                control.append(elem)
+            else:
+                control.append(elem)
+
+        # Add in order: progressbar, fields, control elements, templates
+        for elem in progressbar + fields + control + templates:
+            new_root.append(elem)
+
+        # Apply attribute reordering
+        self.reorder_element_attributes(new_root)
+
+        return new_root
+
+    def _categorize_form_elements(self, root: ET.Element) -> dict[str, list]:
+        """Categorize form view elements by type.
+
+        Args:
+            root: Root element of form view
+
+        Returns:
+            Dictionary with categorized elements
+        """
+        elements = {
+            "header": [],
+            "titles": [],
+            "sheet": [],
+            "groups": [],
+            "notebook": [],
+            "chatter": [],
+        }
+
+        for elem in root:
+            if elem.tag == "header":
+                elements["header"].append(elem)
+            elif elem.tag == "sheet":
+                # Process sheet children
+                for child in elem:
+                    if child.tag in ["h1", "h2", "h3"]:
+                        elements["titles"].append(child)
+                    elif child.tag == "div" and "oe_title" in child.get("class", ""):
+                        elements["titles"].append(child)
+                    elif child.tag == "group":
+                        elements["groups"].append(child)
+                    elif child.tag == "notebook":
+                        elements["notebook"].append(child)
+                    else:
+                        elements["sheet"].append(child)
+            elif elem.tag == "div" and "oe_chatter" in elem.get("class", ""):
+                elements["chatter"].append(elem)
+            elif elem.tag == "group":
+                elements["groups"].append(elem)
+            elif elem.tag == "notebook":
+                elements["notebook"].append(elem)
+            elif elem.tag in ["h1", "h2", "h3"]:
+                elements["titles"].append(elem)
+            else:
+                # Check if it's a chatter-related element
+                if elem.tag == "field" and elem.get("name") in [
+                    "message_follower_ids",
+                    "activity_ids",
+                    "message_ids",
+                ]:
+                    elements["chatter"].append(elem)
+                else:
+                    elements["sheet"].append(elem)
+
+        return elements
+
+    def _init_attribute_orders(self) -> dict[str, list[str]]:
+        """Initialize XML attribute orders for different element types.
+
+        Returns:
+            Dictionary mapping element types to ordered attribute lists
+        """
+        return {
+            # Default order for any element
+            "_default": [
+                "id",
+                "name",
+                "model",
+                "string",
+                "type",
+                "class",
+                "position",
+                "attrs",
+                "states",
+                "invisible",
+                "readonly",
+                "required",
+            ],
+            # Specific orders for Odoo XML elements
+            "record": ["id", "model", "forcecreate"],
+            "field": [
+                "name",
+                "type",
+                "string",
+                "widget",
+                "required",
+                "readonly",
+                "invisible",
+                "attrs",
+                "states",
+                "help",
+                "placeholder",
+            ],
+            "button": [
+                "name",
+                "string",
+                "type",
+                "class",
+                "icon",
+                "states",
+                "attrs",
+                "invisible",
+                "confirm",
+                "context",
+            ],
+            "tree": [
+                "string",
+                "default_order",
+                "create",
+                "edit",
+                "delete",
+                "duplicate",
+                "import",
+                "export_xlsx",
+                "multi_edit",
+                "sample",
+            ],
+            "form": ["string", "create", "edit", "delete", "duplicate"],
+            "kanban": [
+                "default_group_by",
+                "class",
+                "sample",
+                "quick_create",
+                "quick_create_view",
+            ],
+            "search": ["string"],
+            "group": ["name", "string", "col", "colspan", "attrs", "invisible"],
+            "notebook": ["colspan", "attrs", "invisible"],
+            "page": ["name", "string", "attrs", "invisible"],
+            "xpath": ["expr", "position"],
+            "attribute": ["name"],
+            "div": ["class", "attrs", "invisible"],
+            "span": ["class", "attrs", "invisible"],
+            "t": [
+                "t-if",
+                "t-elif",
+                "t-else",
+                "t-foreach",
+                "t-as",
+                "t-esc",
+                "t-raw",
+                "t-field",
+                "t-options",
+                "t-set",
+                "t-value",
+                "t-call",
+                "t-call-assets",
+            ],
+            "template": ["id", "name", "inherit_id", "priority"],
+            "menuitem": ["id", "name", "parent", "sequence", "action", "groups"],
+            "act_window": ["id", "name", "model", "view_mode", "domain", "context"],
+        }

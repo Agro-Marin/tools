@@ -24,6 +24,14 @@ from typing import Any
 
 import black
 import isort
+from blueprint.blueprint import (
+    FIELD_ATTRIBUTE_GENERIC,
+    FIELD_TYPE_ATTRIBUTES,
+    METHOD_ORDER,
+    MODEL_ATTRIBUTES,
+    SECTION_HEADERS,
+    XML_ATTRIBUTE_ORDER,
+)
 from core.base_processor import ProcessingStatus, ProcessResult
 from core.classification_rule_field import (
     ClassificationRuleField,
@@ -54,105 +62,8 @@ class Order:
         self.config = config
         self._method_rules = get_default_method_rules()
         self._field_rules = get_default_field_rules()
-        self.attribute_orders = self._init_attribute_orders()
+        self.attribute_orders = XML_ATTRIBUTE_ORDER
         self._register_handlers()
-
-    def _init_attribute_orders(self) -> dict[str, list[str]]:
-        """Initialize XML attribute orders for different element types.
-
-        Returns:
-            Dictionary mapping element types to ordered attribute lists
-        """
-        return {
-            # Default order for any element
-            "_default": [
-                "id",
-                "name",
-                "model",
-                "string",
-                "type",
-                "class",
-                "position",
-                "attrs",
-                "states",
-                "invisible",
-                "readonly",
-                "required",
-            ],
-            # Specific orders for Odoo XML elements
-            "record": ["id", "model", "forcecreate"],
-            "field": [
-                "name",
-                "type",
-                "string",
-                "widget",
-                "required",
-                "readonly",
-                "invisible",
-                "attrs",
-                "states",
-                "help",
-                "placeholder",
-            ],
-            "button": [
-                "name",
-                "string",
-                "type",
-                "class",
-                "icon",
-                "states",
-                "attrs",
-                "invisible",
-                "confirm",
-                "context",
-            ],
-            "tree": [
-                "string",
-                "default_order",
-                "create",
-                "edit",
-                "delete",
-                "duplicate",
-                "import",
-                "export_xlsx",
-                "multi_edit",
-                "sample",
-            ],
-            "form": ["string", "create", "edit", "delete", "duplicate"],
-            "kanban": [
-                "default_group_by",
-                "class",
-                "sample",
-                "quick_create",
-                "quick_create_view",
-            ],
-            "search": ["string"],
-            "group": ["name", "string", "col", "colspan", "attrs", "invisible"],
-            "notebook": ["colspan", "attrs", "invisible"],
-            "page": ["name", "string", "attrs", "invisible"],
-            "xpath": ["expr", "position"],
-            "attribute": ["name"],
-            "div": ["class", "attrs", "invisible"],
-            "span": ["class", "attrs", "invisible"],
-            "t": [
-                "t-if",
-                "t-elif",
-                "t-else",
-                "t-foreach",
-                "t-as",
-                "t-esc",
-                "t-raw",
-                "t-field",
-                "t-options",
-                "t-set",
-                "t-value",
-                "t-call",
-                "t-call-assets",
-            ],
-            "template": ["id", "name", "inherit_id", "priority"],
-            "menuitem": ["id", "name", "parent", "sequence", "action", "groups"],
-            "act_window": ["id", "name", "model", "view_mode", "domain", "context"],
-        }
 
     def _register_handlers(self):
         """Register file type handlers with the registry"""
@@ -600,484 +511,6 @@ class Order:
     # PATTERNS
     # ============================================================
 
-    MODEL_ATTRIBUTES: list[str] = [
-        "_name",
-        "_inherits",
-        "_inherit",
-        "_description",
-        "_table",
-        "_table_query",
-        "_sequence",
-        "_active_name",
-        "_date_name",
-        "_fold_name",
-        "_parent_name",
-        "_parent_store",
-        "_parent_order",
-        "_rec_name",
-        "_rec_names_search",
-        "_auto",
-        "_abstract",
-        "_check_company_auto",
-        "_custom",
-        "_depends",
-        "_register",
-        "_transient",
-        "_transient_max_count",
-        "_transient_max_hours",
-        "_module",
-        "_translate",
-        "_allow_sudo_commands",
-        "_log_access",
-        "_order",
-        "_check_company_domain",
-    ]
-
-    # Field-type specific attribute ordering
-    # Each field type has its own optimal attribute order
-    FIELD_TYPE_ATTRIBUTES: dict[str, list[str]] = {
-        # Relational fields
-        "Many2one": [
-            "related",
-            "comodel_name",
-            "string",
-            "required",
-            "default",
-            "change_default",
-            "compute",
-            "compute_sudo",
-            "store",
-            "precompute",
-            "recursive",
-            "readonly",
-            "inverse",
-            "search",
-            "bypass_search_access",
-            "company_dependent",
-            "check_company",
-            "domain",
-            "context",
-            "ondelete",
-            "auto_join",
-            "copy",
-            "groups",
-            "index",
-            "tracking",
-            "help",
-        ],
-        "One2many": [
-            "comodel_name",
-            "inverse_name",
-            "string",
-            "compute",
-            "store",
-            "readonly",
-            "domain",
-            "context",
-            "auto_join",
-            "copy",
-            "groups",
-            "help",
-        ],
-        "Many2many": [
-            "related",
-            "depends",
-            "comodel_name",
-            "relation",
-            "column1",
-            "column2",
-            "string",
-            "required",
-            "compute",
-            "compute_sudo",
-            "store",
-            "precompute",
-            "recursive",
-            "readonly",
-            "inverse",
-            "search",
-            "check_company",
-            "domain",
-            "context",
-            "copy",
-            "groups",
-            "tracking",
-            "help",
-        ],
-        # Basic fields
-        "Char": [
-            "related",
-            "string",
-            "required",
-            "default",
-            "size",
-            "trim",
-            "translate",
-            "compute",
-            "store",
-            "precompute",
-            "recursive",
-            "readonly",
-            "inverse",
-            "search",
-            "copy",
-            "groups",
-            "index",
-            "tracking",
-            "config_parameter",
-            "help",
-        ],
-        "Text": [
-            "related",
-            "string",
-            "required",
-            "default",
-            "translate",
-            "compute",
-            "store",
-            "precompute",
-            "readonly",
-            "inverse",
-            "search",
-            "copy",
-            "groups",
-            "tracking",
-            "help",
-        ],
-        "Html": [
-            "related",
-            "string",
-            "required",
-            "default",
-            "translate",
-            "sanitize",
-            "sanitize_tags",
-            "sanitize_attributes",
-            "sanitize_style",
-            "strip_style",
-            "strip_classes",
-            "compute",
-            "store",
-            "precompute",
-            "readonly",
-            "inverse",
-            "search",
-            "copy",
-            "groups",
-            "tracking",
-            "help",
-        ],
-        # Numeric fields
-        "Integer": [
-            "related",
-            "string",
-            "required",
-            "default",
-            "compute",
-            "compute_sudo",
-            "store",
-            "precompute",
-            "readonly",
-            "inverse",
-            "search",
-            "company_dependent",
-            "copy",
-            "groups",
-            "index",
-            "tracking",
-            "help",
-        ],
-        "Float": [
-            "related",
-            "string",
-            "digits",
-            "required",
-            "default",
-            "compute",
-            "compute_sudo",
-            "store",
-            "precompute",
-            "readonly",
-            "inverse",
-            "search",
-            "company_dependent",
-            "aggregator",
-            "group_operator",
-            "copy",
-            "groups",
-            "index",
-            "tracking",
-            "help",
-        ],
-        "Monetary": [
-            "related",
-            "string",
-            "currency_field",
-            "required",
-            "default",
-            "compute",
-            "store",
-            "readonly",
-            "inverse",
-            "search",
-            "copy",
-            "groups",
-            "tracking",
-            "help",
-        ],
-        # Date/time fields
-        "Date": [
-            "related",
-            "string",
-            "required",
-            "default",
-            "compute",
-            "store",
-            "precompute",
-            "readonly",
-            "inverse",
-            "search",
-            "copy",
-            "groups",
-            "index",
-            "tracking",
-            "help",
-        ],
-        "Datetime": [
-            "related",
-            "string",
-            "required",
-            "default",
-            "compute",
-            "store",
-            "precompute",
-            "readonly",
-            "inverse",
-            "search",
-            "copy",
-            "groups",
-            "index",
-            "tracking",
-            "help",
-        ],
-        # Selection field
-        "Selection": [
-            "related",
-            "depends",
-            "selection",
-            "selection_add",
-            "string",
-            "required",
-            "default",
-            "compute",
-            "store",
-            "precompute",
-            "readonly",
-            "inverse",
-            "search",
-            "ondelete",
-            "copy",
-            "groups",
-            "index",
-            "tracking",
-            "help",
-        ],
-        # Boolean field
-        "Boolean": [
-            "related",
-            "string",
-            "required",
-            "default",
-            "compute",
-            "compute_sudo",
-            "store",
-            "precompute",
-            "readonly",
-            "inverse",
-            "search",
-            "company_dependent",
-            "copy",
-            "implied_group",
-            "groups",
-            "index",
-            "tracking",
-            "help",
-        ],
-        # Binary fields
-        "Binary": [
-            "related",
-            "string",
-            "required",
-            "default",
-            "readonly",
-            "attachment",
-            "compute",
-            "store",
-            "inverse",
-            "search",
-            "copy",
-            "exportable",
-            "groups",
-            "help",
-        ],
-        "Image": [
-            "related",
-            "string",
-            "required",
-            "default",
-            "attachment",
-            "max_width",
-            "max_height",
-            "verify_resolution",
-            "compute",
-            "store",
-            "readonly",
-            "inverse",
-            "search",
-            "copy",
-            "groups",
-            "help",
-        ],
-        # Special fields
-        "Reference": [
-            "related",
-            "selection",
-            "string",
-            "required",
-            "default",
-            "compute",
-            "store",
-            "readonly",
-            "inverse",
-            "search",
-            "copy",
-            "groups",
-            "help",
-        ],
-        "Json": [
-            "related",
-            "string",
-            "required",
-            "default",
-            "compute",
-            "store",
-            "readonly",
-            "inverse",
-            "search",
-            "copy",
-            "groups",
-            "help",
-        ],
-        "Properties": [
-            "related",
-            "string",
-            "definition",
-            "required",
-            "compute",
-            "store",
-            "readonly",
-            "inverse",
-            "search",
-            "copy",
-            "groups",
-            "help",
-        ],
-    }
-
-    # Generic fallback order for unknown field types
-    FIELD_ATTRIBUTE_GENERIC: list[str] = [
-        "related",
-        # Primary attributes
-        "string",
-        "required",
-        "default",
-        "translate",
-        # Compute attributes
-        "compute",
-        "store",
-        "readonly",
-        "inverse",
-        "search",
-        "depends",
-        # Default and copy
-        "copy",
-        # Constraints and UI
-        "tracking",
-        "groups",
-        "index",
-        "states",
-        "company_dependent",
-        # Help and documentation
-        "deprecated",
-        "oldname",
-        "help",
-    ]
-
-    SECTION_HEADERS: dict[str, str] = {
-        "MODEL_ATTRIBUTES": "CLASS ATTRIBUTES",
-        "FIELDS": "FIELDS",
-        "COMPUTED_FIELDS": "COMPUTED FIELDS",
-        "SQL_CONSTRAINTS": "SQL CONSTRAINTS",
-        "MODEL_INDEXES": "MODEL INDEXES",
-        "CRUD": "CRUD METHODS",
-        "COMPUTE": "COMPUTE METHODS",
-        "INVERSE": "INVERSE METHODS",
-        "SEARCH": "SEARCH METHODS",
-        "ONCHANGE": "ONCHANGE METHODS",
-        "CONSTRAINT": "CONSTRAINT METHODS",
-        "WORKFLOW": "WORKFLOW METHODS",
-        "ACTIONS": "ACTION METHODS",
-        "PREPARE": "PREPARE METHODS",
-        "GETTER": "GETTER METHODS",
-        "REPORT": "REPORT METHODS",
-        "IMPORT_EXPORT": "IMPORT/EXPORT METHODS",
-        "SECURITY": "SECURITY METHODS",
-        "PORTAL": "PORTAL METHODS",
-        "COMMUNICATION": "COMMUNICATION METHODS",
-        "WIZARD": "WIZARD METHODS",
-        "INTEGRATION": "INTEGRATION METHODS",
-        "CRON": "SCHEDULED METHODS",
-        "ACCOUNTING": "ACCOUNTING METHODS",
-        "MANUFACTURING": "MANUFACTURING METHODS",
-        "PRODUCT_CATALOG": "PRODUCT CATALOG MIXIN METHODS",
-        "MAIL_THREAD": "MAIL THREAD METHODS",
-        "OVERRIDE": "OVERRIDE METHODS",
-        "API_MODEL": "API MODEL METHODS",
-        "PUBLIC": "PUBLIC METHODS",
-        "PRIVATE": "PRIVATE METHODS",
-        "MISC": "MISCELLANEOUS",
-    }
-
-    # Standard Odoo method ordering
-    METHOD_ORDER = [
-        "CONSTRAINT",
-        "CRUD",
-        "COMPUTE",
-        "INVERSE",
-        "SEARCH",
-        "ONCHANGE",
-        "WORKFLOW",
-        "WIZARD",
-        "ACTIONS",
-        "MAIL_THREAD",
-        "COMMUNICATION",
-        "PORTAL",
-        "PREPARE",
-        "GETTER",
-        "REPORT",
-        "IMPORT_EXPORT",
-        "INTEGRATION",
-        "CRON",
-        "ACCOUNTING",
-        "MANUFACTURING",
-        "PRODUCT_CATALOG",
-        "OVERRIDE",
-        "SECURITY",
-        "API_MODEL",
-        "PUBLIC",
-        "PRIVATE",
-    ]
-
     # ============================================================
     # PARSING & EXTRACTION
     # ============================================================
@@ -1232,7 +665,7 @@ class Order:
                 if hasattr(node, "targets") and node.targets:
                     if isinstance(node.targets[0], ast.Name):
                         name = node.targets[0].id
-                        if name in self.MODEL_ATTRIBUTES:
+                        if name in MODEL_ATTRIBUTES:
                             elements["model_attrs"].append(node)
                         else:
                             reordered_node = self.sort_field_attributes(node)
@@ -1737,11 +1170,11 @@ class Order:
             list[str]: Ordered list of attribute names for this field type
         """
         # Check if we have specific ordering for this field type
-        if field_type in self.FIELD_TYPE_ATTRIBUTES:
-            return self.FIELD_TYPE_ATTRIBUTES[field_type]
+        if field_type in FIELD_TYPE_ATTRIBUTES:
+            return FIELD_TYPE_ATTRIBUTES[field_type]
 
         # Fall back to generic ordering
-        return self.FIELD_ATTRIBUTE_GENERIC
+        return FIELD_ATTRIBUTE_GENERIC
 
     def get_field_info(
         self,
@@ -2045,10 +1478,10 @@ class Order:
                     if isinstance(attr, ast.Assign) and attr.targets:
                         name = getattr(attr.targets[0], "id", "")
                         try:
-                            return self.MODEL_ATTRIBUTES.index(name)
+                            return MODEL_ATTRIBUTES.index(name)
                         except ValueError:
-                            return len(self.MODEL_ATTRIBUTES)
-                    return len(self.MODEL_ATTRIBUTES)
+                            return len(MODEL_ATTRIBUTES)
+                    return len(MODEL_ATTRIBUTES)
 
                 sorted_attrs = sorted(elements["model_attrs"], key=get_attr_priority)
                 for attr in sorted_attrs:
@@ -2098,7 +1531,7 @@ class Order:
                         result_lines.append("")
             else:
                 # For class level, output by category
-                for category in self.METHOD_ORDER:
+                for category in METHOD_ORDER:
                     if category in methods:
                         if self.config.ordering.add_section_headers:
                             result_lines.extend(

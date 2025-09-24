@@ -15,8 +15,8 @@ from commands.rename import RenameCommand
 from core.backup_manager import BackupManager
 from core.base_processor import ProcessingStatus
 from core.config import Config
-from src.core.order import Order
-from core.path_analyzer import PathAnalyzer, PathType
+from core.order import Order
+from core.path_analyzer import path_analyzer
 from odoo_tools import __version__
 
 logging.basicConfig(
@@ -99,7 +99,7 @@ def analyze(path: str):
         odoo-tools analyze ./my_module
         odoo-tools analyze ./src/models.py
     """
-    analyzer = PathAnalyzer()
+    analyzer = path_analyzer
     analysis = analyzer.analyze(Path(path))
 
     # Display analysis results
@@ -145,12 +145,14 @@ def analyze(path: str):
     "target",
     type=click.Choice(
         [
-            "python_code",
-            "python_field_attr",
-            "xml_code",
-            "xml_node_attr",
+            "python",
+            "python_module",
+            "python_fields",
+            "xml",
+            "xml_structure",
+            "xml_attributes",
             "all",
-            "auto",  # New auto option
+            "auto",
         ],
     ),
     required=False,
@@ -194,17 +196,21 @@ def reorder(
 
     Targets:
     - auto: Automatically detect and apply appropriate reordering (default)
-    - python_code: Reorder Python code structure
-    - python_field_attr: Reorder field attributes only
-    - xml_code: Reorder XML structure
-    - xml_node_attr: Reorder XML attributes only
+    - python: Reorder both module structure and field attributes
+    - python_module: Reorder module structure only
+    - python_fields: Reorder field attributes only
+    - xml: Reorder both XML structure and attributes
+    - xml_structure: Reorder XML structure only
+    - xml_attributes: Reorder XML attributes only
     - all: Apply all reordering operations
 
     Examples:
         odoo-tools reorder ./my_module           # Auto-detect and process
         odoo-tools reorder ./my_module all       # Process everything
-        odoo-tools reorder ./models.py          # Auto-detect Python file
-        odoo-tools reorder ./views xml_code     # Force XML structure reordering
+        odoo-tools reorder ./models.py python   # Process Python fully
+        odoo-tools reorder ./models.py python_fields # Fields only
+        odoo-tools reorder ./views xml          # Reorder XML structure and attributes
+        odoo-tools reorder ./views xml_structure # Structure only
     """
     config = ctx.obj["config"]
     config.dry_run = dry_run
@@ -213,45 +219,40 @@ def reorder(
     path_obj = Path(path)
 
     # Always analyze the path to avoid redundant checks
-    analyzer = PathAnalyzer()
+    analyzer = path_analyzer
     analysis = analyzer.analyze(path_obj)
 
-    # If target is auto, determine the best target
+    # If target is auto, use path_analyzer's recommendations
     if target == "auto":
         # Display analysis
         click.echo(f"\n📁 Analyzing: {path}")
         click.echo(f"   Type: {analysis.description}")
 
-        # Determine best target based on analysis
+        # Use path_analyzer's recommendations
         if not analysis.recommended_targets:
             click.echo("   ⚠️  No processing recommended for this path type.")
             sys.exit(0)
 
+        # Map recommended targets to CLI targets
+        target_map = {
+            "python_code": "python",
+            "python_field_attr": "python_fields",
+            "xml_code": "xml",
+            "xml_node_attr": "xml_attributes",
+            "all": "all",
+        }
+
         # Choose the most comprehensive target from recommendations
         if "all" in analysis.recommended_targets:
             target = "all"
-            click.echo(f"   ✓ Auto-selected: Process all (Python and XML)")
-        elif (
-            analysis.path_type == PathType.PYTHON_FILE
-            or analysis.path_type == PathType.PYTHON_PROJECT
-        ):
-            target = "python_code"
-            click.echo(f"   ✓ Auto-selected: Python code reordering")
-        elif analysis.path_type == PathType.XML_FILE:
-            target = "xml_code"
-            click.echo(f"   ✓ Auto-selected: XML structure reordering")
-        elif analysis.path_type == PathType.ODOO_MODULE:
-            target = "all"
-            click.echo(f"   ✓ Auto-selected: Process all (Odoo module)")
-        elif analysis.path_type == PathType.ODOO_MODULES_DIR:
-            target = "all"
-            click.echo(
-                f"   ✓ Auto-selected: Process all ({len(analysis.odoo_modules)} modules)"
-            )
+            recommendation = "Process all (Python and XML)"
         else:
-            # Default to all for mixed projects
-            target = "all"
-            click.echo(f"   ✓ Auto-selected: Process all (mixed content)")
+            # Use first recommendation
+            rec_target = analysis.recommended_targets[0]
+            target = target_map.get(rec_target, "all")
+            recommendation = analyzer.get_recommendation_string(analysis)
+
+        click.echo(f"   ✓ Auto-selected: {recommendation}")
 
         # Show what will be processed
         if analysis.python_files:
@@ -265,14 +266,8 @@ def reorder(
                 click.echo("Operation cancelled.")
                 sys.exit(0)
 
-    # Convert PathAnalysis to dict for the command
-    path_info = {
-        "is_file": analysis.is_file,
-        "is_dir": analysis.is_directory,
-        "python_files": analysis.python_files,
-        "xml_files": analysis.xml_files,
-        "total_files": analysis.total_files,
-    }
+    # Pass the analysis object directly
+    path_info = analysis
 
     # Initialize backup manager if needed
     backup_manager = None
@@ -292,18 +287,29 @@ def reorder(
 
     click.echo(f"\n🔧 Processing with target: {target}")
 
-    # Use getattr to dynamically call the appropriate method
-    method_name = f"process_{target}" if target != "all" else "process_all"
-    if hasattr(ordering, method_name):
-        process_method = getattr(ordering, method_name)
-        result = process_method(
-            path_obj,
-            path_info=path_info,
-            **options,
-        )
-    else:
+    # Define target mapping with methods and modes
+    target_config = {
+        "python": ("process_python", ["field_attributes", "module"]),
+        "python_module": ("process_python", "module"),
+        "python_fields": ("process_python", "field_attributes"),
+        "xml": ("process_xml", ["structure", "attributes"]),
+        "xml_structure": ("process_xml", "structure"),
+        "xml_attributes": ("process_xml", "attributes"),
+        "all": ("process_all", None),
+    }
+
+    if target not in target_config:
         click.echo(f"❌ Unknown target: {target}")
         sys.exit(1)
+
+    method_name, mode = target_config[target]
+    method = getattr(ordering, method_name)
+
+    # Call the appropriate method
+    if method_name == "process_all":
+        result = method(path_obj, path_info=path_info, **options)
+    else:
+        result = method(path_obj, path_info=path_info, mode=mode, **options)
 
     # Finalize backup session if needed
     if backup_manager and not dry_run:

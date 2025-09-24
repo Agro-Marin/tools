@@ -1,139 +1,301 @@
 """
-Path analysis utilities for intelligent detection of directory/file types.
+Unified path analysis and file type registry for intelligent file handling.
 
-This module provides smart detection of:
-- Odoo modules vs regular Python projects
-- File type composition in directories
-- Optimal processing strategies based on content
+This module combines path analysis with file type detection and handling,
+providing a single source of truth for:
+- File type detection and categorization
+- Path type analysis (files, directories, Odoo modules)
+- Processing recommendations and capabilities
+- Handler registration and dispatch
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
 
+class FileType(Enum):
+    """Enumeration of supported file types"""
+
+    PYTHON = "python"
+    XML = "xml"
+    YAML = "yaml"
+    CSV = "csv"
+    JAVASCRIPT = "javascript"
+    MARKDOWN = "markdown"
+    JSON = "json"
+    UNKNOWN = "unknown"
+
+
 class PathType(Enum):
-    """Enumeration of path types that can be detected."""
+    """Enumeration of path types that can be detected"""
 
     PYTHON_FILE = "python_file"
     XML_FILE = "xml_file"
     OTHER_FILE = "other_file"
     ODOO_MODULE = "odoo_module"
-    ODOO_MODULES_DIR = "odoo_modules_directory"  # Contains multiple Odoo modules
-    PYTHON_PROJECT = "python_project"  # Regular Python project
-    MIXED_PROJECT = "mixed_project"  # Contains Python and XML but not Odoo
+    ODOO_MODULES_DIR = "odoo_modules_directory"
+    PYTHON_PROJECT = "python_project"
+    MIXED_PROJECT = "mixed_project"
     EMPTY_DIR = "empty_directory"
     UNKNOWN = "unknown"
 
 
 @dataclass
+class FileTypeInfo:
+    """Information about a file type"""
+
+    type: FileType
+    extensions: set[str]
+    description: str
+    can_order: bool = False  # Can be reordered
+    can_rename: bool = False  # Can have renames applied
+    is_odoo_specific: bool = False  # Odoo-specific file type
+
+
+@dataclass
 class PathAnalysis:
-    """Result of path analysis with detailed information."""
+    """Result of path analysis with detailed information"""
 
     path: Path
     path_type: PathType
-    is_directory: bool
-    is_file: bool
+    file_type: FileType = FileType.UNKNOWN  # For single files
+    is_directory: bool = False
+    is_file: bool = False
 
     # File statistics
-    python_files: list[Path] = None
-    xml_files: list[Path] = None
-    other_files: list[Path] = None
+    python_files: list[Path] = field(default_factory=list)
+    xml_files: list[Path] = field(default_factory=list)
+    other_files: list[Path] = field(default_factory=list)
     total_files: int = 0
 
     # Odoo-specific
     is_odoo_module: bool = False
     is_odoo_modules_dir: bool = False
-    odoo_modules: list[Path] = None  # List of detected Odoo modules
+    odoo_modules: list[Path] = field(default_factory=list)
     has_manifest: bool = False
-    has_init: bool = False
     has_models: bool = False
     has_views: bool = False
     has_security: bool = False
 
-    # Recommendations
-    recommended_targets: list[str] = None  # Suggested processing targets
+    # Processing recommendations
     description: str = ""
-
-    def __post_init__(self):
-        """Initialize lists if not provided."""
-        if self.python_files is None:
-            self.python_files = []
-        if self.xml_files is None:
-            self.xml_files = []
-        if self.other_files is None:
-            self.other_files = []
-        if self.odoo_modules is None:
-            self.odoo_modules = []
-        if self.recommended_targets is None:
-            self.recommended_targets = []
+    recommended_targets: list[str] = field(default_factory=list)
 
 
 class PathAnalyzer:
-    """Analyzes paths to determine their type and characteristics."""
+    """
+    Unified path analyzer and file type registry.
 
-    # Odoo module indicators
-    MANIFEST_FILES = {"__manifest__.py", "__openerp__.py"}
-    ODOO_DIRS = {
-        "models",
-        "views",
-        "controllers",
-        "wizards",
-        "security",
-        "data",
-        "static",
-        "reports",
-    }
-    ODOO_FILE_PATTERNS = {
-        "models": ["*.py"],
-        "views": ["*.xml"],
-        "data": ["*.xml", "*.csv"],
-        "security": ["ir.model.access.csv", "*.xml"],
-    }
+    Combines intelligent path/directory analysis with file type
+    detection and handler management.
+    """
 
     def __init__(self):
-        """Initialize the path analyzer."""
-        pass
+        """Initialize the analyzer with file type registry"""
+        self._registry: dict[FileType, FileTypeInfo] = {}
+        self._extension_map: dict[str, FileType] = {}
+        self._handlers: dict[FileType, dict[str, Callable]] = {}
+        self._initialize_registry()
 
-    def analyze(self, path: Path | str) -> PathAnalysis:
+    def _initialize_registry(self):
+        """Initialize the default file type registry"""
+        # Python files
+        self.register_file_type(
+            FileTypeInfo(
+                type=FileType.PYTHON,
+                extensions={".py", ".pyw"},
+                description="Python source files",
+                can_order=True,
+                can_rename=True,
+                is_odoo_specific=False,
+            )
+        )
+
+        # XML files
+        self.register_file_type(
+            FileTypeInfo(
+                type=FileType.XML,
+                extensions={".xml"},
+                description="XML files (views, data, actions)",
+                can_order=True,
+                can_rename=True,
+                is_odoo_specific=True,
+            )
+        )
+
+        # YAML files
+        self.register_file_type(
+            FileTypeInfo(
+                type=FileType.YAML,
+                extensions={".yaml", ".yml"},
+                description="YAML configuration files",
+                can_order=False,
+                can_rename=False,
+                is_odoo_specific=False,
+            )
+        )
+
+        # CSV files
+        self.register_file_type(
+            FileTypeInfo(
+                type=FileType.CSV,
+                extensions={".csv"},
+                description="CSV data files",
+                can_order=False,
+                can_rename=False,
+                is_odoo_specific=True,
+            )
+        )
+
+        # JavaScript files
+        self.register_file_type(
+            FileTypeInfo(
+                type=FileType.JAVASCRIPT,
+                extensions={".js", ".mjs"},
+                description="JavaScript files",
+                can_order=False,
+                can_rename=True,
+                is_odoo_specific=False,
+            )
+        )
+
+        # Markdown files
+        self.register_file_type(
+            FileTypeInfo(
+                type=FileType.MARKDOWN,
+                extensions={".md", ".markdown"},
+                description="Markdown documentation files",
+                can_order=False,
+                can_rename=False,
+                is_odoo_specific=False,
+            )
+        )
+
+        # JSON files
+        self.register_file_type(
+            FileTypeInfo(
+                type=FileType.JSON,
+                extensions={".json"},
+                description="JSON data files",
+                can_order=False,
+                can_rename=False,
+                is_odoo_specific=False,
+            )
+        )
+
+    # ========================================================================
+    # FILE TYPE REGISTRY METHODS
+    # ========================================================================
+
+    def register_file_type(self, info: FileTypeInfo):
+        """Register a new file type"""
+        self._registry[info.type] = info
+        for ext in info.extensions:
+            self._extension_map[ext.lower()] = info.type
+
+    def register_handler(
+        self,
+        file_type: FileType,
+        action: str,
+        handler: Callable,
+    ):
+        """Register a handler for a specific file type and action"""
+        if file_type not in self._handlers:
+            self._handlers[file_type] = {}
+        self._handlers[file_type][action] = handler
+        logger.debug(f"Registered handler for {file_type.value}:{action}")
+
+    def get_file_type(self, path: Path) -> FileType:
+        """Detect file type from path"""
+        suffix = path.suffix.lower()
+        return self._extension_map.get(suffix, FileType.UNKNOWN)
+
+    def get_file_info(self, path: Path) -> FileTypeInfo | None:
+        """Get file type information for a path"""
+        file_type = self.get_file_type(path)
+        return self._registry.get(file_type)
+
+    def get_handler(
+        self,
+        file_type: FileType,
+        action: str,
+    ) -> Callable | None:
+        """Get handler for a file type and action"""
+        if file_type in self._handlers:
+            return self._handlers[file_type].get(action)
+        return None
+
+    def can_process(
+        self,
+        path: Path,
+        action: str,
+    ) -> bool:
+        """Check if a file can be processed with the given action"""
+        info = self.get_file_info(path)
+        if not info:
+            return False
+
+        # Check capabilities based on action
+        if action == "order":
+            return info.can_order
+        elif action == "rename":
+            return info.can_rename
+        else:
+            # Check if handler exists
+            return self.get_handler(info.type, action) is not None
+
+    def process_file(
+        self,
+        path: Path,
+        action: str,
+        **kwargs,
+    ):
+        """Process a file with the appropriate handler"""
+        file_type = self.get_file_type(path)
+        handler = self.get_handler(file_type, action)
+
+        if not handler:
+            logger.warning(
+                f"No handler found for {file_type.value}:{action} for file {path}"
+            )
+            return None
+
+        logger.debug(f"Processing {path} with {file_type.value}:{action}")
+        return handler(path, **kwargs)
+
+    # ========================================================================
+    # PATH ANALYSIS METHODS
+    # ========================================================================
+
+    def analyze(self, path: Path) -> PathAnalysis:
         """
-        Analyze a path and return detailed information about it.
+        Analyze a path and return detailed information.
 
         Args:
-            path: Path to analyze (file or directory)
+            path: File or directory path to analyze
 
         Returns:
             PathAnalysis object with detailed information
         """
-        path = Path(path) if isinstance(path, str) else path
-
         if not path.exists():
             return PathAnalysis(
                 path=path,
                 path_type=PathType.UNKNOWN,
-                is_directory=False,
-                is_file=False,
                 description=f"Path does not exist: {path}",
             )
 
         if path.is_file():
             return self._analyze_file(path)
-        elif path.is_dir():
-            return self._analyze_directory(path)
         else:
-            return PathAnalysis(
-                path=path,
-                path_type=PathType.UNKNOWN,
-                is_directory=False,
-                is_file=False,
-                description=f"Path is neither file nor directory: {path}",
-            )
+            return self._analyze_directory(path)
 
     def _analyze_file(self, path: Path) -> PathAnalysis:
-        """Analyze a single file."""
+        """Analyze a single file"""
         analysis = PathAnalysis(
             path=path,
             path_type=PathType.UNKNOWN,
@@ -142,15 +304,21 @@ class PathAnalyzer:
             total_files=1,
         )
 
-        if path.suffix == ".py":
+        file_type = self.get_file_type(path)
+        file_info = self.get_file_info(path)
+        analysis.file_type = file_type
+
+        if file_type == FileType.PYTHON:
             analysis.path_type = PathType.PYTHON_FILE
             analysis.python_files = [path]
-            analysis.description = "Python source file"
+            analysis.description = (
+                file_info.description if file_info else "Python source file"
+            )
             analysis.recommended_targets = ["python_code", "python_field_attr"]
-        elif path.suffix == ".xml":
+        elif file_type == FileType.XML:
             analysis.path_type = PathType.XML_FILE
             analysis.xml_files = [path]
-            analysis.description = "XML file"
+            analysis.description = file_info.description if file_info else "XML file"
             analysis.recommended_targets = ["xml_code", "xml_node_attr"]
 
             # Check if it's an Odoo view file
@@ -159,161 +327,110 @@ class PathAnalyzer:
         else:
             analysis.path_type = PathType.OTHER_FILE
             analysis.other_files = [path]
-            analysis.description = f"Other file type ({path.suffix})"
+            analysis.description = (
+                file_info.description
+                if file_info
+                else f"Other file type ({path.suffix})"
+            )
             analysis.recommended_targets = []
 
         return analysis
 
     def _analyze_directory(self, path: Path) -> PathAnalysis:
-        """Analyze a directory and its contents."""
+        """Analyze a directory and its contents"""
         analysis = PathAnalysis(
             path=path,
             path_type=PathType.UNKNOWN,
             is_directory=True,
             is_file=False,
+            python_files=[],
+            xml_files=[],
+            other_files=[],
         )
 
-        # First, check if this is an Odoo module
+        # Check if it's an Odoo module
         if self._is_odoo_module(path):
-            analysis = self._analyze_odoo_module(path, analysis)
-        # Check if this directory contains Odoo modules
-        elif self._contains_odoo_modules(path):
-            analysis = self._analyze_odoo_modules_dir(path, analysis)
+            return self._analyze_odoo_module(path, analysis)
+
+        # Check if it contains Odoo modules
+        odoo_modules = self._find_odoo_modules(path)
+        if odoo_modules:
+            analysis.path_type = PathType.ODOO_MODULES_DIR
+            analysis.is_odoo_modules_dir = True
+            analysis.odoo_modules = odoo_modules
+            analysis.description = (
+                f"Directory containing {len(odoo_modules)} Odoo modules"
+            )
+            analysis.recommended_targets = ["all"]
+
+            # Collect files from all modules
+            for module in odoo_modules:
+                module_analysis = self._analyze_odoo_module(
+                    module,
+                    PathAnalysis(
+                        path=module,
+                        path_type=PathType.ODOO_MODULE,
+                        is_directory=True,
+                        is_file=False,
+                    ),
+                )
+                analysis.python_files.extend(module_analysis.python_files)
+                analysis.xml_files.extend(module_analysis.xml_files)
+                analysis.other_files.extend(module_analysis.other_files)
+                analysis.total_files += module_analysis.total_files
         else:
-            # Regular directory analysis
-            analysis = self._analyze_regular_directory(path, analysis)
+            # Regular directory
+            return self._analyze_regular_directory(path, analysis)
 
         return analysis
-
-    def _is_odoo_module(self, path: Path) -> bool:
-        """Check if a directory is an Odoo module."""
-        # Check for manifest file
-        for manifest in self.MANIFEST_FILES:
-            if (path / manifest).exists():
-                return True
-        return False
-
-    def _contains_odoo_modules(self, path: Path) -> bool:
-        """Check if a directory contains Odoo modules."""
-        # Look for subdirectories that are Odoo modules
-        for subdir in path.iterdir():
-            if subdir.is_dir() and self._is_odoo_module(subdir):
-                return True
-        return False
-
-    def _is_odoo_xml(self, path: Path) -> bool:
-        """Check if an XML file is an Odoo-specific XML."""
-        try:
-            content = path.read_text(encoding="utf-8")
-            # Look for Odoo-specific XML patterns
-            odoo_indicators = [
-                "<odoo>",
-                "<openerp>",
-                "<record ",
-                "<menuitem ",
-                "<template ",
-                "ir.ui.view",
-                "ir.model.access",
-            ]
-            return any(indicator in content for indicator in odoo_indicators)
-        except Exception:
-            return False
 
     def _analyze_odoo_module(self, path: Path, analysis: PathAnalysis) -> PathAnalysis:
-        """Analyze an Odoo module directory."""
+        """Analyze an Odoo module directory"""
         analysis.path_type = PathType.ODOO_MODULE
         analysis.is_odoo_module = True
-        analysis.odoo_modules = [path]
+        analysis.description = f"Odoo module: {path.name}"
+        analysis.recommended_targets = ["all", "python_code", "xml_code"]
 
-        # Check for manifest
-        for manifest in self.MANIFEST_FILES:
-            if (path / manifest).exists():
-                analysis.has_manifest = True
-                break
+        # Check for standard Odoo directories and files
+        analysis.has_manifest = (path / "__manifest__.py").exists() or (
+            path / "__openerp__.py"
+        ).exists()
+        analysis.has_models = (path / "models").is_dir()
+        analysis.has_views = (path / "views").is_dir()
+        analysis.has_security = (path / "security").is_dir()
 
-        # Check for __init__.py
-        if (path / "__init__.py").exists():
-            analysis.has_init = True
+        # Collect files by type
+        for file_path in path.rglob("*"):
+            if file_path.is_file():
+                file_type = self.get_file_type(file_path)
+                if file_type == FileType.PYTHON:
+                    analysis.python_files.append(file_path)
+                elif file_type == FileType.XML:
+                    analysis.xml_files.append(file_path)
+                else:
+                    analysis.other_files.append(file_path)
 
-        # Check for standard Odoo directories
-        if (path / "models").exists():
-            analysis.has_models = True
-        if (path / "views").exists():
-            analysis.has_views = True
-        if (path / "security").exists():
-            analysis.has_security = True
-
-        # Collect all Python and XML files
-        analysis.python_files = list(path.rglob("*.py"))
-        analysis.xml_files = list(path.rglob("*.xml"))
-        analysis.total_files = len(analysis.python_files) + len(analysis.xml_files)
-
-        # Set description
-        components = []
-        if analysis.has_models:
-            components.append("models")
-        if analysis.has_views:
-            components.append("views")
-        if analysis.has_security:
-            components.append("security")
-
-        analysis.description = (
-            f"Odoo module with {', '.join(components)}" if components else "Odoo module"
+        analysis.total_files = (
+            len(analysis.python_files)
+            + len(analysis.xml_files)
+            + len(analysis.other_files)
         )
-        analysis.description += (
-            f" ({len(analysis.python_files)} .py, {len(analysis.xml_files)} .xml files)"
-        )
-
-        # Recommendations
-        analysis.recommended_targets = ["all"]  # Process everything in Odoo modules
-        if analysis.python_files:
-            analysis.recommended_targets.extend(["python_code", "python_field_attr"])
-        if analysis.xml_files:
-            analysis.recommended_targets.extend(["xml_code", "xml_node_attr"])
-
-        return analysis
-
-    def _analyze_odoo_modules_dir(
-        self, path: Path, analysis: PathAnalysis
-    ) -> PathAnalysis:
-        """Analyze a directory containing multiple Odoo modules."""
-        analysis.path_type = PathType.ODOO_MODULES_DIR
-        analysis.is_odoo_modules_dir = True
-
-        # Find all Odoo modules
-        for subdir in path.iterdir():
-            if subdir.is_dir() and self._is_odoo_module(subdir):
-                analysis.odoo_modules.append(subdir)
-
-        # Collect files from all modules
-        for module_path in analysis.odoo_modules:
-            analysis.python_files.extend(list(module_path.rglob("*.py")))
-            analysis.xml_files.extend(list(module_path.rglob("*.xml")))
-
-        analysis.total_files = len(analysis.python_files) + len(analysis.xml_files)
-
-        analysis.description = (
-            f"Directory containing {len(analysis.odoo_modules)} Odoo modules "
-            f"({len(analysis.python_files)} .py, {len(analysis.xml_files)} .xml files)"
-        )
-
-        # Recommendations
-        analysis.recommended_targets = ["all"]
 
         return analysis
 
     def _analyze_regular_directory(
         self, path: Path, analysis: PathAnalysis
     ) -> PathAnalysis:
-        """Analyze a regular (non-Odoo) directory."""
+        """Analyze a regular (non-Odoo) directory"""
         # Collect all files
         all_files = list(path.rglob("*"))
 
         for file_path in all_files:
             if file_path.is_file():
-                if file_path.suffix == ".py":
+                file_type = self.get_file_type(file_path)
+                if file_type == FileType.PYTHON:
                     analysis.python_files.append(file_path)
-                elif file_path.suffix == ".xml":
+                elif file_type == FileType.XML:
                     analysis.xml_files.append(file_path)
                 else:
                     analysis.other_files.append(file_path)
@@ -324,163 +441,207 @@ class PathAnalyzer:
         has_python = len(analysis.python_files) > 0
         has_xml = len(analysis.xml_files) > 0
 
-        if has_python and not has_xml:
+        if has_python and has_xml:
+            analysis.path_type = PathType.MIXED_PROJECT
+            analysis.description = "Mixed Python and XML project"
+            analysis.recommended_targets = ["all"]
+        elif has_python:
             analysis.path_type = PathType.PYTHON_PROJECT
-            analysis.description = (
-                f"Python project ({len(analysis.python_files)} .py files)"
-            )
+            analysis.description = "Python project"
             analysis.recommended_targets = ["python_code"]
-        elif has_xml and not has_python:
-            analysis.path_type = PathType.MIXED_PROJECT
-            analysis.description = f"XML project ({len(analysis.xml_files)} .xml files)"
-            analysis.recommended_targets = ["xml_code", "xml_node_attr"]
-        elif has_python and has_xml:
-            analysis.path_type = PathType.MIXED_PROJECT
-            analysis.description = (
-                f"Mixed project ({len(analysis.python_files)} .py, "
-                f"{len(analysis.xml_files)} .xml files)"
-            )
-            analysis.recommended_targets = ["python_code", "xml_code"]
         elif analysis.total_files == 0:
             analysis.path_type = PathType.EMPTY_DIR
             analysis.description = "Empty directory"
-            analysis.recommended_targets = []
         else:
             analysis.path_type = PathType.UNKNOWN
-            analysis.description = (
-                f"Directory with {len(analysis.other_files)} non-Python/XML files"
-            )
-            analysis.recommended_targets = []
+            analysis.description = "Directory with miscellaneous files"
 
         return analysis
 
-    def get_recommendation_string(self, analysis: PathAnalysis) -> str:
-        """
-        Get a human-readable recommendation string based on analysis.
+    def _is_odoo_module(self, path: Path) -> bool:
+        """Check if a directory is an Odoo module"""
+        if not path.is_dir():
+            return False
 
-        Args:
-            analysis: PathAnalysis object
+        # Check for manifest file
+        has_manifest = (path / "__manifest__.py").exists() or (
+            path / "__openerp__.py"
+        ).exists()
 
-        Returns:
-            String with processing recommendations
-        """
-        if not analysis.recommended_targets:
-            return "No recommended processing for this path type."
+        # Check for standard Odoo directories
+        has_models = (path / "models").is_dir()
+        has_views = (path / "views").is_dir()
 
-        recommendations = []
+        return has_manifest or (has_models and has_views)
 
-        if "all" in analysis.recommended_targets:
-            recommendations.append("• Process all (Python and XML): --target all")
-        else:
-            if "python_code" in analysis.recommended_targets:
-                recommendations.append("• Reorder Python code: --target python_code")
-            if "python_field_attr" in analysis.recommended_targets:
-                recommendations.append(
-                    "• Reorder field attributes: --target python_field_attr"
-                )
-            if "xml_code" in analysis.recommended_targets:
-                recommendations.append("• Reorder XML structure: --target xml_code")
-            if "xml_node_attr" in analysis.recommended_targets:
-                recommendations.append(
-                    "• Reorder XML attributes: --target xml_node_attr"
-                )
+    def _is_odoo_xml(self, path: Path) -> bool:
+        """Check if an XML file is an Odoo view file"""
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read(500)  # Read first 500 chars
+                return "<odoo>" in content or "<openerp>" in content
+        except Exception:
+            return False
 
-        return "\n".join(recommendations)
+    def _find_odoo_modules(self, path: Path) -> list[Path]:
+        """Find all Odoo modules in a directory"""
+        modules = []
 
-    @staticmethod
-    def get_module_name_from_path(file_path: Path) -> str | None:
-        """
-        Extract Odoo module name from file path.
+        # Check immediate subdirectories
+        for subdir in path.iterdir():
+            if subdir.is_dir() and self._is_odoo_module(subdir):
+                modules.append(subdir)
 
-        Args:
-            file_path: Path to file in Odoo module
+        return modules
 
-        Returns:
-            Module name or None
-        """
-        # Look for __manifest__.py or __openerp__.py in parent directories
-        current = file_path.parent if file_path.is_file() else file_path
-        while current.parent != current:
-            if (current / "__manifest__.py").exists() or (
-                current / "__openerp__.py"
-            ).exists():
-                return current.name
-            current = current.parent
+    # ========================================================================
+    # UTILITY METHODS
+    # ========================================================================
 
-        # Fallback: use first directory name if it looks like a module
-        parts = file_path.parts
-        if parts:
-            potential_module = parts[0]
-            # Simple heuristic: module names are usually lowercase with underscores
-            if "_" in potential_module or potential_module.islower():
-                return potential_module
+    def filter_files_by_capability(
+        self,
+        files: list[Path],
+        capability: str,
+    ) -> list[Path]:
+        """Filter files by capability (order, rename, etc.)"""
+        result = []
+        for file_path in files:
+            if self.can_process(file_path, capability):
+                result.append(file_path)
+        return result
 
-        return None
+    def group_files_by_type(
+        self,
+        files: list[Path],
+    ) -> dict[FileType, list[Path]]:
+        """Group files by their type"""
+        grouped = {}
+        for file_path in files:
+            file_type = self.get_file_type(file_path)
+            if file_type not in grouped:
+                grouped[file_type] = []
+            grouped[file_type].append(file_path)
+        return grouped
+
+    def get_extensions_for_action(self, action: str) -> set[str]:
+        """Get all file extensions that support a given action"""
+        extensions = set()
+        for info in self._registry.values():
+            if action == "order" and info.can_order:
+                extensions.update(info.extensions)
+            elif action == "rename" and info.can_rename:
+                extensions.update(info.extensions)
+            elif info.type in self._handlers and action in self._handlers[info.type]:
+                extensions.update(info.extensions)
+        return extensions
 
     def find_odoo_files(
         self,
-        module_path: Path,
+        path: Path,
         include_python: bool = True,
         include_xml: bool = True,
         include_data: bool = False,
     ) -> dict[str, list[Path]]:
-        """
-        Find Odoo files organized by type.
-
-        Args:
-            module_path: Path to Odoo module
-            include_python: Include Python files
-            include_xml: Include XML view files
-            include_data: Include data files (yaml, csv)
-
-        Returns:
-            Dictionary with file types as keys and list of paths as values
-        """
-        files = {
+        """Find Odoo-specific files in a directory"""
+        result = {
             "models": [],
             "wizards": [],
-            "controllers": [],
             "views": [],
             "data": [],
             "security": [],
         }
 
-        if not module_path.is_dir():
-            return files
+        if not path.exists():
+            return result
 
-        # Python files
+        # Find model files
         if include_python:
-            for dir_name in ["models", "wizard", "wizards"]:
-                dir_path = module_path / dir_name
-                if dir_path.exists():
-                    files["models" if dir_name == "models" else "wizards"].extend(
-                        dir_path.glob("*.py")
-                    )
+            models_dir = path / "models"
+            if models_dir.exists():
+                result["models"] = [
+                    f for f in models_dir.rglob("*.py") if f.name != "__init__.py"
+                ]
 
-            controllers_dir = module_path / "controllers"
-            if controllers_dir.exists():
-                files["controllers"].extend(controllers_dir.glob("*.py"))
+            wizards_dir = path / "wizards"
+            if wizards_dir.exists():
+                result["wizards"] = [
+                    f for f in wizards_dir.rglob("*.py") if f.name != "__init__.py"
+                ]
 
-        # XML files
+        # Find view files
         if include_xml:
-            views_dir = module_path / "views"
+            views_dir = path / "views"
             if views_dir.exists():
-                files["views"].extend(views_dir.glob("*.xml"))
+                result["views"] = list(views_dir.rglob("*.xml"))
 
-            data_dir = module_path / "data"
-            if data_dir.exists():
-                files["data"].extend(data_dir.glob("*.xml"))
+            if include_data:
+                data_dir = path / "data"
+                if data_dir.exists():
+                    result["data"] = list(data_dir.rglob("*.xml"))
 
-            security_dir = module_path / "security"
-            if security_dir.exists():
-                files["security"].extend(security_dir.glob("*.xml"))
+                security_dir = path / "security"
+                if security_dir.exists():
+                    result["security"] = list(security_dir.rglob("*.xml"))
 
-        # Data files
-        if include_data:
-            for dir_path in [module_path / "data", module_path / "demo"]:
-                if dir_path.exists():
-                    files["data"].extend(dir_path.glob("*.csv"))
-                    files["data"].extend(dir_path.glob("*.yml"))
-                    files["data"].extend(dir_path.glob("*.yaml"))
+        return result
 
-        return files
+    def get_recommendation_string(self, analysis: PathAnalysis) -> str:
+        """Get a human-readable recommendation string"""
+        if not analysis.recommended_targets:
+            return "No processing recommended"
+
+        targets = analysis.recommended_targets
+        if "all" in targets:
+            return "Process all files (Python and XML)"
+        elif len(targets) == 1:
+            target_map = {
+                "python_code": "Reorder Python code",
+                "python_field_attr": "Reorder Python field attributes",
+                "xml_code": "Reorder XML structure",
+                "xml_node_attr": "Reorder XML attributes",
+            }
+            return target_map.get(targets[0], targets[0])
+        else:
+            return f"Multiple options: {', '.join(targets)}"
+
+    @staticmethod
+    def get_module_name_from_path(path: Path) -> str | None:
+        """Extract Odoo module name from a file path"""
+        parts = path.parts
+
+        # Look for common Odoo module indicators
+        for i, part in enumerate(parts):
+            if part in [
+                "models",
+                "views",
+                "wizards",
+                "controllers",
+                "security",
+                "data",
+            ]:
+                if i > 0:
+                    return parts[i - 1]
+
+        # If path contains __manifest__.py or __openerp__.py
+        if "__manifest__.py" in str(path) or "__openerp__.py" in str(path):
+            return path.parent.name
+
+        return None
+
+    def is_odoo_file(self, path: Path) -> bool:
+        """Check if file is Odoo-specific"""
+        info = self.get_file_info(path)
+        if not info:
+            return False
+
+        # Special case: Python files in Odoo modules are considered Odoo files
+        if info.type == FileType.PYTHON:
+            # Check if it's in an Odoo module structure
+            parts = path.parts
+            return "models" in parts or "wizards" in parts or "controllers" in parts
+
+        return info.is_odoo_specific
+
+
+# Global analyzer instance (singleton)
+path_analyzer = PathAnalyzer()

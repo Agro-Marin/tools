@@ -10,8 +10,8 @@ import pandas as pd
 from core.base_processor import ProcessingStatus, ProcessResult
 from core.config import Config
 from core.git_manager import GitManager
-from core.path_analyzer import PathAnalyzer
-from src.core.order import Order
+from core.order import Order
+from core.path_analyzer import FileType, path_analyzer
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,11 @@ class DetectCommand:
 
             # Get modified files
             modified_files = self.git_manager.get_modified_files(from_sha, to_sha)
-            python_files = [f for f in modified_files if f.endswith(".py")]
+            python_files = [
+                f
+                for f in modified_files
+                if path_analyzer.get_file_type(Path(f)) == FileType.PYTHON
+            ]
 
             # Filter by module if specified
             if self.config.modules:
@@ -220,7 +224,7 @@ class DetectCommand:
 
                 if confidence >= 0.5:  # Minimum threshold
                     # Extract module and model from file path
-                    module = PathAnalyzer.get_module_name_from_path(Path(file_path))
+                    module = path_analyzer.get_module_name_from_path(Path(file_path))
                     if not module:
                         module = "unknown"
                     model = old_field.get("class", "unknown")
@@ -273,7 +277,7 @@ class DetectCommand:
                 )
 
                 if confidence >= 0.5:
-                    module = PathAnalyzer.get_module_name_from_path(Path(file_path))
+                    module = path_analyzer.get_module_name_from_path(Path(file_path))
                     if not module:
                         module = "unknown"
                     model = old_method.get("class", "unknown")

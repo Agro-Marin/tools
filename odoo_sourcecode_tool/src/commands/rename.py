@@ -11,7 +11,7 @@ import pandas as pd
 from core.backup_manager import BackupManager
 from core.base_processor import ProcessingStatus, ProcessResult
 from core.config import Config
-from core.path_analyzer import PathAnalyzer
+from core.path_analyzer import FileType, path_analyzer
 
 logger = logging.getLogger(__name__)
 
@@ -229,7 +229,7 @@ class RenameCommand:
             self.config.renaming.file_types and "xml" in self.config.renaming.file_types
         )
 
-        analyzer = PathAnalyzer()
+        analyzer = path_analyzer
         odoo_files = analyzer.find_odoo_files(
             module_path,
             include_python=include_python,
@@ -259,16 +259,18 @@ class RenameCommand:
             if self.backup_manager and not self.config.dry_run:
                 self.backup_manager.backup_file(file_path)
 
-            # Process based on file type
-            if file_path.suffix == ".py":
+            # Process based on file type using registry
+            file_type = path_analyzer.get_file_type(file_path)
+
+            if file_type == FileType.PYTHON:
                 return self._process_python_file(file_path, changes)
-            elif file_path.suffix == ".xml":
+            elif file_type == FileType.XML:
                 return self._process_xml_file(file_path, changes)
             else:
                 return ProcessResult(
                     file_path=file_path,
                     status=ProcessingStatus.SKIPPED,
-                    error_message="Unsupported file type",
+                    error_message=f"Unsupported file type: {file_type.value}",
                 )
 
         except Exception as e:

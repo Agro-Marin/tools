@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pandas as pd
 import pytest
 from core.base_processor import ProcessingStatus, ProcessResult
-from src.commands.rename import ASTRenameTransformer, FieldChange, RenameCommand
-from src.core.config import Config
+from commands.rename import ASTRenameTransformer, FieldChange, RenameCommand
+from core.config import Config
 
 
 class TestRenameCommand:

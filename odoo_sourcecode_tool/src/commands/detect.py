@@ -11,7 +11,7 @@ from core.base_processor import ProcessingStatus, ProcessResult
 from core.config import Config
 from core.git_manager import GitManager
 from core.path_analyzer import PathAnalyzer
-from src.core.order import OdooOrdering
+from src.core.order import Order
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class DetectCommand:
         """Initialize detect command with configuration"""
         self.config = config
         self.git_manager = GitManager(config.repo_path)
-        self.ordering = OdooOrdering(config)
+        self.ordering = Order(config)
 
     def execute(
         self,

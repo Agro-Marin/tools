@@ -39,58 +39,7 @@ from core.config import Config
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class FieldInfo:
-    """Information about an Odoo field"""
-
-    name: str
-    field_type: str
-    line_number: int
-    column: int
-    attributes: dict[str, Any] = field(default_factory=dict)
-    docstring: str | None = None
-
-
-@dataclass
-class MethodInfo:
-    """Information about a class method"""
-
-    name: str
-    line_number: int
-    column: int
-    decorators: list[str] = field(default_factory=list)
-    parameters: list[str] = field(default_factory=list)
-    docstring: str | None = None
-    method_type: str | None = None  # compute, constraint, onchange, etc.
-
-
-@dataclass
-class ClassInfo:
-    """Information about a Python class"""
-
-    name: str
-    line_number: int
-    bases: list[str] = field(default_factory=list)
-    decorators: list[str] = field(default_factory=list)
-    docstring: str | None = None
-    odoo_model: str | None = None
-    inherit: list[str] | None = None
-    fields: list[FieldInfo] = field(default_factory=list)
-    methods: list[MethodInfo] = field(default_factory=list)
-    attributes: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class ModuleInfo:
-    """Information about a Python module"""
-
-    imports: list[dict[str, Any]] = field(default_factory=list)
-    classes: list[ClassInfo] = field(default_factory=list)
-    functions: list[MethodInfo] = field(default_factory=list)
-    constants: dict[str, Any] = field(default_factory=dict)
-
-
-class OdooOrdering:
+class Order:
     """Python/AST-specific ordering and reorganization logic for Odoo files."""
 
     def __init__(

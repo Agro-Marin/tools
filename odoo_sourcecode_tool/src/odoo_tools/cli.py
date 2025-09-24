@@ -12,11 +12,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from commands.detect import DetectCommand
 from commands.rename import RenameCommand
-from commands.workflow import WorkflowCommand
 from core.backup_manager import BackupManager
 from core.base_processor import ProcessingStatus
 from core.config import Config
-from src.core.order import OdooOrdering
+from src.core.order import Order
 from core.path_analyzer import PathAnalyzer, PathType
 from odoo_tools import __version__
 
@@ -287,8 +286,8 @@ def reorder(
         session_type = f"reorder_{target}"
         backup_manager.start_session(session_type)
 
-    # Execute the reordering using OdooOrdering directly
-    ordering = OdooOrdering(config)
+    # Execute the reordering using Order directly
+    ordering = Order(config)
     options = {}
 
     click.echo(f"\n🔧 Processing with target: {target}")
@@ -450,42 +449,6 @@ def rename(
 
     command = RenameCommand(config)
     result = command.execute(Path(csv_file))
-
-    sys.exit(0 if result.status == ProcessingStatus.SUCCESS else 1)
-
-
-@cli.command()
-@click.argument(
-    "config_file",
-    type=click.Path(),
-)
-@click.option(
-    "--pipeline",
-    "-p",
-    help="Pipeline name to execute",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Preview workflow without executing",
-)
-@click.pass_context
-def workflow(
-    ctx,
-    config_file: str,
-    pipeline: str | None,
-    dry_run: bool,
-):
-    """Execute predefined workflows
-
-    Runs complex multi-step workflows defined in configuration files,
-    allowing chaining of detection, ordering, and renaming operations.
-    """
-    config = ctx.obj["config"]
-    config.dry_run = dry_run
-
-    command = WorkflowCommand(config)
-    result = command.execute(Path(config_file), pipeline)
 
     sys.exit(0 if result.status == ProcessingStatus.SUCCESS else 1)
 

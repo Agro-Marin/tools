@@ -51,7 +51,313 @@ field_method_detector/
 └── requirements-test.txt           # Dependencias testing
 ```
 
-## 📋 Plan de Implementación Detallado
+## 🚀 MVP: Enfoque Minimalista (1-2 días)
+
+### ¿Por Qué Empezar con MVP?
+Para obtener **beneficios inmediatos** con **mínimo esfuerzo**, implementaremos primero un sistema de testing básico usando casos reales estáticos. Este MVP detectará regresiones críticas desde el día 1.
+
+### Estructura MVP Minimalista
+```
+field_method_detector/
+├── tests/
+│   ├── test_cases/
+│   │   ├── case_qty_patterns.yml
+│   │   ├── case_count_patterns.yml
+│   │   └── case_compute_methods.yml
+│   ├── test_real_cases.py
+│   └── conftest.py
+├── tools/
+│   └── extract_real_case.py
+└── pytest.ini
+```
+
+### Formato de Caso Estático
+```yaml
+# tests/test_cases/case_qty_patterns.yml
+name: "qty_delivered_to_transfered"
+description: "Quantity fields pattern migration from sale module"
+
+# Diff estático extraído directamente de Git
+diff: |
+  --- a/models/sale_order.py
+  +++ b/models/sale_order.py
+  @@ -15,7 +15,7 @@ class SaleOrder(models.Model):
+       _name = 'sale.order'
+       
+  -    qty_delivered = fields.Float(string="Delivered")
+  +    qty_transfered = fields.Float(string="Delivered")
+       
+  -    def _compute_qty_delivered(self):
+  +    def _compute_qty_transfered(self):
+           pass
+
+# Resultado esperado (extraído de ejecución real exitosa)
+expected_output:
+  - old_name: "qty_delivered"
+    new_name: "qty_transfered" 
+    item_type: "field"
+    confidence_min: 0.85
+  - old_name: "_compute_qty_delivered"
+    new_name: "_compute_qty_transfered"
+    item_type: "method"
+    confidence_min: 0.95
+```
+
+### Test Runner Simple
+```python
+# tests/test_real_cases.py
+import yaml
+import tempfile
+import subprocess
+import csv
+from pathlib import Path
+
+class TestRealCases:
+    """Tests basados en casos reales extraídos del proyecto"""
+    
+    def test_qty_patterns(self):
+        """Test detección de patrones qty_* -> qty_transfered"""
+        self._run_case("case_qty_patterns.yml")
+    
+    def test_count_patterns(self):
+        """Test detección de patrones *_count -> count_*"""
+        self._run_case("case_count_patterns.yml")
+        
+    def test_compute_methods(self):
+        """Test detección de métodos compute renombrados"""
+        self._run_case("case_compute_methods.yml")
+        
+    def _run_case(self, case_file):
+        """Ejecuta un caso de prueba específico"""
+        # 1. Cargar definición del caso
+        case = self._load_case(case_file)
+        
+        # 2. Crear repositorio temporal con el diff
+        repo_path = self._create_temp_repo_with_diff(case['diff'])
+        
+        # 3. Ejecutar field_method_detector
+        result_csv = self._run_detector(repo_path)
+        
+        # 4. Verificar que detecta lo esperado
+        self._assert_detections_match(result_csv, case['expected_output'])
+        
+        # 5. Cleanup
+        self._cleanup_temp_repo(repo_path)
+    
+    def _create_temp_repo_with_diff(self, diff_content):
+        """Crea repo Git temporal aplicando el diff"""
+        temp_dir = tempfile.mkdtemp()
+        
+        # Extraer archivos "before" del diff
+        self._extract_before_state(temp_dir, diff_content)
+        
+        # Crear commit inicial
+        subprocess.run(['git', 'init'], cwd=temp_dir, check=True)
+        subprocess.run(['git', 'add', '.'], cwd=temp_dir, check=True) 
+        subprocess.run(['git', 'commit', '-m', 'Initial state'], cwd=temp_dir, check=True)
+        
+        # Aplicar diff para crear estado "after"
+        self._apply_diff(temp_dir, diff_content)
+        subprocess.run(['git', 'add', '.'], cwd=temp_dir, check=True)
+        subprocess.run(['git', 'commit', '-m', 'After changes'], cwd=temp_dir, check=True)
+        
+        return temp_dir
+    
+    def _run_detector(self, repo_path):
+        """Ejecuta field_method_detector en el repo temporal"""
+        output_csv = f"{repo_path}/test_output.csv"
+        
+        # Obtener commits del repo temporal
+        result = subprocess.run(['git', 'rev-list', '--reverse', 'HEAD'], 
+                              cwd=repo_path, capture_output=True, text=True, check=True)
+        commits = result.stdout.strip().split('\n')
+        
+        # Ejecutar detector entre primer y último commit
+        cmd = [
+            'python', 'main.py',
+            '--repo', repo_path,
+            '--commit-before', commits[0],
+            '--commit-after', commits[1], 
+            '--output', output_csv
+        ]
+        subprocess.run(cmd, check=True)
+        
+        return output_csv
+    
+    def _assert_detections_match(self, result_csv, expected):
+        """Verifica que las detecciones coincidan con lo esperado"""
+        with open(result_csv, 'r') as f:
+            reader = csv.DictReader(f)
+            detections = list(reader)
+        
+        # Verificar que se detectaron todos los casos esperados
+        for expected_item in expected:
+            matching_detection = None
+            for detection in detections:
+                if (detection['old_name'] == expected_item['old_name'] and
+                    detection['new_name'] == expected_item['new_name'] and
+                    detection['item_type'] == expected_item['item_type']):
+                    matching_detection = detection
+                    break
+            
+            assert matching_detection is not None, f"No se detectó: {expected_item}"
+            
+            # Verificar nivel de confianza mínimo
+            confidence = float(matching_detection.get('confidence', 0))
+            min_confidence = expected_item.get('confidence_min', 0.8)
+            assert confidence >= min_confidence, f"Confianza baja: {confidence} < {min_confidence}"
+```
+
+### Script de Extracción de Casos
+```python
+# tools/extract_real_case.py
+#!/usr/bin/env python3
+"""Extrae casos de prueba desde commits Git reales"""
+
+import subprocess
+import yaml
+import argparse
+import csv
+import sys
+
+def extract_case_from_commits(commit_before, commit_after, case_name, output_file):
+    """Extrae un caso real desde commits Git existentes"""
+    
+    print(f"Extrayendo caso desde {commit_before} a {commit_after}...")
+    
+    # 1. Obtener diff entre commits
+    try:
+        diff_result = subprocess.run([
+            'git', 'diff', f"{commit_before}..{commit_after}"
+        ], capture_output=True, text=True, check=True)
+        diff_content = diff_result.stdout
+    except subprocess.CalledProcessError as e:
+        print(f"Error obteniendo diff: {e}")
+        sys.exit(1)
+    
+    # 2. Ejecutar detector en esos commits para obtener expected output
+    try:
+        detector_result = subprocess.run([
+            'python', 'main.py',
+            '--commit-before', commit_before,
+            '--commit-after', commit_after,
+            '--output', '/tmp/extract_output.csv'
+        ], capture_output=True, text=True, check=True)
+        
+        # Parsear CSV resultado
+        expected_output = []
+        with open('/tmp/extract_output.csv', 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                expected_output.append({
+                    'old_name': row['old_name'],
+                    'new_name': row['new_name'],
+                    'item_type': row['item_type'],
+                    'confidence_min': max(0.8, float(row.get('confidence', 0.8)) - 0.05)
+                })
+                
+    except subprocess.CalledProcessError as e:
+        print(f"Error ejecutando detector: {e}")
+        sys.exit(1)
+    
+    # 3. Crear estructura del caso
+    case_data = {
+        'name': case_name,
+        'description': f"Real case extracted from commits {commit_before[:7]}..{commit_after[:7]}",
+        'source_commits': {
+            'before': commit_before,
+            'after': commit_after
+        },
+        'diff': diff_content,
+        'expected_output': expected_output
+    }
+    
+    # 4. Guardar archivo YAML
+    with open(output_file, 'w') as f:
+        yaml.dump(case_data, f, default_flow_style=False, allow_unicode=True)
+    
+    print(f"✅ Caso extraído: {output_file}")
+    print(f"   - {len(expected_output)} detecciones esperadas")
+    print(f"   - Diff: {len(diff_content.splitlines())} líneas")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Extrae casos de prueba desde commits Git")
+    parser.add_argument("--before", required=True, help="Commit antes de los cambios")
+    parser.add_argument("--after", required=True, help="Commit después de los cambios")
+    parser.add_argument("--name", required=True, help="Nombre descriptivo del caso")
+    parser.add_argument("--output", required=True, help="Archivo de salida (.yml)")
+    
+    args = parser.parse_args()
+    extract_case_from_commits(args.before, args.after, args.name, args.output)
+```
+
+### Configuración Pytest Mínima
+```ini
+# pytest.ini
+[tool:pytest]
+testpaths = tests
+python_files = test_*.py
+python_functions = test_*
+addopts = 
+    --tb=short
+    -v
+markers =
+    mvp: Tests del MVP minimalista
+```
+
+### Uso del MVP
+
+#### Extraer casos desde commits conocidos:
+```bash
+# Extraer caso de qty patterns
+python tools/extract_real_case.py \
+  --before 7c142414 \
+  --after 0c2db5f5 \
+  --name "qty_patterns_migration" \
+  --output tests/test_cases/case_qty_patterns.yml
+
+# Extraer caso de count patterns  
+python tools/extract_real_case.py \
+  --before 8b5d3bff \
+  --after e9a7e669 \
+  --name "count_patterns_migration" \
+  --output tests/test_cases/case_count_patterns.yml
+```
+
+#### Ejecutar suite MVP:
+```bash
+# Instalar dependencias mínimas
+pip install pytest pyyaml
+
+# Ejecutar tests
+pytest tests/test_real_cases.py -v -m mvp
+
+# Output esperado:
+# tests/test_real_cases.py::test_qty_patterns PASSED
+# tests/test_real_cases.py::test_count_patterns PASSED  
+# tests/test_real_cases.py::test_compute_methods PASSED
+```
+
+### Beneficios del MVP (1-2 días implementación)
+
+1. **Detección inmediata de regresiones** en patrones críticos
+2. **Casos basados en datos reales** del proyecto actual
+3. **Fácil adición de nuevos casos** cuando se encuentren bugs
+4. **Base sólida** para evolucionar hacia testing completo
+5. **ROI inmediato** con mínima inversión
+
+### Evolución del MVP
+
+```
+Día 1-2:  MVP funcional con 3-5 casos críticos
+Semana 2: Añadir 10-15 casos más desde CSV existente  
+Semana 3: Evolucionar hacia testing unitario completo
+Mes 2:    Sistema completo como se describe abajo
+```
+
+---
+
+## 📋 Plan de Implementación Completo (Post-MVP)
 
 ### Fase 1: Setup Base (2-3 días)
 
@@ -400,24 +706,58 @@ jobs:
 
 ## 🚀 Roadmap de Ejecución
 
-### Semana 1: Foundation
-- [ ] Setup estructura testing
-- [ ] Configuración pytest + CI
-- [ ] Fixtures básicas
-- [ ] Primeros 10 tests unitarios críticos
+### Enfoque MVP-First
 
-### Semana 2: Core Coverage  
-- [ ] Tests completos AST parser
-- [ ] Tests completos Matching Engine
+#### Día 1-2: MVP Minimalista ⭐ **EMPEZAR AQUÍ**
+- [ ] Implementar `test_real_cases.py` básico
+- [ ] Crear `tools/extract_real_case.py`  
+- [ ] Extraer 3-5 casos críticos desde commits conocidos
+- [ ] Configuración pytest mínima
+- [ ] **Resultado**: Detección de regresiones inmediata
+
+#### Semana 2: Expansión MVP
+- [ ] Extraer 10-15 casos más desde CSV existente
+- [ ] Automatizar extracción de casos
+- [ ] Añadir validaciones de confianza más estrictas
+- [ ] **Resultado**: Cobertura de casos reales >80%
+
+#### Semana 3-4: Testing Unitario Completo
+- [ ] Setup estructura testing completa
+- [ ] Tests unitarios AST parser  
+- [ ] Tests unitarios Matching Engine
 - [ ] Tests Naming Rules
-- [ ] Cobertura >60%
+- [ ] **Resultado**: Cobertura código >60%
 
-### Semana 3: Integration & Polish
+#### Mes 2: Integration & Polish
 - [ ] Tests integración end-to-end
 - [ ] Performance tests
-- [ ] Regression test suite
-- [ ] Cobertura >80%
+- [ ] CI/CD integration
+- [ ] **Resultado**: Suite completa, cobertura >80%
 
-**Tiempo Total Estimado**: 15-20 días hombre
-**ROI**: Crítico - base para todas las demás mejoras
-**Riesgo**: Bajo - solo agrega funcionalidad, no modifica existente
+### Comparación de Enfoques
+
+| Aspecto | MVP (1-2 días) | Completo (15-20 días) |
+|---------|----------------|----------------------|
+| **Tiempo inversión** | 1-2 días | 15-20 días |
+| **Detección regresiones** | ✅ Inmediata | ✅ Completa |
+| **Casos reales** | ✅ 3-5 críticos | ✅ Exhaustivos |
+| **Cobertura código** | ❌ 0% | ✅ >80% |
+| **Tests unitarios** | ❌ No | ✅ Completos |
+| **CI/CD ready** | ⚠️ Básico | ✅ Profesional |
+| **ROI inmediato** | ✅ Alto | ⚠️ Diferido |
+
+### Recomendación: **Implementar MVP primero**
+
+El MVP te dará:
+- **Protección inmediata** contra regresiones críticas
+- **Validación del concepto** con esfuerzo mínimo  
+- **Base sólida** para evolución incremental
+- **Confianza** para refactorizar desde el día 1
+
+**Tiempo Total Estimado**: 
+- **MVP**: 1-2 días (ROI inmediato)
+- **Sistema Completo**: 15-20 días (ROI diferido)
+- **Enfoque Recomendado**: MVP → Incremental → Completo
+
+**ROI**: Crítico - protección inmediata con mínima inversión
+**Riesgo**: Muy Bajo - solo agrega funcionalidad, no modifica existente

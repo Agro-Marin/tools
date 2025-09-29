@@ -12,16 +12,20 @@ import re
 
 # Field Naming Rules - All AgroMarin conventions
 FIELD_NAMING_RULES = [
-    # Counter fields: *_count → count_*
+    # Counter fields: *_count → count_* (general pattern)
     {
         "pattern": r"^(.+)_count$",
         "replacement": r"count_\1",
         "description": "Counter fields pattern",
         "examples": [
-            "picking_ids_count → count_picking_ids",
-            "invoice_lines_count → count_invoice_lines",
+            "supplier_invoice_count → count_supplier_invoice",
+            "product_count → count_product",
+            "sale_order_count → count_sale_order",
+            "quotations_count → count_quotations",
+            "purchase_order_count → count_purchase_order",
         ],
-        "weight": 0.8,  # High confidence for this pattern
+        "field_types": ["Integer"],
+        "weight": 0.9,  # Very high confidence - extremely consistent pattern in CSV
     },
     # Quantity fields: *_qty → qty_* AND qty_* variations
     {
@@ -53,13 +57,21 @@ FIELD_NAMING_RULES = [
         "examples": ["product_qty → product_uom_qty"],
         "weight": 0.9,
     },
-    # Date fields: *_date → date_*
+    # Date fields: *_date → date_* (updated with CSV patterns)
     {
         "pattern": r"^(.+)_date$",
         "replacement": r"date_\1",
-        "description": "Date fields pattern",
-        "examples": ["order_date → date_order", "invoice_date → date_invoice"],
-        "weight": 0.8,
+        "description": "Date fields reordering pattern",
+        "examples": [
+            "commitment_date → date_commitment",
+            "effective_date → date_effective",
+            "reservation_date → date_reservation",
+            "delay_alert_date → date_delay_alert",
+            "order_date → date_order",
+            "invoice_date → date_invoice",
+        ],
+        "field_types": ["Date", "Datetime"],
+        "weight": 0.9,  # Increased confidence based on CSV evidence
     },
     # Date field variations
     {
@@ -116,17 +128,19 @@ FIELD_NAMING_RULES = [
         ],
         "weight": 0.9,
     },
-    # Tax inclusive suffixes: field_name → field_name_taxinc
+    # Tax inclusive suffixes: specific monetary fields only
     {
-        "pattern": r"^(.+)$",
+        "pattern": r"^(amount_.+|price_.+|total_.+|untaxed_.+|taxed_.+)$",
         "replacement": r"\1_taxinc",
-        "description": "Tax inclusive suffix pattern",
+        "description": "Tax inclusive suffix for monetary fields",
         "examples": [
             "amount_to_invoice → amount_to_invoice_taxinc",
             "amount_invoiced → amount_invoiced_taxinc",
+            "price_unit → price_unit_taxinc",
+            "total_amount → total_amount_taxinc",
         ],
         "field_types": ["Monetary", "Float"],
-        "weight": 0.7,
+        "weight": 0.75,  # Slightly higher confidence due to specificity
     },
     # Status/State field patterns
     {
@@ -160,14 +174,6 @@ FIELD_NAMING_RULES = [
         "examples": ["purchase_line_id → purchase_line_ids"],
         "weight": 0.8,
     },
-    # Order line variations - more specific patterns
-    {
-        "pattern": r"^order_line$",
-        "replacement": r"order_line_ids",
-        "description": "Order line to order line IDs",
-        "examples": ["order_line → order_line_ids"],
-        "weight": 0.9,
-    },
     {
         "pattern": r"^purchase_line_ids$",
         "replacement": r"order_line_ids",
@@ -178,9 +184,9 @@ FIELD_NAMING_RULES = [
     # Typo corrections and specific fixes
     {
         "pattern": r"^order_line_idss$",
-        "replacement": r"order_line_ids",
-        "description": "Fix double s typo",
-        "examples": ["order_line_idss → order_line_ids"],
+        "replacement": r"line_ids",
+        "description": "Fix double s typo in order line",
+        "examples": ["order_line_idss → line_ids"],
         "weight": 0.95,
     },
     {
@@ -248,6 +254,14 @@ FIELD_NAMING_RULES = [
         "description": "Many2one should have _id suffix",
         "validation_only": True,
         "weight": 0.2,  # Bonus for following convention
+    },
+    {
+        "pattern": r"^sale_orders_count$",
+        "replacement": r"count_sale_orders",
+        "description": "Sale orders count specific pattern",
+        "examples": ["sale_orders_count → count_sale_orders"],
+        "field_types": ["Integer"],
+        "weight": 0.95,  # Very specific pattern
     },
 ]
 
@@ -381,7 +395,6 @@ METHOD_NAMING_RULES = [
         ],
         "weight": 0.6,
     },
-    
     # Compute method specific transformations
     {
         "pattern": r"^_compute_qty_received$",
@@ -392,12 +405,58 @@ METHOD_NAMING_RULES = [
         "weight": 1.0,
     },
     {
-        "pattern": r"^_compute_qty_delivered$", 
+        "pattern": r"^_compute_qty_delivered$",
         "replacement": r"_compute_qty_transfered",
         "description": "Compute quantity delivered to transferred",
         "examples": ["_compute_qty_delivered → _compute_qty_transfered"],
         "decorators": ["@api.depends"],
         "weight": 1.0,
+    },
+    # Real patterns from CSV analysis - Date method patterns
+    {
+        "pattern": r"^_compute_(.+)_date$",
+        "replacement": r"_compute_date_\1",
+        "description": "Compute date method reordering",
+        "examples": [
+            "_compute_validity_date → _compute_date_validity",
+            "_compute_effective_date → _compute_date_effective",
+            "_compute_delay_alert_date → _compute_date_delay_alert",
+            "_compute_reservation_date → _compute_date_reservation",
+        ],
+        "decorators": ["@api.depends"],
+        "weight": 0.9,
+    },
+    {
+        "pattern": r"^_onchange_(.+)_date$",
+        "replacement": r"_onchange_date_\1",
+        "description": "Onchange date method reordering",
+        "examples": [
+            "_onchange_commitment_date → _onchange_date_commitment",
+        ],
+        "decorators": ["@api.onchange"],
+        "weight": 0.9,
+    },
+    {
+        "pattern": r"^_search_(.+)_date$",
+        "replacement": r"_search_date_\1",
+        "description": "Search date method reordering",
+        "examples": ["_search_delay_alert_date → _search_date_delay_alert"],
+        "weight": 0.9,
+    },
+    # Real patterns from CSV analysis - Count method patterns
+    {
+        "pattern": r"^_compute_(.+)_count$",
+        "replacement": r"_compute_count_\1",
+        "description": "Compute count method reordering",
+        "examples": [
+            "_compute_supplier_invoice_count → _compute_count_supplier_invoice",
+            "_compute_product_count → _compute_count_product",
+            "_compute_sale_order_count → _compute_count_sale_order",
+            "_compute_purchase_order_count → _compute_count_purchase_order",
+            "_compute_quotation_count → _compute_count_quotation",
+        ],
+        "decorators": ["@api.depends"],
+        "weight": 0.9,  # Very consistent pattern in CSV
     },
 ]
 

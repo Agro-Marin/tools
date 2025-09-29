@@ -232,8 +232,8 @@ class MatchingEngine:
                             field_before, best_match
                         )
                         if (
-                            validation["confidence"] >= 0.60
-                        ):  # Higher threshold for fuzzy matches
+                            validation["confidence"] >= 0.65
+                        ):  # Slightly higher threshold for fuzzy matches based on data analysis
                             candidate = RenameCandidate(
                                 old_name=field_before["name"],
                                 new_name=best_match["name"],
@@ -288,7 +288,9 @@ class MatchingEngine:
                 # Validate rename using naming rules
                 validation = self._validate_method_rename(method_before, method_after)
 
-                if validation["confidence"] >= 0.50:  # Minimum threshold
+                if (
+                    validation["confidence"] >= 0.55
+                ):  # Slightly higher threshold based on successful patterns
                     candidate = RenameCandidate(
                         old_name=method_before["name"],
                         new_name=method_after["name"],

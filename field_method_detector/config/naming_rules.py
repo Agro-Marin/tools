@@ -381,6 +381,24 @@ METHOD_NAMING_RULES = [
         ],
         "weight": 0.6,
     },
+    
+    # Compute method specific transformations
+    {
+        "pattern": r"^_compute_qty_received$",
+        "replacement": r"_compute_qty_transfered",
+        "description": "Compute quantity received to transferred",
+        "examples": ["_compute_qty_received → _compute_qty_transfered"],
+        "decorators": ["@api.depends"],
+        "weight": 1.0,
+    },
+    {
+        "pattern": r"^_compute_qty_delivered$", 
+        "replacement": r"_compute_qty_transfered",
+        "description": "Compute quantity delivered to transferred",
+        "examples": ["_compute_qty_delivered → _compute_qty_transfered"],
+        "decorators": ["@api.depends"],
+        "weight": 1.0,
+    },
 ]
 
 

@@ -12,11 +12,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from commands.detect import DetectCommand
 from commands.rename import RenameCommand
-from core.backup_manager import BackupManager
-from core.base_processor import ProcessingStatus
 from core.config import Config
 from core.order import Order
-from core.path_analyzer import path_analyzer
+from core.path_analyzer import BackupManager, ProcessingStatus, path_analyzer
 from odoo_tools import __version__
 
 logging.basicConfig(
@@ -507,9 +505,6 @@ def backup(
     View, restore, or clean backup sessions created during tool operations.
     """
     config = ctx.obj["config"]
-
-    # Import backup manager directly
-    from core.backup_manager import BackupManager
 
     manager = BackupManager(
         backup_dir=config.backup.directory,

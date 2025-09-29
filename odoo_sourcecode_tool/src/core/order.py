@@ -32,7 +32,6 @@ from blueprint.blueprint import (
     SECTION_HEADERS,
     XML_ATTRIBUTE_ORDER,
 )
-from core.base_processor import ProcessingStatus, ProcessResult
 from core.classification_rule_field import (
     ClassificationRuleField,
     get_default_field_rules,
@@ -42,7 +41,13 @@ from core.classification_rule_method import (
     get_default_method_rules,
 )
 from core.config import Config
-from core.path_analyzer import FileType, PathAnalysis, path_analyzer
+from core.path_analyzer import (
+    FileType,
+    PathAnalysis,
+    ProcessingStatus,
+    ProcessResult,
+    path_analyzer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -263,8 +268,9 @@ class Order:
         Returns:
             ProcessResult with status and changes
         """
-        try:
-            content = file_path.read_text(encoding="utf-8")
+
+        def python_transformer(content: str) -> tuple[str, dict]:
+            """Transform Python content with specified modes."""
             original_content = content
             ordered_content = content
             changes_made = []
@@ -306,36 +312,22 @@ class Order:
                 else:
                     logger.warning(f"Unknown Python processing mode: {mode}")
 
-            # Check if content changed
-            if ordered_content == original_content:
-                logger.info(f"No changes needed for {file_path}")
-                return ProcessResult(
-                    status=ProcessingStatus.SUCCESS,
-                    file_path=file_path,
-                )
+            metadata = {
+                "changes_made": changes_made,
+                "modes_str": (
+                    " and ".join(changes_made) if changes_made else "formatting"
+                ),
+            }
+            return ordered_content, metadata
 
-            # Save or preview changes
-            if self.config.dry_run:
-                modes_str = " and ".join(changes_made) if changes_made else "formatting"
-                logger.info(f"[DRY RUN] Would reorder {modes_str} in {file_path}")
-            else:
-                file_path.write_text(ordered_content, encoding="utf-8")
-                modes_str = " and ".join(changes_made) if changes_made else "formatting"
-                logger.info(f"Reordered {modes_str} in {file_path}")
-
-            return ProcessResult(
-                status=ProcessingStatus.SUCCESS,
-                file_path=file_path,
-                changes_applied=len(changes_made) if changes_made else 1,
-            )
-
-        except Exception as e:
-            logger.error(f"Error processing {file_path}: {e}")
-            return ProcessResult(
-                status=ProcessingStatus.ERROR,
-                file_path=file_path,
-                error_message=str(e),
-            )
+        # Use PathAnalyzer's unified file processing
+        analyzer = path_analyzer.with_backup(self.config)
+        return analyzer.process_file_with_transform(
+            file_path,
+            python_transformer,
+            dry_run=self.config.dry_run,
+            backup=getattr(self.config.backup, "enabled", True),
+        )
 
     def _process_single_xml_file(
         self,
@@ -351,8 +343,9 @@ class Order:
         Returns:
             ProcessResult with status and changes
         """
-        try:
-            content = file_path.read_text(encoding="utf-8")
+
+        def xml_transformer(content: str) -> tuple[str, dict]:
+            """Transform XML content with specified modes."""
             original_content = content
             ordered_content = content
             changes_made = []
@@ -374,35 +367,33 @@ class Order:
                 else:
                     logger.warning(f"Unknown XML processing mode: {mode}")
 
-            if ordered_content == original_content:
-                logger.info(f"No changes needed for {file_path}")
-                return ProcessResult(
-                    status=ProcessingStatus.SUCCESS,
-                    file_path=file_path,
-                )
+            metadata = {
+                "changes_made": changes_made,
+                "modes_str": (
+                    " and ".join(changes_made) if changes_made else "no changes"
+                ),
+            }
+            return ordered_content, metadata
 
-            # Save or preview changes
-            if self.config.dry_run:
-                modes_str = " and ".join(changes_made)
-                logger.info(f"[DRY RUN] Would reorder {modes_str} in {file_path}")
-            else:
-                file_path.write_text(ordered_content, encoding="utf-8")
-                modes_str = " and ".join(changes_made)
-                logger.info(f"Reordered {modes_str} in {file_path}")
+        # Use PathAnalyzer's unified file processing
+        analyzer = path_analyzer.with_backup(self.config)
+        return analyzer.process_file_with_transform(
+            file_path,
+            xml_transformer,
+            dry_run=self.config.dry_run,
+            backup=getattr(self.config.backup, "enabled", True),
+        )
 
-            return ProcessResult(
-                status=ProcessingStatus.SUCCESS,
-                file_path=file_path,
-                changes_applied=len(changes_made),
-            )
-
-        except Exception as e:
-            logger.error(f"Error processing {file_path}: {e}")
-            return ProcessResult(
-                status=ProcessingStatus.ERROR,
-                file_path=file_path,
-                error_message=str(e),
-            )
+    def _process_single_xml_file_error_handler(
+        self, file_path: Path, e: Exception
+    ) -> ProcessResult:
+        """Handle XML processing errors (kept for compatibility)."""
+        logger.error(f"Error processing {file_path}: {e}")
+        return ProcessResult(
+            status=ProcessingStatus.ERROR,
+            file_path=file_path,
+            error_message=str(e),
+        )
 
     def _process_python_attributes_only(
         self,
@@ -442,34 +433,38 @@ class Order:
         processor_func=None,
         action: str = "order",
     ) -> ProcessResult:
-        """Process a list of files using the registry or specified processor"""
-        success_count = 0
-        error_count = 0
-        skipped_count = 0
+        """Process a list of files using batch processing with backup support."""
+        # Use PathAnalyzer's batch processing with backup session management
+        analyzer = path_analyzer.with_backup(self.config)
 
-        for file_path in file_list:
-            # Use registry if no processor specified
-            if processor_func is None:
+        # If we have a processor function, use batch processing
+        if processor_func:
+            results = analyzer.process_files(
+                file_list,
+                processor_func,
+                session_type=f"order_{action}",
+            )
+        else:
+            # Process files individually using registry
+            results = []
+            for file_path in file_list:
                 file_type = path_analyzer.get_file_type(file_path)
                 if file_type == FileType.UNKNOWN:
                     logger.debug(f"Skipping unknown file type: {file_path}")
-                    skipped_count += 1
                     continue
 
                 handler = path_analyzer.get_handler(file_type, action)
                 if not handler:
                     logger.debug(f"No handler for {file_type.value}:{action}")
-                    skipped_count += 1
                     continue
 
                 result = handler(file_path)
-            else:
-                result = processor_func(file_path)
+                results.append(result)
 
-            if result.status == ProcessingStatus.SUCCESS:
-                success_count += 1
-            elif result.status == ProcessingStatus.ERROR:
-                error_count += 1
+        # Count results
+        success_count = sum(1 for r in results if r.status == ProcessingStatus.SUCCESS)
+        error_count = sum(1 for r in results if r.status == ProcessingStatus.ERROR)
+        skipped_count = len(file_list) - len(results)
 
         logger.info(
             f"Processed {success_count} files successfully, "

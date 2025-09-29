@@ -7,11 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
-from core.base_processor import ProcessingStatus, ProcessResult
 from core.config import Config
 from core.git_manager import GitManager
 from core.order import Order
-from core.path_analyzer import FileType, path_analyzer
+from core.path_analyzer import FileType, ProcessingStatus, ProcessResult, path_analyzer
 
 logger = logging.getLogger(__name__)
 

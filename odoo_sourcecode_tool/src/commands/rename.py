@@ -8,10 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
-from core.backup_manager import BackupManager
-from core.base_processor import ProcessingStatus, ProcessResult
 from core.config import Config
-from core.path_analyzer import FileType, path_analyzer
+from core.path_analyzer import FileType, ProcessingStatus, ProcessResult, path_analyzer
 
 logger = logging.getLogger(__name__)
 
@@ -42,14 +40,8 @@ class RenameCommand:
     def __init__(self, config: Config):
         """Initialize rename command with configuration"""
         self.config = config
-        self.backup_manager = None
-
-        if config.backup.enabled:
-            self.backup_manager = BackupManager(
-                backup_dir=config.backup.directory,
-                compression=config.backup.compression,
-                keep_sessions=config.backup.keep_sessions,
-            )
+        # Use PathAnalyzer with backup support instead of direct BackupManager
+        self.analyzer = path_analyzer.with_backup(config)
 
     def execute(self, csv_file: Path, path_info: dict = None) -> bool:
         """
@@ -78,8 +70,8 @@ class RenameCommand:
             logger.info(f"Loaded {len(changes)} changes from {csv_file}")
 
             # Start backup session if enabled
-            if self.backup_manager and not self.config.dry_run:
-                self.backup_manager.start_session("field_method_renaming")
+            if not self.config.dry_run:
+                self.analyzer.start_backup_session("field_method_renaming")
 
             # Group changes by module and model
             changes_by_model = self._group_changes(changes)
@@ -88,8 +80,8 @@ class RenameCommand:
             results = self._process_changes(changes_by_model, path_info)
 
             # Finalize backup
-            if self.backup_manager and not self.config.dry_run:
-                self.backup_manager.finalize_session()
+            if not self.config.dry_run:
+                self.analyzer.finalize_backup_session()
 
             # Report results
             success_count = sum(
@@ -192,7 +184,7 @@ class RenameCommand:
         return grouped
 
     def _process_changes(
-        self, changes_by_model: dict[str, list[FieldChange]], path_info: dict = None
+        self, changes_by_model: dict[str, list[FieldChange]], path_info: dict = None,
     ) -> list[ProcessResult]:
         """Process all changes grouped by model"""
         results = []
@@ -254,29 +246,18 @@ class RenameCommand:
         changes: list[FieldChange],
     ) -> ProcessResult:
         """Process a single file with changes"""
-        try:
-            # Backup if needed
-            if self.backup_manager and not self.config.dry_run:
-                self.backup_manager.backup_file(file_path)
+        # Process based on file type using registry
+        file_type = path_analyzer.get_file_type(file_path)
 
-            # Process based on file type using registry
-            file_type = path_analyzer.get_file_type(file_path)
-
-            if file_type == FileType.PYTHON:
-                return self._process_python_file(file_path, changes)
-            elif file_type == FileType.XML:
-                return self._process_xml_file(file_path, changes)
-            else:
-                return ProcessResult(
-                    file_path=file_path,
-                    status=ProcessingStatus.SKIPPED,
-                    error_message=f"Unsupported file type: {file_type.value}",
-                )
-
-        except Exception as e:
-            logger.error(f"Error processing {file_path}: {e}")
+        if file_type == FileType.PYTHON:
+            return self._process_python_file(file_path, changes)
+        elif file_type == FileType.XML:
+            return self._process_xml_file(file_path, changes)
+        else:
             return ProcessResult(
-                file_path=file_path, status=ProcessingStatus.ERROR, error_message=str(e)
+                file_path=file_path,
+                status=ProcessingStatus.SKIPPED,
+                error_message=f"Unsupported file type: {file_type.value}",
             )
 
     def _process_python_file(
@@ -284,48 +265,37 @@ class RenameCommand:
         file_path: Path,
         changes: list[FieldChange],
     ) -> ProcessResult:
-        """Process Python file for renames"""
-        content = file_path.read_text(encoding="utf-8")
+        """Process Python file for renames using unified processing."""
 
-        # Separate field and method changes
-        field_changes = {c.old_name: c.new_name for c in changes if c.is_field}
-        method_changes = {c.old_name: c.new_name for c in changes if c.is_method}
+        def python_rename_transformer(content: str) -> tuple[str, dict]:
+            """Apply Python renames using AST transformation."""
+            # Separate field and method changes
+            field_changes = {c.old_name: c.new_name for c in changes if c.is_field}
+            method_changes = {c.old_name: c.new_name for c in changes if c.is_method}
 
-        if not field_changes and not method_changes:
-            return ProcessResult(
-                file_path=file_path, status=ProcessingStatus.NO_CHANGES
-            )
+            if not field_changes and not method_changes:
+                return content, {"changes_made": []}
 
-        # Parse AST
-        try:
+            # Parse AST
             tree = ast.parse(content)
-        except SyntaxError as e:
-            return ProcessResult(
-                file_path=file_path,
-                status=ProcessingStatus.ERROR,
-                error_message=f"Syntax error: {e}",
-            )
 
-        # Apply transformations
-        transformer = ASTRenameTransformer(field_changes, method_changes)
-        new_tree = transformer.visit(tree)
+            # Apply transformations
+            transformer = ASTRenameTransformer(field_changes, method_changes)
+            new_tree = transformer.visit(tree)
 
-        if not transformer.changes_made:
-            return ProcessResult(
-                file_path=file_path, status=ProcessingStatus.NO_CHANGES
-            )
+            if not transformer.changes_made:
+                return content, {"changes_made": []}
 
-        # Convert back to source
-        new_content = ast.unparse(new_tree)
+            # Convert back to source
+            new_content = ast.unparse(new_tree)
+            return new_content, {"changes_made": transformer.changes_made}
 
-        # Write if not dry run
-        if not self.config.dry_run:
-            file_path.write_text(new_content, encoding="utf-8")
-
-        return ProcessResult(
-            file_path=file_path,
-            status=ProcessingStatus.SUCCESS,
-            changes_applied=len(transformer.changes_made),
+        # Use PathAnalyzer's unified file processing
+        return self.analyzer.process_file_with_transform(
+            file_path,
+            python_rename_transformer,
+            dry_run=self.config.dry_run,
+            backup=getattr(self.config.backup, "enabled", True),
         )
 
     def _process_xml_file(
@@ -333,81 +303,77 @@ class RenameCommand:
         file_path: Path,
         changes: list[FieldChange],
     ) -> ProcessResult:
-        """Process XML file for field and method references"""
-        field_changes = {c.old_name: c.new_name for c in changes if c.is_field}
-        method_changes = {c.old_name: c.new_name for c in changes if c.is_method}
+        """Process XML file for field and method references using unified processing."""
 
-        if not field_changes and not method_changes:
-            return ProcessResult(
-                file_path=file_path, status=ProcessingStatus.NO_CHANGES
-            )
+        def xml_rename_transformer(content: str) -> tuple[str, dict]:
+            """Apply XML renames using safe text replacements."""
+            field_changes = {c.old_name: c.new_name for c in changes if c.is_field}
+            method_changes = {c.old_name: c.new_name for c in changes if c.is_method}
 
-        content = file_path.read_text(encoding="utf-8")
-        original_content = content
-        changes_made = []
+            if not field_changes and not method_changes:
+                return content, {"changes_made": []}
 
-        # Apply safe text replacements to preserve formatting
-        # This approach is more robust than parsing and rewriting XML
+            changes_made = []
 
-        # Process field changes
-        for old_name, new_name in field_changes.items():
-            # Safe patterns for field references
-            safe_patterns = [
-                (f'name="{old_name}"', f'name="{new_name}"'),
-                (f"name='{old_name}'", f"name='{new_name}'"),
-                (f'ref="{old_name}"', f'ref="{new_name}"'),
-                (f"ref='{old_name}'", f"ref='{new_name}'"),
-            ]
+            # Apply safe text replacements to preserve formatting
+            # This approach is more robust than parsing and rewriting XML
 
-            for old_pattern, new_pattern in safe_patterns:
-                if old_pattern in content:
-                    count = content.count(old_pattern)
-                    content = content.replace(old_pattern, new_pattern)
-                    if count > 0:
-                        changes_made.append(
-                            f"Field {old_name}->{new_name}: {count} refs"
-                        )
-                        logger.debug(
-                            f"Replaced {old_pattern} with {new_pattern} ({count} times)"
-                        )
+            # Process field changes
+            for old_name, new_name in field_changes.items():
+                # Safe patterns for field references
+                safe_patterns = [
+                    (f'name="{old_name}"', f'name="{new_name}"'),
+                    (f"name='{old_name}'", f"name='{new_name}'"),
+                    (f'ref="{old_name}"', f'ref="{new_name}"'),
+                    (f"ref='{old_name}'", f"ref='{new_name}'"),
+                ]
 
-        # Process method changes
-        for old_name, new_name in method_changes.items():
-            # Safe patterns for method references
-            safe_patterns = [
-                # Button names
-                (f'<button name="{old_name}"', f'<button name="{new_name}"'),
-                (f"<button name='{old_name}'", f"<button name='{new_name}'"),
-                # Actions
-                (f'action="{old_name}"', f'action="{new_name}"'),
-                (f"action='{old_name}'", f"action='{new_name}'"),
-                # Method calls in eval
-                (f".{old_name}(", f".{new_name}("),
-            ]
+                for old_pattern, new_pattern in safe_patterns:
+                    if old_pattern in content:
+                        count = content.count(old_pattern)
+                        content = content.replace(old_pattern, new_pattern)
+                        if count > 0:
+                            changes_made.append(
+                                f"Field {old_name}->{new_name}: {count} refs"
+                            )
+                            logger.debug(
+                                f"Replaced {old_pattern} with {new_pattern} ({count} times)"
+                            )
 
-            for old_pattern, new_pattern in safe_patterns:
-                if old_pattern in content:
-                    count = content.count(old_pattern)
-                    content = content.replace(old_pattern, new_pattern)
-                    if count > 0:
-                        changes_made.append(
-                            f"Method {old_name}->{new_name}: {count} refs"
-                        )
-                        logger.debug(
-                            f"Replaced {old_pattern} with {new_pattern} ({count} times)"
-                        )
+            # Process method changes
+            for old_name, new_name in method_changes.items():
+                # Safe patterns for method references
+                safe_patterns = [
+                    # Button names
+                    (f'<button name="{old_name}"', f'<button name="{new_name}"'),
+                    (f"<button name='{old_name}'", f"<button name='{new_name}'"),
+                    # Actions
+                    (f'action="{old_name}"', f'action="{new_name}"'),
+                    (f"action='{old_name}'", f"action='{new_name}'"),
+                    # Method calls in eval
+                    (f".{old_name}(", f".{new_name}("),
+                ]
 
-        if content != original_content and not self.config.dry_run:
-            file_path.write_text(content, encoding="utf-8")
+                for old_pattern, new_pattern in safe_patterns:
+                    if old_pattern in content:
+                        count = content.count(old_pattern)
+                        content = content.replace(old_pattern, new_pattern)
+                        if count > 0:
+                            changes_made.append(
+                                f"Method {old_name}->{new_name}: {count} refs"
+                            )
+                            logger.debug(
+                                f"Replaced {old_pattern} with {new_pattern} ({count} times)"
+                            )
 
-        return ProcessResult(
-            file_path=file_path,
-            status=(
-                ProcessingStatus.SUCCESS
-                if changes_made
-                else ProcessingStatus.NO_CHANGES
-            ),
-            changes_applied=len(changes_made),
+            return content, {"changes_made": changes_made}
+
+        # Use PathAnalyzer's unified file processing
+        return self.analyzer.process_file_with_transform(
+            file_path,
+            xml_rename_transformer,
+            dry_run=self.config.dry_run,
+            backup=getattr(self.config.backup, "enabled", True),
         )
 
 

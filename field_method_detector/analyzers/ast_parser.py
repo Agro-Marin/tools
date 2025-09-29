@@ -355,6 +355,42 @@ class XMLParser:
         return elements
 
 
+def extract_definitions(content: str, file_path: str = "") -> dict[str, list]:
+    """
+    Extract field and method definitions from Python content for inheritance analysis.
+
+    This function provides a simplified interface to the existing AST parsing logic,
+    making it reusable by the new ModelRegistry system.
+
+    Args:
+        content: Python file content
+        file_path: File path for context
+
+    Returns:
+        Dictionary with fields, methods, and classes information
+    """
+    inventory = {"fields": [], "methods": [], "classes": [], "file_path": file_path}
+
+    try:
+        # Parse Python AST
+        tree = ast.parse(content)
+
+        # Visit nodes to extract information
+        visitor = OdooASTVisitor()
+        visitor.visit(tree)
+
+        inventory["fields"] = visitor.fields
+        inventory["methods"] = visitor.methods
+        inventory["classes"] = visitor.classes
+
+    except SyntaxError as e:
+        logger.warning(f"Cannot parse Python file {file_path}: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error parsing {file_path}: {e}")
+
+    return inventory
+
+
 class CodeInventoryExtractor:
     """Main extractor for creating code inventories"""
 
@@ -374,26 +410,8 @@ class CodeInventoryExtractor:
         Returns:
             Dictionary with fields, methods, and classes
         """
-        inventory = {"fields": [], "methods": [], "classes": [], "file_path": file_path}
-
-        try:
-            # Parse Python AST
-            tree = ast.parse(content)
-
-            # Visit nodes to extract information
-            visitor = OdooASTVisitor()
-            visitor.visit(tree)
-
-            inventory["fields"] = visitor.fields
-            inventory["methods"] = visitor.methods
-            inventory["classes"] = visitor.classes
-
-        except SyntaxError as e:
-            logger.warning(f"Cannot parse Python file {file_path}: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error parsing {file_path}: {e}")
-
-        return inventory
+        # Use the new extract_definitions function for consistency
+        return extract_definitions(content, file_path)
 
     def extract_xml_inventory(
         self, content: str, file_path: str = ""

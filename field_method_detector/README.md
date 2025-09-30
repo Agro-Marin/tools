@@ -14,48 +14,80 @@ La herramienta **Field Method Detector** es una utilidad especializada para dete
 - Generar reportes estructurados de cambios para revisión
 - Proporcionar validación manual interactiva para cambios detectados
 
-## Estructura del Código
+## Arquitectura del Proyecto
+
+### Estructura Completa del Código
 
 ```
 field_method_detector/
 ├── __init__.py                          # Inicialización del paquete
-├── detect_field_method_changes.py       # Script principal
-├── analyzers/                           # Analizadores de código
+├── detect_field_method_changes.py       # Script principal de ejecución
+├── analyzers/                           # Motor de Análisis
 │   ├── __init__.py
-│   ├── ast_parser.py                    # Parser AST para análisis de código
-│   ├── git_analyzer.py                  # Integración con Git
-│   └── matching_engine.py               # Motor de coincidencias
-├── config/                              # Configuración
+│   ├── ast_visitor.py                   # Parser AST - Extrae definiciones de campos/métodos
+│   ├── cross_reference_analyzer.py      # Encuentra referencias cruzadas en todo el codebase
+│   ├── git_analyzer.py                  # Compara archivos entre commits de Git
+│   └── matching_engine.py               # Empareja campos/métodos usando heurísticas
+├── core/                                # Lógica Central del Sistema
 │   ├── __init__.py
-│   ├── naming_rules.py                  # Reglas de nomenclatura
-│   └── settings.py                      # Configuraciones generales
-├── interactive/                         # Interfaz interactiva
+│   ├── models.py                        # Estructuras de datos (FieldInfo, MethodInfo, ChangeRecord)
+│   ├── model_registry.py                # Registro de modelos Odoo y sus relaciones
+│   ├── inheritance_graph.py             # Mapea herencia entre modelos (_inherit, _inherits)
+│   └── model_flattener.py               # Resuelve herencia para vista completa de modelos
+├── config/                              # Configuración del Sistema
 │   ├── __init__.py
-│   └── validation_ui.py                 # UI para validación manual
-├── utils/                               # Utilidades
+│   ├── naming_rules.py                  # Reglas para detectar patrones de renombrado
+│   └── settings.py                      # Configuración general (rutas, filtros, umbrales)
+├── interactive/                         # Interfaz de Usuario
 │   ├── __init__.py
-│   └── csv_manager.py                   # Gestión de archivos CSV
-├── modified_modules.json                # Lista de módulos modificados
-└── odoo_field_changes_detected.csv      # Resultado de detecciones
+│   └── validation_ui.py                 # UI para validación manual de cambios
+├── utils/                               # Utilidades de Soporte
+│   ├── __init__.py
+│   ├── csv_manager.py                   # Maneja lectura/escritura del CSV de salida
+│   ├── csv_validator.py                 # Valida integridad del CSV generado
+│   └── test_case_extractor.py           # Extrae casos de prueba del código
+├── tests/                               # Suite de Pruebas
+│   ├── test_cases/
+│   ├── test_cross_reference_implementation.py
+│   ├── test_csv_manager.py
+│   └── test_real_cases.py
+├── modified_modules.json                # Lista de módulos a analizar
+└── odoo_field_changes_detected.csv      # Resultado principal con cambios detectados
 ```
 
-### Componentes Principales
+### Flujo de Procesamiento
 
-#### 1. AST Parser (`ast_parser.py`)
-- **CodeInventoryExtractor**: Extrae inventarios de campos y métodos
-- Genera "firmas" únicas basadas en argumentos, tipos y decoradores
-- Excluye nombres para permitir detección de renombres
+El sistema funciona en las siguientes etapas secuenciales:
 
-#### 2. Git Analyzer (`git_analyzer.py`)
-- **GitAnalyzer**: Interactúa con repositorios Git
-- Obtiene contenido de archivos en commits específicos
-- Utiliza comandos `git show` y `git diff` internamente
+1. **Análisis Git**: `GitAnalyzer` obtiene archivos modificados entre commits
+2. **Extracción AST**: `ASTVisitor` parsea código Python extrayendo campos y métodos
+3. **Construcción de Modelos**: `ModelRegistry` + `ModelFlattener` resuelven herencia Odoo
+4. **Emparejamiento**: `MatchingEngine` identifica elementos renombrados usando similitudes
+5. **Referencias Cruzadas**: `CrossReferenceAnalyzer` encuentra usos de cada cambio
+6. **Generación CSV**: `CSVManager` produce archivo final con cambios y referencias
 
-#### 3. Matching Engine (`matching_engine.py`)
-- **MatchingEngine**: Lógica central de detección
-- Compara inventarios entre versiones "antes" y "después"
-- Aplica reglas de nomenclatura para validación
-- Calcula puntuaciones de confianza
+### Componentes Principales por Responsabilidad
+
+#### Análisis de Código (`analyzers/`)
+- **`ast_visitor.py`**: Parsea AST de Python extrayendo campos y métodos con sus firmas
+- **`git_analyzer.py`**: Compara archivos entre commits usando comandos Git
+- **`matching_engine.py`**: Empareja elementos renombrados basándose en similitudes
+- **`cross_reference_analyzer.py`**: Busca referencias de campos/métodos en todo el codebase
+
+#### Lógica Central (`core/`)
+- **`models.py`**: Define estructuras de datos para representar cambios
+- **`model_registry.py`**: Mantiene registro completo de modelos Odoo
+- **`inheritance_graph.py`**: Mapea relaciones de herencia entre modelos
+- **`model_flattener.py`**: Resuelve herencia múltiple para análisis completo
+
+#### Configuración (`config/`)
+- **`settings.py`**: Configuración general (rutas, umbrales, filtros)
+- **`naming_rules.py`**: Reglas para detectar patrones de renombrado automático
+
+#### Utilidades (`utils/`)
+- **`csv_manager.py`**: Gestiona entrada/salida de archivos CSV
+- **`csv_validator.py`**: Valida estructura e integridad de datos CSV
+- **`test_case_extractor.py`**: Extrae casos de prueba del código fuente
 
 ## Instalación y Configuración
 
@@ -135,42 +167,65 @@ cat odoo_field_changes_detected.csv
 
 ### `odoo_field_changes_detected.csv`
 
-Archivo principal con los resultados de la detección. Contiene las siguientes columnas:
+Archivo principal con los resultados de la detección. La estructura actual incluye:
 
+**Columnas Básicas:**
+- **change_id**: Identificador único del cambio
 - **old_name**: Nombre original del campo/método
-- **new_name**: Nuevo nombre del campo/método
+- **new_name**: Nuevo nombre detectado
 - **item_type**: Tipo de elemento (`field` o `method`)
-- **module**: Nombre del módulo analizado
-- **model**: Modelo de Odoo donde se encuentra el elemento
+- **module**: Módulo donde se detectó el cambio
+- **model**: Modelo de Odoo específico
+- **confidence**: Puntuación de confianza (0.0 - 1.0)
+
+**Columnas Extendidas** (cuando están disponibles):
+- **change_scope**: Alcance del cambio (`model`, `inherited`, etc.)
+- **impact_type**: Tipo de impacto (`primary`, `secondary`)
+- **context**: Información contextual adicional
+- **parent_change_id**: Referencia a cambio relacionado
 
 ### Ejemplo de Salida CSV
 
 ```csv
-old_name,new_name,item_type,module,model
-x_custom_field,custom_field,field,sale,sale.order
-_compute_old,_compute_new,method,purchase,purchase.order
+change_id,old_name,new_name,item_type,module,model,confidence
+1,supplier_invoice_count,count_supplier_invoice,field,account,res.partner,1.000
+2,_compute_supplier_invoice_count,_compute_count_supplier_invoice,method,account,res.partner,1.000
+3,action_open_product_template,action_view_product_template,method,product,product.product,0.950
 ```
 
 ## Consideraciones Técnicas
 
 ### Algoritmo de Detección
 
-1. **Extracción de Inventario**: Utiliza AST para extraer campos y métodos
-2. **Generación de Firmas**: Crea identificadores únicos basados en:
+1. **Análisis Git**: Compara archivos modificados entre dos commits específicos
+2. **Extracción AST**: Parsea código Python extrayendo definiciones de campos y métodos
+3. **Generación de Firmas**: Crea identificadores únicos basados en:
    - Tipo de campo/decoradores de método
-   - Argumentos y parámetros
-   - Contexto de definición
-3. **Matching por Firma**: Compara firmas entre commits
-4. **Aplicación de Reglas**: Valida con reglas de nomenclatura
-5. **Cálculo de Confianza**: Asigna puntuaciones basadas en similitud
+   - Argumentos y parámetros de función
+   - Contexto de definición (clase contenedora)
+   - Excluye nombres para permitir detección de renombres
+4. **Resolución de Herencia**: Construye grafo completo de herencia Odoo (_inherit, _inherits)
+5. **Matching Inteligente**: Empareja elementos usando:
+   - Similitud de firmas (alta confianza)
+   - Heurísticas de nomenclatura (confianza media)
+   - Análisis de contexto y posición
+6. **Referencias Cruzadas**: Busca usos de cada cambio detectado en todo el codebase
+7. **Validación**: Aplica reglas de nomenclatura y calcula puntuaciones de confianza
 
-### Limitaciones
+### Limitaciones Actuales
 
-- **Dependencia de AST**: Solo analiza código Python válido
-- **Cambios Complejos**: No detecta refactorizaciones mayores
-- **Falsos Positivos**: Puede generar coincidencias incorrectas en casos ambiguos
-- **Rendimiento**: El análisis puede ser lento en repositorios grandes
-- **Cobertura**: Limited a cambios de nombres, no detecta cambios de lógica
+- **Análisis Python únicamente**: Solo procesa archivos `.py`, no detecta cambios en XML
+- **Herencia compleja**: La resolución de herencia múltiple puede ser lenta en proyectos grandes
+- **Falsos positivos**: Heurísticas pueden generar coincidencias incorrectas en casos ambiguos
+- **Rendimiento**: El análisis completo puede tardar varios minutos en repositorios grandes
+- **Scope limitado**: Se enfoca en renombres, no detecta refactorizaciones de lógica
+
+### Áreas de Optimización Identificadas
+
+1. **Consolidación de analizadores**: Unificar `ast_visitor.py` y `cross_reference_analyzer.py`
+2. **Caché de herencia**: Implementar caché más agresivo en `ModelFlattener`
+3. **Configuración simplificada**: Reducir número de archivos de configuración
+4. **Utilidades CSV unificadas**: Consolidar `csv_manager.py` y `csv_validator.py`
 
 ### Mejores Prácticas
 

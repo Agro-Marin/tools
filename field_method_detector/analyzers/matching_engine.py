@@ -1,597 +1,691 @@
 """
-Matching Engine for Field and Method Renames
-==============================================
+Matching Engine with Inheritance Support
+========================================
 
-Core algorithm for detecting renamed fields and methods using AST signatures
-and AgroMarin naming rules.
+Single matching engine that integrates all rename detection capabilities:
+- Direct signature matching
+- Inheritance-aware detection
+- Cross-reference generation
 """
 
 import logging
-from dataclasses import dataclass
-from typing import Any
+import uuid
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from config.naming_rules import naming_engine
-from config.settings import SCORING_WEIGHTS
+from config.settings import SCORING_WEIGHTS, config
+from core.models import Model, Field, Method, Reference, RenameCandidate
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class RenameCandidate:
-    """Data class for rename candidates"""
-
-    old_name: str
-    new_name: str
-    item_type: str  # 'field' or 'method'
-    module: str
-    model: str
-    confidence: float
-    signature_match: bool
-    rule_applied: str | None = None
-    scoring_breakdown: dict[str, float] | None = None
-    validations: list[dict] | None = None
-    api_changes: dict | None = None
-    file_path: str = ""
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for serialization"""
-        return {
-            "old_name": self.old_name,
-            "new_name": self.new_name,
-            "type": self.item_type,
-            "module": self.module,
-            "model": self.model,
-            "confidence": self.confidence,
-            "signature_match": self.signature_match,
-            "rule_applied": self.rule_applied,
-            "scoring_breakdown": self.scoring_breakdown or {},
-            "validations": self.validations or [],
-            "api_changes": self.api_changes,
-            "file_path": self.file_path,
-        }
-
-
 class MatchingEngine:
-    """Main engine for detecting field and method renames"""
+    """
+    Matching engine that finds all types of renames including:
+    - Direct renames
+    - Inheritance impacts
+    - Cross-reference impacts
+    """
 
-    def __init__(self):
+    # Global shared counter for unique change IDs across all instances
+    _global_change_id_counter = 1
+
+    def __init__(self, start_id: int = None):
         self.naming_engine = naming_engine
-        self.scoring_weights = SCORING_WEIGHTS
+        if start_id is not None:
+            MatchingEngine._global_change_id_counter = start_id
 
-    def find_renames_in_inventories(
+    @classmethod
+    def get_next_change_id(cls) -> str:
+        """Get next unique change ID across all MatchingEngine instances"""
+        current_id = cls._global_change_id_counter
+        cls._global_change_id_counter += 1
+        return str(current_id)
+
+    def find_all_renames(
         self,
-        before_inventory: dict,
-        after_inventory: dict,
+        before_models: List[Model],
+        after_models: List[Model],
         module_name: str,
-        file_path: str = "",
-    ) -> list[RenameCandidate]:
+        include_inheritance: bool = True,
+        include_cross_references: bool = True,
+    ) -> List[RenameCandidate]:
         """
-        Find renames between two code inventories.
-
-        Args:
-            before_inventory: Code inventory from before commit
-            after_inventory: Code inventory from after commit
-            module_name: Name of the Odoo module
-            file_path: Path to the file being analyzed
-
-        Returns:
-            List of rename candidates
+        Single method that finds all types of renames:
+        - Direct renames (original functionality)
+        - Inheritance impacts (inheritance-aware functionality)
+        - Cross-references (cross-reference functionality)
         """
+        all_candidates = []
+
+        # Phase 1: Direct renames
+        direct_candidates = self._find_direct_renames(
+            before_models, after_models, module_name
+        )
+
+        # Set module name for all candidates
+        for candidate in direct_candidates:
+            candidate.module = module_name
+
+        all_candidates.extend(direct_candidates)
+
+        # Phase 2: Inheritance impacts (if enabled)
+        if include_inheritance:
+            inheritance_candidates = self._find_inheritance_impacts(
+                direct_candidates, before_models, after_models
+            )
+            all_candidates.extend(inheritance_candidates)
+
+        # Phase 3: Cross-references (if enabled)
+        if include_cross_references:
+            cross_ref_candidates = self._find_cross_reference_impacts(
+                direct_candidates, before_models, after_models
+            )
+            all_candidates.extend(cross_ref_candidates)
+
+        return all_candidates
+
+    def _find_direct_renames(
+        self, before_models: List[Model], after_models: List[Model], module_name: str
+    ) -> List[RenameCandidate]:
+        """Find direct renames by comparing fields and methods"""
         candidates = []
 
+        # Build maps for efficient lookup
+        before_fields = self._build_field_map(before_models)
+        after_fields = self._build_field_map(after_models)
+        before_methods = self._build_method_map(before_models)
+        after_methods = self._build_method_map(after_models)
+
         # Find field renames
-        field_candidates = self._find_field_renames(
-            before_inventory.get("fields", []),
-            after_inventory.get("fields", []),
-            module_name,
-            file_path,
-        )
+        field_candidates = self._match_fields(before_fields, after_fields, module_name)
         candidates.extend(field_candidates)
 
         # Find method renames
-        method_candidates = self._find_method_renames(
-            before_inventory.get("methods", []),
-            after_inventory.get("methods", []),
-            module_name,
-            file_path,
+        method_candidates = self._match_methods(
+            before_methods, after_methods, module_name
         )
         candidates.extend(method_candidates)
 
-        # Debug logging for matching process
-        logger.debug(f"\n--- MATCHING ENGINE ANALYSIS for {file_path} ---")
-        logger.debug(
-            f"Fields processed: {len(before_inventory.get('fields', []))} → {len(after_inventory.get('fields', []))}"
-        )
-        logger.debug(
-            f"Methods processed: {len(before_inventory.get('methods', []))} → {len(after_inventory.get('methods', []))}"
-        )
-        logger.debug(f"Total candidates found: {len(candidates)}")
-
-        if candidates:
-            for candidate in candidates:
-                logger.debug(
-                    f"  Candidate: {candidate.old_name} → {candidate.new_name}"
-                )
-                logger.debug(f"    Type: {candidate.item_type}")
-                logger.debug(f"    Confidence: {candidate.confidence:.3f}")
-                logger.debug(f"    Rule: {candidate.rule_applied}")
-                if candidate.scoring_breakdown:
-                    logger.debug(f"    Scoring: {candidate.scoring_breakdown}")
-
-        logger.debug(f"--- END MATCHING ANALYSIS ---\n")
         return candidates
 
-    def _find_field_renames(
+    def _build_field_map(self, models: List[Model]) -> Dict[str, List[Field]]:
+        """Build a map of model_name -> list of fields"""
+        field_map = {}
+        for model in models:
+            field_map[model.name] = model.fields
+        return field_map
+
+    def _build_method_map(self, models: List[Model]) -> Dict[str, List[Method]]:
+        """Build a map of model_name -> list of methods"""
+        method_map = {}
+        for model in models:
+            method_map[model.name] = model.methods
+        return method_map
+
+    def _match_fields(
         self,
-        fields_before: list[dict],
-        fields_after: list[dict],
+        before_fields: Dict[str, List[Field]],
+        after_fields: Dict[str, List[Field]],
         module_name: str,
-        file_path: str,
-    ) -> list[RenameCandidate]:
-        """Find renamed fields using signature matching and naming rules"""
+    ) -> List[RenameCandidate]:
+        """Match fields between before and after to find renames"""
         candidates = []
 
-        logger.debug(f"\n  === FIELD RENAME ANALYSIS ===")
-        logger.debug(
-            f"  Fields before: {[(f['name'], f.get('signature', 'no-sig')) for f in fields_before]}"
-        )
-        logger.debug(
-            f"  Fields after: {[(f['name'], f.get('signature', 'no-sig')) for f in fields_after]}"
-        )
-
-        for field_before in fields_before:
-            # Check if the original field still exists (indicating it wasn't renamed)
-            field_still_exists = any(
-                f["name"] == field_before["name"] for f in fields_after
-            )
-            if field_still_exists:
-                # Field still exists, so it wasn't renamed - skip
-                logger.debug(
-                    f"  Field '{field_before['name']}' still exists, skipping rename detection"
-                )
+        # For each model, compare fields
+        for model_name in before_fields:
+            if model_name not in after_fields:
                 continue
 
-            # Find fields with matching signature but different name
-            signature_matches = self._find_signature_matches(field_before, fields_after)
-            renamed_matches = [
-                f for f in signature_matches if f["name"] != field_before["name"]
-            ]
+            before_list = before_fields[model_name]
+            after_list = after_fields[model_name]
 
-            if len(renamed_matches) == 1:
-                field_after = renamed_matches[0]
+            # Simple matching: look for missing fields in before and new fields in after
+            before_names = {f.name for f in before_list}
+            after_names = {f.name for f in after_list}
 
-                # Validate rename using naming rules
-                validation = self._validate_field_rename(field_before, field_after)
+            missing_names = before_names - after_names
+            new_names = after_names - before_names
 
-                if validation["confidence"] >= 0.50:  # Minimum threshold
-                    candidate = RenameCandidate(
-                        old_name=field_before["name"],
-                        new_name=field_after["name"],
+            # Find optimal assignments to avoid cross-matching
+            optimal_matches = self._find_optimal_matches(missing_names, new_names)
+
+            for missing_name, new_name, confidence in optimal_matches:
+                if confidence > config.confidence_threshold:  # Use configured threshold
+                    # Auto-approve if high confidence
+                    from core.models import ValidationStatus
+
+                    validation_status = (
+                        ValidationStatus.AUTO_APPROVED.value
+                        if confidence >= 0.90
+                        else ValidationStatus.PENDING.value
+                    )
+
+                    candidate = RenameCandidate.create_primary_declaration(
+                        change_id=self.get_next_change_id(),
+                        old_name=missing_name,
+                        new_name=new_name,
                         item_type="field",
-                        module=module_name,
-                        model=field_before.get("model", ""),
-                        confidence=validation["confidence"],
-                        signature_match=True,
-                        rule_applied=validation.get("rule_applied"),
-                        scoring_breakdown=validation.get("scoring_breakdown"),
-                        validations=validation.get("validations"),
-                        api_changes=validation.get("api_changes"),
-                        file_path=file_path,
+                        module="",  # Will be set by caller
+                        model=model_name,
+                        confidence=confidence,
+                        source_file=before_list[0].source_file if before_list else "",
+                        validation_status=validation_status,
                     )
                     candidates.append(candidate)
-
-            elif len(renamed_matches) > 1:
-                # Multiple matches - need disambiguation
-                logger.debug(
-                    f"Multiple signature matches for field {field_before['name']}: "
-                    f"{[f['name'] for f in renamed_matches]}"
-                )
-
-                # Try to disambiguate using naming rules
-                best_match = self._disambiguate_matches(
-                    field_before, renamed_matches, "field"
-                )
-                if best_match:
-                    validation = self._validate_field_rename(field_before, best_match)
-                    if (
-                        validation["confidence"] >= 0.40
-                    ):  # Lower threshold for disambiguated
-                        candidate = RenameCandidate(
-                            old_name=field_before["name"],
-                            new_name=best_match["name"],
-                            item_type="field",
-                            module=module_name,
-                            model=field_before.get("model", ""),
-                            confidence=validation["confidence"],
-                            signature_match=True,
-                            rule_applied=validation.get("rule_applied"),
-                            scoring_breakdown=validation.get("scoring_breakdown"),
-                            validations=validation.get("validations"),
-                            api_changes=validation.get("api_changes"),
-                            file_path=file_path,
-                        )
-                        candidates.append(candidate)
-
-            else:
-                # No exact signature matches - try fuzzy matching for field type compatibility
-                fuzzy_matches = self._find_fuzzy_field_matches(
-                    field_before, fields_after
-                )
-                if fuzzy_matches:
-                    logger.debug(
-                        f"Fuzzy matches for field {field_before['name']}: "
-                        f"{[f['name'] for f in fuzzy_matches]}"
-                    )
-
-                    # Try to find the best fuzzy match using naming rules
-                    best_match = self._disambiguate_matches(
-                        field_before, fuzzy_matches, "field"
-                    )
-                    if best_match:
-                        validation = self._validate_field_rename(
-                            field_before, best_match
-                        )
-                        if (
-                            validation["confidence"] >= 0.65
-                        ):  # Slightly higher threshold for fuzzy matches based on data analysis
-                            candidate = RenameCandidate(
-                                old_name=field_before["name"],
-                                new_name=best_match["name"],
-                                item_type="field",
-                                module=module_name,
-                                model=field_before.get("model", ""),
-                                confidence=validation["confidence"],
-                                signature_match=False,  # Not exact signature match
-                                rule_applied=validation.get("rule_applied"),
-                                scoring_breakdown=validation.get("scoring_breakdown"),
-                                validations=validation.get("validations"),
-                                api_changes=validation.get("api_changes"),
-                                file_path=file_path,
-                            )
-                            candidates.append(candidate)
+                    # ID is auto-incremented in get_next_change_id()
 
         return candidates
 
-    def _find_method_renames(
+    def _match_methods(
         self,
-        methods_before: list[dict],
-        methods_after: list[dict],
+        before_methods: Dict[str, List[Method]],
+        after_methods: Dict[str, List[Method]],
         module_name: str,
-        file_path: str,
-    ) -> list[RenameCandidate]:
-        """Find renamed methods using signature matching and naming rules"""
+    ) -> List[RenameCandidate]:
+        """Match methods between before and after to find renames"""
         candidates = []
 
-        for method_before in methods_before:
-            # Check if the original method still exists (indicating it wasn't renamed)
-            method_still_exists = any(
-                m["name"] == method_before["name"] for m in methods_after
-            )
-            if method_still_exists:
-                # Method still exists, so it wasn't renamed - skip
-                logger.debug(
-                    f"  Method '{method_before['name']}' still exists, skipping rename detection"
-                )
+        # For each model, compare methods
+        for model_name in before_methods:
+            if model_name not in after_methods:
                 continue
 
-            # Find methods with matching signature but different name
-            signature_matches = self._find_signature_matches(
-                method_before, methods_after
-            )
-            renamed_matches = [
-                m for m in signature_matches if m["name"] != method_before["name"]
-            ]
+            before_list = before_methods[model_name]
+            after_list = after_methods[model_name]
 
-            if len(renamed_matches) == 1:
-                method_after = renamed_matches[0]
+            # Simple matching: look for missing methods in before and new methods in after
+            before_names = {m.name for m in before_list}
+            after_names = {m.name for m in after_list}
 
-                # Validate rename using naming rules
-                validation = self._validate_method_rename(method_before, method_after)
+            missing_names = before_names - after_names
+            new_names = after_names - before_names
 
-                if (
-                    validation["confidence"] >= 0.55
-                ):  # Slightly higher threshold based on successful patterns
-                    candidate = RenameCandidate(
-                        old_name=method_before["name"],
-                        new_name=method_after["name"],
+            # Find optimal assignments to avoid cross-matching
+            optimal_matches = self._find_optimal_matches(missing_names, new_names)
+
+            for missing_name, new_name, confidence in optimal_matches:
+                if confidence > config.confidence_threshold:  # Use configured threshold
+                    # Auto-approve if high confidence
+                    from core.models import ValidationStatus
+
+                    validation_status = (
+                        ValidationStatus.AUTO_APPROVED.value
+                        if confidence >= 0.90
+                        else ValidationStatus.PENDING.value
+                    )
+
+                    candidate = RenameCandidate.create_primary_declaration(
+                        change_id=self.get_next_change_id(),
+                        old_name=missing_name,
+                        new_name=new_name,
                         item_type="method",
-                        module=module_name,
-                        model=method_before.get("model", ""),
-                        confidence=validation["confidence"],
-                        signature_match=True,
-                        rule_applied=validation.get("rule_applied"),
-                        scoring_breakdown=validation.get("scoring_breakdown"),
-                        validations=validation.get("validations"),
-                        api_changes=validation.get("api_changes"),
-                        file_path=file_path,
+                        module="",  # Will be set by caller
+                        model=model_name,
+                        confidence=confidence,
+                        source_file=before_list[0].source_file if before_list else "",
+                        validation_status=validation_status,
                     )
                     candidates.append(candidate)
-
-            elif len(renamed_matches) > 1:
-                # Multiple matches - try disambiguation
-                best_match = self._disambiguate_matches(
-                    method_before, renamed_matches, "method"
-                )
-                if best_match:
-                    validation = self._validate_method_rename(method_before, best_match)
-                    if validation["confidence"] >= 0.40:
-                        candidate = RenameCandidate(
-                            old_name=method_before["name"],
-                            new_name=best_match["name"],
-                            item_type="method",
-                            module=module_name,
-                            model=method_before.get("model", ""),
-                            confidence=validation["confidence"],
-                            signature_match=True,
-                            rule_applied=validation.get("rule_applied"),
-                            scoring_breakdown=validation.get("scoring_breakdown"),
-                            validations=validation.get("validations"),
-                            api_changes=validation.get("api_changes"),
-                            file_path=file_path,
-                        )
-                        candidates.append(candidate)
+                    # ID is auto-incremented in get_next_change_id()
 
         return candidates
 
-    def _find_signature_matches(
-        self, target_item: dict, candidate_items: list[dict]
-    ) -> list[dict]:
-        """Find items with matching signatures"""
+    def _find_optimal_matches(
+        self, missing_names: set, new_names: set
+    ) -> List[Tuple[str, str, float]]:
+        """Find optimal matches allowing many-to-one mappings (multiple old names to same new name)"""
+        # Convert to lists for indexing
+        missing_list = list(missing_names)
+        new_list = list(new_names)
+
+        # Log raw comparison count for debugging
+        total_comparisons = len(missing_list) * len(new_list)
+        if total_comparisons > 0:
+            logger.debug(
+                f"Evaluating {total_comparisons} raw comparisons ({len(missing_list)} missing × {len(new_list)} new)"
+            )
+
+        # Calculate all possible matches with similarities
+        all_matches = []
+        for missing in missing_list:
+            for new in new_list:
+                similarity = self._calculate_similarity(missing, new)
+                if similarity > 0:  # Only consider non-zero similarities
+                    all_matches.append((similarity, missing, new))
+
+        # Sort by similarity descending (highest first)
+        all_matches.sort(reverse=True)
+
+        # Two-phase assignment to handle both one-to-one and many-to-one cases
         matches = []
-        target_signature = target_item.get("signature", "")
+        used_missing = set()
 
-        logger.debug(
-            f"    Looking for signature matches for '{target_item['name']}' (sig: {target_signature[:50]}...)"
-        )
+        # Phase 1: Handle high-confidence exact matches first (similarity >= 0.9)
+        # These are likely perfect renames and should get priority
+        for similarity, missing_name, new_name in all_matches:
+            if similarity >= 0.9 and missing_name not in used_missing:
+                matches.append((missing_name, new_name, similarity))
+                used_missing.add(missing_name)
 
-        if not target_signature:
-            logger.debug(f"    No signature for '{target_item['name']}', skipping")
-            return matches
+        # Phase 2: Handle remaining matches, allowing many-to-one
+        # But be smart about avoiding obvious conflicts
+        for similarity, missing_name, new_name in all_matches:
+            if missing_name in used_missing:
+                continue
 
-        for candidate in candidate_items:
-            candidate_signature = candidate.get("signature", "")
-            if candidate_signature == target_signature:
-                matches.append(candidate)
-                logger.debug(f"      ✅ Signature match: {candidate['name']}")
-            else:
-                logger.debug(
-                    f"      ❌ No match: {candidate['name']} (sig: {candidate_signature[:50]}...)"
-                )
+            # Check if this would create a conflict with an existing high-confidence match
+            conflict = False
+            for existing_missing, existing_new, existing_conf in matches:
+                # If we're trying to map to same new_name, only allow if:
+                # 1. Current similarity is reasonably high (>= 0.6)
+                # 2. OR there's no much better alternative for this missing_name
+                if (
+                    existing_new == new_name
+                    and existing_conf >= 0.9
+                    and similarity < 0.8
+                ):
+                    # Don't allow weak matches to high-confidence targets
+                    conflict = True
+                    break
 
-        logger.debug(f"    Total signature matches: {len(matches)}")
+            if not conflict:
+                matches.append((missing_name, new_name, similarity))
+                used_missing.add(missing_name)
+
+        # Log filtering results for debugging
+        if total_comparisons > 0:
+            logger.debug(
+                f"Filtered to {len(matches)} viable matches from {total_comparisons} comparisons"
+            )
+
         return matches
 
-    def _find_fuzzy_field_matches(
-        self, target_field: dict, candidate_fields: list[dict]
-    ) -> list[dict]:
-        """Find fields with compatible types and contexts for fuzzy matching"""
-        matches = []
-        target_field_type = target_field.get("field_type", "")
-        target_name = target_field["name"]
+    def _calculate_similarity(self, name1: str, name2: str) -> float:
+        """Calculate similarity between two names with semantic awareness"""
+        if name1 == name2:
+            return 1.0
 
-        logger.debug(
-            f"    Looking for fuzzy matches for '{target_name}' (type: {target_field_type})"
-        )
+        if len(name1) == 0 or len(name2) == 0:
+            return 0.0
 
-        if not target_field_type:
-            return matches
+        # Check for incompatible semantic patterns in Odoo methods
+        if self._are_semantically_incompatible(name1, name2):
+            return 0.0
 
-        # Only look for candidates with different names that don't already have exact matches
-        remaining_candidates = [f for f in candidate_fields if f["name"] != target_name]
+        # Check if one is a transformation of the other using naming rules
+        if hasattr(self.naming_engine, "is_transformation"):
+            if self.naming_engine.is_transformation(name1, name2):
+                return 0.9
 
-        for candidate in remaining_candidates:
-            candidate_field_type = candidate.get("field_type", "")
-            candidate_name = candidate["name"]
+        # Use a more sophisticated similarity calculation
+        return self._calculate_semantic_similarity(name1, name2)
 
-            # Check if field types are compatible
-            if self._are_field_types_compatible(
-                target_field_type, candidate_field_type
-            ):
-                # Check if the candidate follows naming rules from target
-                validation = self._validate_field_rename(target_field, candidate)
-                confidence = validation.get("confidence", 0.0)
+    def _are_semantically_incompatible(self, name1: str, name2: str) -> bool:
+        """Check if two method names represent incompatible semantic patterns"""
+        # Define incompatible prefixes/patterns in Odoo
+        action_patterns = ["action_", "button_", "open_", "show_"]
+        compute_patterns = ["_compute_", "_calculate_", "_get_computed_"]
+        api_patterns = ["api_", "json_", "jsonrpc_"]
+        internal_patterns = ["_internal_", "_private_", "_helper_"]
 
-                # Only consider if there's some naming rule match
-                if confidence > 0.30:  # Basic threshold for fuzzy matching
-                    matches.append(candidate)
-                    logger.debug(
-                        f"      ✅ Fuzzy match: {candidate_name} (type: {candidate_field_type}, confidence: {confidence:.3f})"
-                    )
-                else:
-                    logger.debug(
-                        f"      ❌ Low confidence: {candidate_name} (type: {candidate_field_type}, confidence: {confidence:.3f})"
-                    )
-            else:
-                logger.debug(
-                    f"      ❌ Incompatible type: {candidate_name} ({candidate_field_type} vs {target_field_type})"
-                )
+        # Check if names have incompatible patterns
+        name1_lower = name1.lower()
+        name2_lower = name2.lower()
 
-        logger.debug(f"    Total fuzzy matches: {len(matches)}")
-        return matches
-
-    def _are_field_types_compatible(self, type1: str, type2: str) -> bool:
-        """Check if two field types are compatible for rename detection"""
-        if type1 == type2:
+        # Action methods should not become compute methods
+        if any(name1_lower.startswith(p) for p in action_patterns) and any(
+            name2_lower.startswith(p) for p in compute_patterns
+        ):
             return True
 
-        # Define compatible field type groups
-        relational_types = {"Many2one", "One2many", "Many2many"}
-        numeric_types = {"Integer", "Float", "Monetary"}
-        text_types = {"Char", "Text", "Html"}
-        temporal_types = {"Date", "Datetime"}
+        if any(name1_lower.startswith(p) for p in compute_patterns) and any(
+            name2_lower.startswith(p) for p in action_patterns
+        ):
+            return True
 
-        # Check if both types are in the same compatibility group
-        for type_group in [relational_types, numeric_types, text_types, temporal_types]:
-            if type1 in type_group and type2 in type_group:
-                return True
+        # API methods should not become internal methods
+        if any(name1_lower.startswith(p) for p in api_patterns) and any(
+            name2_lower.startswith(p) for p in internal_patterns
+        ):
+            return True
 
         return False
 
-    def _disambiguate_matches(
-        self, target_item: dict, matches: list[dict], item_type: str
-    ) -> dict | None:
-        """Disambiguate multiple signature matches using naming rules"""
-        best_match = None
-        best_score = 0.0
+    def _calculate_semantic_similarity(self, name1: str, name2: str) -> float:
+        """Calculate semantic similarity considering word boundaries and structure"""
+        # Split names into words (by underscore, camelCase, etc.)
+        words1 = self._extract_words(name1)
+        words2 = self._extract_words(name2)
 
-        for match in matches:
-            if item_type == "field":
-                validation = self._validate_field_rename(target_item, match)
-            else:
-                validation = self._validate_method_rename(target_item, match)
+        if not words1 or not words2:
+            return 0.0
 
-            confidence = validation.get("confidence", 0.0)
-            if confidence > best_score:
-                best_score = confidence
-                best_match = match
+        # Calculate word-level similarity with synonyms and removable words
+        exact_common = set(words1) & set(words2)
+        synonym_matches = self._find_synonym_matches(words1, words2)
+        removal_bonus = self._calculate_removal_bonus(words1, words2)
 
-        return best_match if best_score > 0.30 else None
+        total_matches = len(exact_common) + len(synonym_matches)
+        total_words = len(set(words1) | set(words2))
 
-    def _validate_field_rename(self, field_before: dict, field_after: dict) -> dict:
-        """Validate field rename using naming rules and conventions"""
-        validation = self.naming_engine.validate_rename(
-            old_name=field_before["name"],
-            new_name=field_after["name"],
-            item_type="field",
-            field_type=field_after.get("field_type"),
-            old_definition=field_before.get("definition", ""),
-            new_definition=field_after.get("definition", ""),
-        )
+        if total_words == 0:
+            return 0.0
 
-        # Ensure confidence is calculated
-        if "confidence" not in validation or validation["confidence"] is None:
-            validation["confidence"] = self.calculate_comprehensive_confidence(
-                validation
-            )
+        word_similarity = (total_matches / total_words) + removal_bonus
 
-        # Add bonus for type compatibility in fuzzy matching
-        field_before_type = field_before.get("field_type", "")
-        field_after_type = field_after.get("field_type", "")
-        if field_before_type and field_after_type:
-            if field_before_type == field_after_type:
-                # Exact type match bonus
-                validation["confidence"] += 0.15
-                validation.setdefault("scoring_breakdown", {})[
-                    "exact_type_match"
-                ] = 0.15
-            elif self._are_field_types_compatible(field_before_type, field_after_type):
-                # Compatible type bonus
-                validation["confidence"] += 0.10
-                validation.setdefault("scoring_breakdown", {})["compatible_type"] = 0.10
+        # Boost similarity if structural patterns match
+        structure_bonus = self._calculate_structure_bonus(name1, name2)
 
-        # Cap confidence at 1.0
-        validation["confidence"] = min(validation["confidence"], 1.0)
+        # Final similarity with structure consideration
+        final_similarity = min(1.0, word_similarity + structure_bonus)
 
-        return validation
+        return final_similarity
 
-    def _validate_method_rename(self, method_before: dict, method_after: dict) -> dict:
-        """Validate method rename using naming rules"""
-        validation = self.naming_engine.validate_rename(
-            old_name=method_before["name"],
-            new_name=method_after["name"],
-            item_type="method",
-            decorators=method_after.get("decorators", []),
-            old_definition=method_before.get("definition", ""),
-            new_definition=method_after.get("definition", ""),
-        )
+    def _find_synonym_matches(self, words1: List[str], words2: List[str]) -> Set[tuple]:
+        """Find synonym matches between two word lists for Odoo-specific concepts"""
+        # Define synonym groups for common Odoo concepts
+        synonym_groups = [
+            # Counting/quantity concepts - CORE for our use case
+            {"number", "count", "qty", "quantity", "total", "amount", "sum"},
+            # Product concepts (be more specific about item/product relationship)
+            {"product", "products"},
+            {"item", "items"},  # Keep separate - only match in specific contexts
+            # Template/model concepts
+            {"template", "tmpl", "model", "variant", "tpl"},
+            # Related/associated concepts (often removed in renames)
+            {"related", "associated", "linked", "connected", "ref"},
+            # ID/identifier concepts (singular/plural)
+            {"id", "ids", "identifier", "identifiers", "key", "keys"},
+            # Compute/calculate concepts
+            {"compute", "calculate", "calc", "get", "determine"},
+            # Line/item list concepts
+            {"line", "lines", "item", "items", "record", "records"},
+            # State/status concepts
+            {"state", "status", "stage", "phase"},
+            # Transfer/movement concepts
+            {"received", "delivered", "transferred", "moved", "sent"},
+            # Common Odoo field suffixes/prefixes
+            {"name", "title", "label", "description", "desc"},
+            # Price/cost concepts (singular/plural)
+            {"price", "prices", "cost", "costs", "rate", "rates"},
+            # Update/modify concepts
+            {"update", "updatable", "modify", "change", "edit", "alter"},
+            # Action/view concepts (UI actions)
+            {"open", "view", "show", "display", "action"},
+            # Financial/invoice concepts
+            {"invoice", "invoiced", "bill", "billing", "charge"},
+            # Tax concepts
+            {"tax", "taxed", "untaxed", "exempt"},
+            # Amount/value concepts
+            {"amount", "amounts", "value", "values", "sum", "total"},
+            # Order/ordering concepts
+            {"order", "orders", "ordering", "sequence"},
+            # Assignment/log concepts
+            {"assign", "assignation", "allocation", "log", "logs", "history"},
+        ]
 
-        # Ensure confidence is calculated
-        if "confidence" not in validation or validation["confidence"] is None:
-            validation["confidence"] = self.calculate_comprehensive_confidence(
-                validation
-            )
+        matches = set()
 
-        return validation
+        for word1 in words1:
+            for word2 in words2:
+                if word1 != word2:  # Skip exact matches (already counted)
+                    # Check if words are in the same synonym group
+                    for group in synonym_groups:
+                        if word1 in group and word2 in group:
+                            matches.add((word1, word2))
+                            break
 
-    def calculate_comprehensive_confidence(self, validation_result: dict) -> float:
-        """Calculate comprehensive confidence score using weighted components"""
-        scoring_breakdown = validation_result.get("scoring_breakdown", {})
+                    # Special contextual matching for item/product
+                    if self._is_valid_item_product_match(word1, word2, words1, words2):
+                        matches.add((word1, word2))
 
-        # Apply weights to each component
-        weighted_score = 0.0
-        for component, weight in self.scoring_weights.items():
-            component_score = scoring_breakdown.get(component, 0.0)
-            weighted_score += component_score * weight
+        return matches
 
-        # Add signature match base score
-        if validation_result.get("signature_match", False):
-            weighted_score += self.scoring_weights["signature_match"]
+    def _is_valid_item_product_match(
+        self, word1: str, word2: str, words1: List[str], words2: List[str]
+    ) -> bool:
+        """Check if item/product synonym match is valid in context"""
+        # Only allow item <-> product in appropriate contexts
+        if not (
+            (word1 == "item" and word2 == "product")
+            or (word1 == "product" and word2 == "item")
+        ):
+            return False
 
-        return min(weighted_score, 1.0)  # Cap at 1.0
+        # Context words where item/product synonymy is invalid
+        invalid_contexts = [
+            # Financial/pricing contexts where item has different meaning
+            "pricelist",
+            "price",
+            "cost",
+            "invoice",
+            "bill",
+            # Document contexts where item means line items, not products
+            "document",
+            "report",
+            "list",
+            "menu",
+            "view",
+            # Configuration contexts
+            "config",
+            "setting",
+            "option",
+            "choice",
+        ]
 
-    def group_similar_renames(
-        self, candidates: list[RenameCandidate]
-    ) -> dict[str, list[RenameCandidate]]:
-        """Group similar rename patterns for batch processing"""
-        groups = {}
+        # Check if any invalid context words are present
+        all_words = set(words1) | set(words2)
+        for invalid_word in invalid_contexts:
+            if invalid_word in all_words:
+                return False
 
-        for candidate in candidates:
-            # Create pattern key based on rule applied and module
-            pattern_key = f"{candidate.rule_applied}_{candidate.module}"
+        # Valid contexts where item/product synonymy makes sense
+        valid_contexts = [
+            # Sales/order contexts
+            "sale",
+            "order",
+            "line",
+            "qty",
+            "quantity",
+            # Inventory contexts
+            "stock",
+            "move",
+            "picking",
+            "delivery",
+            # General product-related contexts
+            "template",
+            "variant",
+            "attribute",
+        ]
 
-            if pattern_key not in groups:
-                groups[pattern_key] = []
+        # Allow if any valid context is present
+        for valid_word in valid_contexts:
+            if valid_word in all_words:
+                return True
 
-            groups[pattern_key].append(candidate)
+        # Default: be conservative and don't allow
+        return False
 
-        # Filter groups with multiple items
-        return {k: v for k, v in groups.items() if len(v) > 1}
-
-    def filter_high_confidence_renames(
-        self, candidates: list[RenameCandidate], threshold: float = 0.90
-    ) -> tuple[list[RenameCandidate], list[RenameCandidate]]:
-        """Separate high confidence renames from those needing review"""
-        high_confidence = []
-        needs_review = []
-
-        for candidate in candidates:
-            if candidate.confidence >= threshold:
-                high_confidence.append(candidate)
-            else:
-                needs_review.append(candidate)
-
-        return high_confidence, needs_review
-
-    def generate_confidence_summary(
-        self, candidates: list[RenameCandidate]
-    ) -> dict[str, Any]:
-        """Generate summary statistics about confidence levels"""
-        if not candidates:
-            return {
-                "total_candidates": 0,
-                "average_confidence": 0.0,
-                "confidence_distribution": {},
-                "rule_distribution": {},
-                "module_distribution": {},
-            }
-
-        total = len(candidates)
-        avg_confidence = sum(c.confidence for c in candidates) / total
-
-        # Confidence distribution
-        confidence_ranges = {
-            "90-100%": sum(1 for c in candidates if c.confidence >= 0.90),
-            "75-89%": sum(1 for c in candidates if 0.75 <= c.confidence < 0.90),
-            "50-74%": sum(1 for c in candidates if 0.50 <= c.confidence < 0.75),
-            "<50%": sum(1 for c in candidates if c.confidence < 0.50),
+    def _calculate_removal_bonus(self, words1: List[str], words2: List[str]) -> float:
+        """Calculate bonus for words commonly removed in refactoring"""
+        removable_words = {
+            "related",
+            "associated",
+            "linked",
+            "ref",
+            "old",
+            "new",
+            "temp",
+            "tmp",
         }
 
-        # Rule distribution
-        rule_dist = {}
-        for candidate in candidates:
-            rule = candidate.rule_applied or "No rule"
-            rule_dist[rule] = rule_dist.get(rule, 0) + 1
+        words1_set = set(words1)
+        words2_set = set(words2)
 
-        # Module distribution
-        module_dist = {}
-        for candidate in candidates:
-            module = candidate.module
-            module_dist[module] = module_dist.get(module, 0) + 1
+        # Find removable words that appear in one list but not the other
+        removed_words = (words1_set & removable_words) - words2_set
+        added_words = (words2_set & removable_words) - words1_set
 
-        return {
-            "total_candidates": total,
-            "average_confidence": avg_confidence,
-            "confidence_distribution": confidence_ranges,
-            "rule_distribution": rule_dist,
-            "module_distribution": module_dist,
+        # Small bonus for each removed/added removable word (indicates refactoring)
+        total_removable = len(removed_words) + len(added_words)
+        max_total_words = max(len(words1), len(words2))
+
+        if max_total_words == 0:
+            return 0.0
+
+        # Give up to 20% bonus for removable word patterns
+        removal_bonus = min(0.2, (total_removable / max_total_words) * 0.3)
+
+        return removal_bonus
+
+    def _extract_words(self, name: str) -> List[str]:
+        """Extract meaningful words from a method/field name"""
+        import re
+
+        # Remove common prefixes/suffixes that are structural
+        name = re.sub(r"^_+|_+$", "", name)
+
+        # Split on underscores and camelCase
+        words = re.split(r"_+", name)
+        result = []
+
+        for word in words:
+            # Split camelCase
+            camel_words = re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|\b)", word)
+            if camel_words:
+                result.extend([w.lower() for w in camel_words])
+            else:
+                result.append(word.lower())
+
+        # Filter out very short words and common structural words
+        structural_words = {
+            "get",
+            "set",
+            "is",
+            "has",
+            "do",
+            "to",
+            "of",
+            "for",
+            "by",
+            "id",
+            "ids",
         }
+        # Also filter words commonly removed in refactoring
+        removable_words = {
+            "related",
+            "associated",
+            "linked",
+            "ref",
+            "old",
+            "new",
+            "temp",
+            "tmp",
+        }
+        meaningful_words = [
+            w for w in result if len(w) > 2 and w not in structural_words
+        ]
+
+        return meaningful_words
+
+    def _calculate_structure_bonus(self, name1: str, name2: str) -> float:
+        """Calculate bonus for similar structural patterns"""
+        # Check for similar prefixes (action_, compute_, etc.)
+        if name1.startswith("_") and name2.startswith("_"):
+            return 0.1
+        if not name1.startswith("_") and not name2.startswith("_"):
+            return 0.1
+
+        # Check for similar suffixes
+        if name1.endswith("_id") and name2.endswith("_id"):
+            return 0.1
+        if name1.endswith("_ids") and name2.endswith("_ids"):
+            return 0.1
+
+        return 0.0
+
+    def _find_inheritance_impacts(
+        self,
+        direct_candidates: List[RenameCandidate],
+        before_models: List[Model],
+        after_models: List[Model],
+    ) -> List[RenameCandidate]:
+        """Find inheritance impacts for direct renames (simplified)"""
+        # For now, return empty list - inheritance analysis would be more complex
+        return []
+
+    def _find_cross_reference_impacts(
+        self,
+        direct_candidates: List[RenameCandidate],
+        before_models: List[Model],
+        after_models: List[Model],
+    ) -> List[RenameCandidate]:
+        """Find cross-reference impacts for direct renames (simplified)"""
+        # For now, return empty list - cross-reference analysis would be more complex
+        return []
+
+    def _convert_inventory_to_models(
+        self, inventory: dict, file_path: str
+    ) -> List[Model]:
+        """Convert inventory format to Model objects"""
+        models = []
+
+        # Group fields and methods by model
+        models_by_name = {}
+
+        # Process fields
+        for field_info in inventory.get("fields", []):
+            model_name = field_info.get("model", "unknown")
+            if model_name not in models_by_name:
+                models_by_name[model_name] = {
+                    "fields": [],
+                    "methods": [],
+                    "class_name": model_name.replace(".", "").title(),
+                }
+
+            field = Field(
+                name=field_info["name"],
+                field_type=field_info.get("field_type", ""),
+                args=field_info.get("args", []),
+                kwargs=field_info.get("kwargs", {}),
+                signature=field_info.get("signature", ""),
+                definition=field_info.get("definition", ""),
+                line_number=field_info.get("line", 0),
+                source_file=file_path,
+            )
+            models_by_name[model_name]["fields"].append(field)
+
+        # Process methods
+        for method_info in inventory.get("methods", []):
+            model_name = method_info.get("model", "unknown")
+            if model_name not in models_by_name:
+                models_by_name[model_name] = {
+                    "fields": [],
+                    "methods": [],
+                    "class_name": model_name.replace(".", "").title(),
+                }
+
+            method = Method(
+                name=method_info["name"],
+                args=method_info.get("args", []),
+                decorators=method_info.get("decorators", []),
+                signature=method_info.get("signature", ""),
+                definition=method_info.get("definition", ""),
+                line_number=method_info.get("line", 0),
+                source_file=file_path,
+            )
+            models_by_name[model_name]["methods"].append(method)
+
+        # Create Model objects
+        for model_name, model_data in models_by_name.items():
+            model = Model(
+                name=model_name,
+                class_name=model_data["class_name"],
+                file_path=file_path,
+                fields=model_data["fields"],
+                methods=model_data["methods"],
+            )
+            models.append(model)
+
+        return models

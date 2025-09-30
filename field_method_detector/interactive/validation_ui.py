@@ -2,444 +2,582 @@
 Interactive Validation User Interface
 ======================================
 
-Provides interactive validation for rename candidates with confidence scoring
-display and user-friendly prompts.
+Provides comprehensive interactive validation for rename candidates with
+cross-reference support and granular control over validation status.
 """
 
 import logging
+from collections import defaultdict
 
 from analyzers.matching_engine import RenameCandidate
+from core.models import ValidationStatus, ChangeScope, ImpactType
+from utils.csv_manager import CSVManager
 from config.settings import INTERACTIVE_COLORS
 
 logger = logging.getLogger(__name__)
 
 
-class InteractiveValidator:
-    """Interactive validation interface for rename candidates"""
+class ValidationUI:
+    """
+    Interactive validation interface for rename candidates with full granular control.
 
-    def __init__(
-        self, confidence_threshold: float = 0.75, auto_approve_threshold: float = 0.90
-    ):
-        """
-        Initialize interactive validator.
+    Handles validation of all cross-references with individual impact control,
+    replacing both legacy validators with a single comprehensive interface.
+    """
 
-        Args:
-            confidence_threshold: Threshold for manual review
-            auto_approve_threshold: Threshold for auto-approval
-        """
-        self.confidence_threshold = confidence_threshold
-        self.auto_approve_threshold = auto_approve_threshold
+    def __init__(self, csv_manager: CSVManager):
+        self.csv_manager = csv_manager
         self.colors = INTERACTIVE_COLORS
-        self.user_decisions = []
 
-    def validate_candidates(
-        self, candidates: list[RenameCandidate]
-    ) -> tuple[list[RenameCandidate], dict]:
+    def run_validation_session(self, csv_filename: str):
         """
-        Run interactive validation workflow.
+        Run complete validation session with granular control over all references.
 
         Args:
-            candidates: List of rename candidates to validate
-
-        Returns:
-            Tuple of (approved_candidates, validation_summary)
+            csv_filename: Path to CSV file containing all candidates
         """
-        # Classify candidates by confidence
-        auto_approved, needs_review, auto_rejected = self._classify_candidates(
-            candidates
-        )
 
-        # Show initial summary
-        self._show_initial_summary(auto_approved, needs_review, auto_rejected)
+        # Read all candidates from CSV
+        candidates = self.csv_manager.read_csv(csv_filename)
 
-        approved_candidates = []
-
-        # Auto-approve high confidence
-        approved_candidates.extend(auto_approved)
-        self._show_auto_approved(auto_approved)
-
-        # Interactive review for medium confidence
-        if needs_review:
-            manually_approved = self._interactive_review(needs_review)
-            approved_candidates.extend(manually_approved)
-
-        # Show rejected summary
-        if auto_rejected:
-            self._show_auto_rejected(auto_rejected)
-
-        # Generate final summary
-        validation_summary = self._generate_validation_summary(
-            auto_approved,
-            manually_approved if needs_review else [],
-            auto_rejected,
-            len(approved_candidates),
-        )
-
-        return approved_candidates, validation_summary
-
-    def _classify_candidates(
-        self, candidates: list[RenameCandidate]
-    ) -> tuple[list, list, list]:
-        """Classify candidates by confidence level"""
-        auto_approved = []
-        needs_review = []
-        auto_rejected = []
-
-        for candidate in candidates:
-            if candidate.confidence >= self.auto_approve_threshold:
-                auto_approved.append(candidate)
-            elif candidate.confidence >= 0.50:  # Minimum review threshold
-                needs_review.append(candidate)
-            else:
-                auto_rejected.append(candidate)
-
-        return auto_approved, needs_review, auto_rejected
-
-    def _show_initial_summary(
-        self, auto_approved: list, needs_review: list, auto_rejected: list
-    ):
-        """Show initial classification summary"""
-        print(
-            f"""
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    🔍 ODOO FIELD/METHOD CHANGE DETECTOR                      ║
-║                              Modo Asistido                                   ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-🎯 CONFIGURACIÓN:
-   • Umbral auto-aprobación: {self.auto_approve_threshold:.1%}
-   • Umbral revisión manual: {self.confidence_threshold:.1%}
-   • Umbral mínimo: 50.0%
-
-📊 CLASIFICACIÓN INICIAL:
-   • {self.colors['pass']}✅ Auto-aprobados{self.colors['reset']}: {len(auto_approved)} cambios (≥{self.auto_approve_threshold:.0%} confianza)
-   • {self.colors['fail']}🤔 Requieren revisión{self.colors['reset']}: {len(needs_review)} cambios (50-{self.auto_approve_threshold:.0%}% confianza)
-   • {self.colors['error']}❌ Auto-rechazados{self.colors['reset']}: {len(auto_rejected)} cambios (<50% confianza)
-
-Comandos disponibles durante la revisión:
-  {self.colors['bold']}y/yes{self.colors['reset']} - Incluir cambio  
-  {self.colors['bold']}n/no{self.colors['reset']}  - Omitir cambio
-  {self.colors['bold']}s{self.colors['reset']}     - Omitir el resto (solo auto-aprobados)
-  {self.colors['bold']}q{self.colors['reset']}     - Cancelar script
-  {self.colors['bold']}d{self.colors['reset']}     - Mostrar análisis detallado
-  {self.colors['bold']}h{self.colors['reset']}     - Mostrar ayuda
-"""
-        )
-
-    def _show_auto_approved(self, auto_approved: list[RenameCandidate]):
-        """Show auto-approved candidates"""
-        if not auto_approved:
+        if not candidates:
+            print("❌ No se encontraron candidatos en el CSV")
             return
 
-        print(
-            f"\n{self.colors['pass']}✅ AUTO-APROBADOS ({len(auto_approved)} cambios con ≥{self.auto_approve_threshold:.0%}% confianza){self.colors['reset']}"
-        )
-        for candidate in auto_approved:
+        # Count auto-approved candidates
+        auto_approved = [
+            c
+            for c in candidates
+            if c.validation_status == ValidationStatus.AUTO_APPROVED.value
+        ]
+        pending_candidates = [
+            c
+            for c in candidates
+            if c.validation_status == ValidationStatus.PENDING.value
+        ]
+
+        if auto_approved:
             print(
-                f"  {candidate.old_name} → {candidate.new_name} ({candidate.module}.{candidate.model}) [{candidate.confidence:.1%}]"
+                f"✅ {len(auto_approved)} candidatos ya auto-aprobados (confianza ≥90%)"
             )
 
-    def _interactive_review(
-        self, needs_review: list[RenameCandidate]
-    ) -> list[RenameCandidate]:
-        """Interactive review of medium confidence candidates"""
-        manually_approved = []
+        if not pending_candidates:
+            print("🎉 Todos los candidatos han sido procesados automáticamente")
+            self._show_validation_summary(candidates)
+            return
 
-        print(
-            f"\n{self.colors['fail']}🤔 REVISIÓN MANUAL ({len(needs_review)} casos requieren validación){self.colors['reset']}"
-        )
+        # Group only pending candidates for validation
+        grouped = self._group_by_primary(pending_candidates)
 
-        for i, candidate in enumerate(needs_review, 1):
-            decision = self._prompt_user_validation(candidate, i, len(needs_review))
-
-            if decision == "approve":
-                manually_approved.append(candidate)
-            elif decision == "skip_all":
-                print("⏭️ Omitiendo el resto de validaciones...")
-                break
-            elif decision == "quit":
-                print("⏹️ Cancelando script...")
-                exit(0)
-            # 'reject' - do nothing, candidate not added to approved list
-
-        return manually_approved
-
-    def _prompt_user_validation(
-        self, candidate: RenameCandidate, current: int, total: int
-    ) -> str:
-        """
-        Prompt user for validation decision.
-
-        Args:
-            candidate: Rename candidate to validate
-            current: Current item number
-            total: Total items to review
-
-        Returns:
-            User decision: 'approve', 'reject', 'skip_all', 'quit'
-        """
-        # Create confidence visualization
-        confidence_bar = self._create_confidence_bar(
-            candidate.confidence, self.auto_approve_threshold
-        )
-        confidence_pct = candidate.confidence * 100
-        threshold_pct = self.auto_approve_threshold * 100
-
-        print(f"\n{'='*70}")
-        print(f"🔍 Cambio {current}/{total} - Revisión Manual Requerida")
-        print(f"{'='*70}")
-
-        print(f"📁 Archivo: {candidate.file_path or 'N/A'}")
-        print(f"📦 Módulo: {candidate.module}")
-        print(f"🏗️  Modelo: {candidate.model}")
-        print(f"🔧 Tipo: {candidate.item_type.title()}")
-        print(
-            f"📝 Cambio: {self.colors['error']}{candidate.old_name}{self.colors['reset']} → {self.colors['pass']}{candidate.new_name}{self.colors['reset']}"
-        )
-
-        # Show confidence analysis
-        print(f"\n📊 Análisis de Confianza:")
-        print(f"   Confianza calculada: {confidence_pct:.1f}%")
-        print(f"   Umbral auto-aprobación: {threshold_pct:.1f}%")
-        print(f"   {confidence_bar}")
-
-        # Show reason for confidence level
-        confidence_reason = self._get_confidence_reason(candidate)
-        print(f"   Razón: {confidence_reason}")
-
-        # Show gap to auto-approval
-        gap = threshold_pct - confidence_pct
-        if gap > 0:
-            print(f"   ⚠️  Faltan {gap:.1f} puntos porcentuales para auto-aprobación")
-
-        # Show additional context if available
-        if candidate.rule_applied:
-            print(f"\n🔬 Regla aplicada: {candidate.rule_applied}")
-
-        while True:
-            prompt = f"\n¿Incluir este cambio? [y/N/s(skip)/q(quit)/d(details)]: "
-            response = input(prompt).lower().strip()
-
-            if response in ["y", "yes", "sí", "si"]:
-                print(
-                    f"✅ {self.colors['pass']}INCLUIDO{self.colors['reset']}: {candidate.old_name} → {candidate.new_name}"
-                )
-                self.user_decisions.append(
-                    {"candidate": candidate, "decision": "approved"}
-                )
-                return "approve"
-            elif response in ["n", "no", ""] or response == "N":
-                print(
-                    f"❌ {self.colors['error']}OMITIDO{self.colors['reset']}: {candidate.old_name} → {candidate.new_name}"
-                )
-                self.user_decisions.append(
-                    {"candidate": candidate, "decision": "rejected"}
-                )
-                return "reject"
-            elif response in ["s", "skip"]:
-                return "skip_all"
-            elif response in ["q", "quit"]:
-                return "quit"
-            elif response in ["d", "details"]:
-                self._show_detailed_analysis(candidate)
-            elif response in ["h", "help"]:
-                self._show_validation_help()
-            else:
-                print("❌ Opción inválida. Usa: y/n/s/q/d/h")
-
-    def _create_confidence_bar(
-        self, confidence: float, threshold: float, bar_length: int = 30
-    ) -> str:
-        """Create visual confidence bar with threshold indicator"""
-        confidence_pos = int(confidence * bar_length)
-        threshold_pos = int(threshold * bar_length)
-
-        bar = ["─"] * bar_length
-
-        # Mark confidence position
-        if confidence_pos < bar_length:
-            bar[confidence_pos] = "●"
-
-        # Mark threshold position
-        if threshold_pos < bar_length:
-            bar[threshold_pos] = "|"
-
-        # Color bar based on pass/fail
-        if confidence >= threshold:
-            confidence_color = self.colors["pass"]
-            status = "PASA"
-        else:
-            confidence_color = self.colors["fail"]
-            status = "NO PASA"
-
-        bar_str = "".join(bar)
-        return f"{confidence_color}{bar_str}{self.colors['reset']} ({status})"
-
-    def _get_confidence_reason(self, candidate: RenameCandidate) -> str:
-        """Get human-readable reason for confidence level"""
-        confidence = candidate.confidence
-        rule = candidate.rule_applied or "signature similarity"
-
-        if confidence >= 0.95:
-            return f"Signature exacta + regla '{rule}' aplicada perfectamente"
-        elif confidence >= 0.85:
-            return f"Signature exacta + regla '{rule}' aplicada parcialmente"
-        elif confidence >= 0.75:
-            return f"Signature similar + patrón '{rule}' detectado"
-        elif confidence >= 0.60:
-            return f"Signature coincidente + nombres relacionados por '{rule}'"
-        else:
-            return f"Similaridad básica detectada por '{rule}'"
-
-    def _show_detailed_analysis(self, candidate: RenameCandidate):
-        """Show detailed analysis for a candidate"""
-        print(f"\n{'-'*50}")
-        print("🔬 ANÁLISIS DETALLADO DE CONFIANZA")
-        print(f"{'-'*50}")
-
-        # Show scoring breakdown
-        if candidate.scoring_breakdown:
-            print("📊 Factores de puntuación:")
-            for factor, score in candidate.scoring_breakdown.items():
-                print(f"   • {factor.replace('_', ' ').title()}: +{score:.2f}")
-
-        # Show signature details
-        print(f"\n🔍 Detalles de signature:")
-        print(
-            f"   • Signature match: {'✅ Exacto' if candidate.signature_match else '❌ Diferente'}"
-        )
-
-        # Show validations
-        if candidate.validations:
-            print(f"\n✅ Validaciones:")
-            for validation in candidate.validations:
-                v_type = validation.get("type", "unknown")
-                message = validation.get("message", "No message")
-                print(f"   • {v_type}: {message}")
-
-        # Show API changes
-        if candidate.api_changes:
-            print(f"\n🔄 Cambios de API detectados:")
-            api = candidate.api_changes
-            print(f"   • Tipo: {api.get('type', 'Unknown')}")
-            print(f"   • Descripción: {api.get('description', 'No description')}")
-
-        # Show comparison with threshold
-        print(f"\n📏 Comparación con umbral:")
-        print(f"   • Confianza actual: {candidate.confidence:.3f}")
-        print(f"   • Umbral requerido: {self.auto_approve_threshold:.3f}")
-        print(
-            f"   • Diferencia: {candidate.confidence - self.auto_approve_threshold:+.3f}"
-        )
-
-    def _show_validation_help(self):
-        """Show validation help"""
-        threshold_pct = self.auto_approve_threshold * 100
-        print(
-            f"""
-{'-'*50}
-❓ AYUDA - COMANDOS DE VALIDACIÓN
-{'-'*50}
-{self.colors['bold']}y/yes{self.colors['reset']}  → Incluir este cambio en el CSV final
-{self.colors['bold']}n/no{self.colors['reset']}   → Omitir este cambio (no se incluirá)
-{self.colors['bold']}s/skip{self.colors['reset']} → Omitir TODOS los cambios restantes (solo auto-aprobados)
-{self.colors['bold']}q/quit{self.colors['reset']} → Cancelar script completo
-{self.colors['bold']}d{self.colors['reset']}      → Mostrar análisis técnico detallado
-{self.colors['bold']}h{self.colors['reset']}      → Mostrar esta ayuda
-
-💡 TIPS:
-• La confianza se basa en: signature exacta + reglas de naming + contexto
-• Umbral actual: auto-aprobación si confianza ≥ {threshold_pct:.0f}%
-• En caso de duda, revisa el análisis detallado (d)
-• Los cambios auto-aprobados ya están incluidos automáticamente
-{'-'*50}
-        """
-        )
-
-    def _show_auto_rejected(self, auto_rejected: list[RenameCandidate]):
-        """Show auto-rejected candidates summary"""
-        if not auto_rejected:
+        if not grouped:
+            print("\n❌ No se encontraron cambios primarios para validar")
             return
 
         print(
-            f"\n{self.colors['error']}❌ AUTO-RECHAZADOS ({len(auto_rejected)} cambios con <50% confianza){self.colors['reset']}"
+            f"\n🔍 VALIDACIÓN INTERACTIVA - {len(grouped)} cambios pendientes de validar"
+        )
+        print(
+            f"📊 Total candidates: {len(candidates)} ({len(auto_approved)} auto-aprobados, {len(pending_candidates)} pendientes)"
         )
 
-        # Group by reason for rejection
-        rejection_groups = {}
-        for candidate in auto_rejected:
-            reason = candidate.rule_applied or "low_confidence"
-            if reason not in rejection_groups:
-                rejection_groups[reason] = []
-            rejection_groups[reason].append(candidate)
+        # Validate each group with full granular control
+        total_groups = len(grouped)
+        for group_num, (change_id, (primary_change, impacts)) in enumerate(
+            grouped.items(), 1
+        ):
+            self._validate_change_group(
+                primary_change, impacts, candidates, group_num, total_groups
+            )
 
-        for reason, candidates in rejection_groups.items():
-            print(f"\n  📝 {reason} ({len(candidates)} casos):")
-            for candidate in candidates[:3]:  # Show first 3
+            # Show progress after each group
+            if group_num < total_groups:
+                progress_percent = group_num / total_groups * 100
+                progress_bar = self._create_progress_bar(group_num, total_groups)
                 print(
-                    f"    • {candidate.old_name} → {candidate.new_name} [{candidate.confidence:.1%}]"
+                    f"\n📊 Progreso: {group_num}/{total_groups} cambios completados ({progress_percent:.1f}%)"
                 )
-            if len(candidates) > 3:
-                print(f"    ... y {len(candidates) - 3} más")
+                print(f"   {progress_bar}")
+                print(f"⏭️  Quedan {total_groups - group_num} cambios por validar")
 
-    def _generate_validation_summary(
-        self,
-        auto_approved: list,
-        manually_approved: list,
-        auto_rejected: list,
-        total_approved: int,
-    ) -> dict:
-        """Generate validation session summary"""
-        return {
-            "total_detected": len(auto_approved)
-            + len(manually_approved)
-            + len(auto_rejected),
-            "auto_approved": len(auto_approved),
-            "manually_approved": len(manually_approved),
-            "auto_rejected": len(auto_rejected),
-            "total_approved": total_approved,
-            "user_decisions": self.user_decisions,
-            "thresholds": {
-                "auto_approve": self.auto_approve_threshold,
-                "confidence": self.confidence_threshold,
-            },
-        }
+        # Combine all candidates (auto-approved + manually validated) for CSV writing
+        all_final_candidates = auto_approved + pending_candidates
+        updated_count = self.csv_manager.write_csv(all_final_candidates, csv_filename)
 
-    def show_final_summary(
+        # Show final summary
+        self._show_validation_summary(all_final_candidates)
+
+        print(f"✅ CSV actualizado: {updated_count} registros en {csv_filename}")
+
+    def _group_by_primary(self, candidates: list[RenameCandidate]) -> dict:
+        """Group candidates by their primary declaration"""
+        grouped = {}
+
+        # Separate primary changes from impacts
+        primary_changes = [
+            c for c in candidates if c.impact_type == ImpactType.PRIMARY.value
+        ]
+        impact_changes = [
+            c for c in candidates if c.impact_type != ImpactType.PRIMARY.value
+        ]
+
+        # Create groups using change_id as key
+        for primary in primary_changes:
+            impacts = [
+                i for i in impact_changes if i.parent_change_id == primary.change_id
+            ]
+            grouped[primary.change_id] = (primary, impacts)
+
+        return grouped
+
+    def _validate_change_group(
         self,
-        approved_candidates: list[RenameCandidate],
-        validation_summary: dict,
-        output_file: str,
+        primary: RenameCandidate,
+        impacts: list[RenameCandidate],
+        all_candidates: list[RenameCandidate],
+        group_num: int = 1,
+        total_groups: int = 1,
     ):
-        """Show final summary of validation session"""
-        stats = validation_summary
+        """Validate a change group with full granular control"""
+
+        self._show_change_header(primary, impacts, group_num, total_groups)
+
+        # Show confidence analysis
+        self._show_confidence_analysis(primary, impacts)
+
+        # Main validation choice
+        choice = self._get_user_choice(
+            [
+                "(A)probar TODO (declaración + todas las referencias)",
+                "(G)ranular (validar cada referencia individualmente)",
+                "(P)rimario solo (solo la declaración)",
+                "(R)echazar todo",
+                "(V)er detalles completos",
+                "(D)etalles de confianza",
+                "(S)altar (mantener pendiente)",
+            ],
+            ["A", "G", "P", "R", "V", "D", "S"],
+        )
+
+        if choice == "A":  # Approve all
+            primary.validation_status = ValidationStatus.APPROVED.value
+            for impact in impacts:
+                impact.validation_status = ValidationStatus.APPROVED.value
+            print(
+                f"✅ {self.colors['pass']}APROBADO TODO{self.colors['reset']}: {primary.old_name} → {primary.new_name}"
+            )
+
+        elif choice == "G":  # Granular validation
+            primary.validation_status = ValidationStatus.APPROVED.value
+            print(
+                f"✅ Declaración primaria aprobada: {primary.old_name} → {primary.new_name}"
+            )
+            self._validate_individual_impacts(impacts)
+
+        elif choice == "P":  # Primary only
+            primary.validation_status = ValidationStatus.APPROVED.value
+            for impact in impacts:
+                impact.validation_status = ValidationStatus.REJECTED.value
+            print(f"✅ Solo primario aprobado, {len(impacts)} referencias rechazadas")
+
+        elif choice == "R":  # Reject all
+            primary.validation_status = ValidationStatus.REJECTED.value
+            for impact in impacts:
+                impact.validation_status = ValidationStatus.REJECTED.value
+            print(
+                f"❌ {self.colors['error']}RECHAZADO TODO{self.colors['reset']}: {primary.old_name} → {primary.new_name}"
+            )
+
+        elif choice == "V":  # View details
+            self._show_detailed_references(impacts)
+            # Recurse for new decision
+            self._validate_change_group(primary, impacts, all_candidates)
+
+        elif choice == "D":  # Confidence details
+            self._show_detailed_confidence_analysis(primary, impacts)
+            # Recurse for new decision
+            self._validate_change_group(primary, impacts, all_candidates)
+
+        # 'S' = skip (maintain pending status)
+
+    def _show_change_header(
+        self,
+        primary: RenameCandidate,
+        impacts: list[RenameCandidate],
+        group_num: int = 1,
+        total_groups: int = 1,
+    ):
+        """Show header information for a change group"""
+
+        print(f"\n{'='*70}")
+        print(
+            f"📋 CAMBIO {group_num}/{total_groups} - {primary.old_name} → {primary.new_name}"
+        )
+        print(f"📍 {primary.model} ({primary.module})")
+        print(f"📊 Confianza primaria: {primary.confidence:.2f}")
+        print(f"📎 {len(impacts)} referencias encontradas")
+
+        if impacts:
+            high_conf_refs = len([i for i in impacts if i.confidence >= 0.90])
+            med_conf_refs = len([i for i in impacts if 0.70 <= i.confidence < 0.90])
+            low_conf_refs = len([i for i in impacts if i.confidence < 0.70])
+
+            print(f"   • Alta confianza (≥90%): {high_conf_refs}")
+            print(f"   • Media confianza (70-89%): {med_conf_refs}")
+            print(f"   • Baja confianza (<70%): {low_conf_refs}")
+
+    def _show_confidence_analysis(
+        self, primary: RenameCandidate, impacts: list[RenameCandidate]
+    ):
+        """Show confidence analysis overview"""
+
+        if not impacts:
+            return
+
+        # Group by impact type
+        by_type = defaultdict(list)
+        for impact in impacts:
+            by_type[impact.impact_type].append(impact)
+
+        print("   📈 Referencias por tipo:")
+        for impact_type, group_impacts in by_type.items():
+            type_name = impact_type.replace("_", " ").title()
+            avg_conf = sum(i.confidence for i in group_impacts) / len(group_impacts)
+            high_conf = len([i for i in group_impacts if i.confidence >= 0.90])
+            print(
+                f"     • {type_name}: {len(group_impacts)} ({high_conf} alta conf, promedio: {avg_conf:.2f})"
+            )
+
+    def _validate_individual_impacts(self, impacts: list[RenameCandidate]):
+        """Validate each impact individually with enhanced control"""
+
+        if not impacts:
+            print("   (No hay referencias para validar)")
+            return
+
+        # Group by type for better UX
+        by_type = defaultdict(list)
+        for impact in impacts:
+            by_type[impact.impact_type].append(impact)
+
+        for impact_type, group_impacts in by_type.items():
+            type_name = impact_type.replace("_", " ").title()
+            print(f"\n  📂 {type_name} ({len(group_impacts)} referencias)")
+
+            # Option to bulk validate this type
+            if len(group_impacts) > 1:
+                bulk_choice = self._get_user_choice(
+                    [
+                        f"(T)odas en bloque para {type_name}",
+                        "(I)ndividual (una por una)",
+                        "(S)altar este tipo",
+                    ],
+                    ["T", "I", "S"],
+                )
+
+                if bulk_choice == "T":
+                    self._bulk_validate_type(group_impacts, type_name)
+                    continue
+                elif bulk_choice == "S":
+                    continue
+                # 'I' falls through to individual validation
+
+            # Individual validation
+            for impact_num, impact in enumerate(group_impacts, 1):
+                self._validate_single_impact(
+                    impact, impact_num, len(group_impacts), type_name
+                )
+
+    def _bulk_validate_type(self, impacts: list[RenameCandidate], type_name: str):
+        """Bulk validate all impacts of a specific type"""
+
+        avg_conf = sum(i.confidence for i in impacts) / len(impacts)
+        high_conf = len([i for i in impacts if i.confidence >= 0.90])
+
+        print(
+            f"    📊 {type_name}: {len(impacts)} referencias (promedio: {avg_conf:.2f}, {high_conf} alta confianza)"
+        )
+
+        choice = self._get_user_choice(
+            [
+                f"(A)probar todas las {len(impacts)} referencias de {type_name}",
+                f"(R)echazar todas las {len(impacts)} referencias de {type_name}",
+                "(I)ndividual (validar una por una)",
+                "(S)altar (mantener pending)",
+            ],
+            ["A", "R", "I", "S"],
+        )
+
+        if choice == "A":
+            for impact in impacts:
+                impact.validation_status = ValidationStatus.APPROVED.value
+            print(
+                f"    ✅ {len(impacts)} referencias de {type_name} aprobadas en bloque"
+            )
+        elif choice == "R":
+            for impact in impacts:
+                impact.validation_status = ValidationStatus.REJECTED.value
+            print(
+                f"    ❌ {len(impacts)} referencias de {type_name} rechazadas en bloque"
+            )
+        elif choice == "I":
+            for impact_num, impact in enumerate(impacts, 1):
+                self._validate_single_impact(
+                    impact, impact_num, len(impacts), type_name
+                )
+        # 'S' = skip
+
+    def _validate_single_impact(
+        self,
+        impact: RenameCandidate,
+        impact_num: int = 1,
+        total_impacts: int = 1,
+        type_name: str = "",
+    ):
+        """Validate a single impact with full control options"""
+
+        self._show_impact_detail(impact, impact_num, total_impacts, type_name)
+
+        choice = self._get_user_choice(
+            [
+                f"(A)probar esta referencia (confianza: {impact.confidence:.2f})",
+                "(R)echazar esta referencia",
+                "(E)ditar nombre destino",
+                "(C)ambiar modelo destino",
+                "(V)er contexto completo",
+                "(S)altar (mantener pending)",
+            ],
+            ["A", "R", "E", "C", "V", "S"],
+        )
+
+        if choice == "A":
+            impact.validation_status = ValidationStatus.APPROVED.value
+            print(f"    ✅ Aprobada: {impact.context or 'referencia'}")
+        elif choice == "R":
+            impact.validation_status = ValidationStatus.REJECTED.value
+            print(f"    ❌ Rechazada: {impact.context or 'referencia'}")
+        elif choice == "E":
+            new_name = input(f"    Nuevo nombre para '{impact.old_name}': ").strip()
+            if new_name:
+                impact.new_name = new_name
+                impact.validation_status = ValidationStatus.APPROVED.value
+                print(f"    ✅ Editado y aprobado: {impact.old_name} → {new_name}")
+        elif choice == "C":
+            new_model = input(f"    Nuevo modelo para '{impact.model}': ").strip()
+            if new_model:
+                impact.model = new_model
+                impact.validation_status = ValidationStatus.APPROVED.value
+                print(f"    ✅ Modelo cambiado y aprobado: {new_model}")
+        elif choice == "V":
+            self._show_full_impact_context(impact)
+            # Recurse for new decision
+            self._validate_single_impact(impact, impact_num, total_impacts, type_name)
+        # 'S' = skip
+
+    def _show_impact_detail(
+        self,
+        impact: RenameCandidate,
+        impact_num: int = 1,
+        total_impacts: int = 1,
+        type_name: str = "",
+    ):
+        """Show details of a specific impact reference"""
+
+        print(f"\n    ┌─ Referencia {impact_num}/{total_impacts} ({type_name}) ─")
+        print(f"    🎯 {impact.model} → {impact.context or 'N/A'}")
+        print(f"    📝 {impact.change_scope}: {impact.old_name} → {impact.new_name}")
+        print(f"    📊 Confianza: {impact.confidence:.2f}")
+        print(f"    🏷️  Estado: {impact.validation_status}")
+        if impact.source_file:
+            print(f"    📁 Archivo: {impact.source_file}:{impact.line_number or 'N/A'}")
+
+    def _show_full_impact_context(self, impact: RenameCandidate):
+        """Show full context information for an impact"""
+
+        print(f"\n    {'─'*50}")
+        print("    🔍 CONTEXTO COMPLETO")
+        print(f"    {'─'*50}")
+        print(f"    ID: {impact.change_id}")
+        print(f"    Padre: {impact.parent_change_id}")
+        print(f"    Módulo: {impact.module}")
+        print(f"    Modelo: {impact.model}")
+        print(f"    Tipo: {impact.item_type}")
+        print(f"    Alcance: {impact.change_scope}")
+        print(f"    Impacto: {impact.impact_type}")
+        print(f"    Cambio: {impact.old_name} → {impact.new_name}")
+        print(f"    Contexto: {impact.context or 'N/A'}")
+        print(f"    Confianza: {impact.confidence:.3f}")
+        print(f"    Estado: {impact.validation_status}")
+        if impact.source_file:
+            print(f"    Ubicación: {impact.source_file}:{impact.line_number or 'N/A'}")
+
+        input("\n    Presiona Enter para continuar...")
+
+    def _show_detailed_references(self, impacts: list[RenameCandidate]):
+        """Show detailed information for all references"""
+
+        print(f"\n{'='*70}")
+        print("🔍 DETALLES COMPLETOS DE TODAS LAS REFERENCIAS")
+        print(f"{'='*70}")
+
+        if not impacts:
+            print("(No hay referencias cruzadas)")
+            input("\nPresiona Enter para continuar...")
+            return
+
+        for i, impact in enumerate(impacts, 1):
+            print(f"\n{i}. {impact.impact_type.replace('_', ' ').title()}")
+            print(f"   Modelo: {impact.model}")
+            print(f"   Contexto: {impact.context or 'N/A'}")
+            print(f"   Cambio: {impact.old_name} → {impact.new_name}")
+            print(f"   Confianza: {impact.confidence:.2f}")
+            print(f"   Estado: {impact.validation_status}")
+            if impact.source_file:
+                print(
+                    f"   Ubicación: {impact.source_file}:{impact.line_number or 'N/A'}"
+                )
+
+        input("\nPresiona Enter para continuar...")
+
+    def _show_detailed_confidence_analysis(
+        self, primary: RenameCandidate, impacts: list[RenameCandidate]
+    ):
+        """Show detailed confidence analysis"""
+
+        print(f"\n{'='*70}")
+        print("📊 ANÁLISIS DETALLADO DE CONFIANZA")
+        print(f"{'='*70}")
+
+        # Primary analysis
+        print(f"\n🔧 DECLARACIÓN PRIMARIA:")
+        print(f"   Nombre: {primary.old_name} → {primary.new_name}")
+        print(f"   Confianza: {primary.confidence:.3f}")
+        print(f"   Regla aplicada: {primary.rule_applied or 'similarity'}")
+        print(f"   Signature match: {'✅' if primary.signature_match else '❌'}")
+
+        if not impacts:
+            print("\n(No hay referencias cruzadas para analizar)")
+            input("\nPresiona Enter para continuar...")
+            return
+
+        # Impact analysis
+        print(f"\n📎 ANÁLISIS DE REFERENCIAS ({len(impacts)} total):")
+
+        # Statistics by confidence range
+        high_conf = [i for i in impacts if i.confidence >= 0.90]
+        med_conf = [i for i in impacts if 0.70 <= i.confidence < 0.90]
+        low_conf = [i for i in impacts if i.confidence < 0.70]
+
+        print(f"\n📈 Distribución por confianza:")
+        print(f"   Alta (≥90%): {len(high_conf)}")
+        print(f"   Media (70-89%): {len(med_conf)}")
+        print(f"   Baja (<70%): {len(low_conf)}")
+
+        # Analysis by type
+        by_type = defaultdict(list)
+        for impact in impacts:
+            by_type[impact.impact_type].append(impact)
+
+        print(f"\n🏷️  Por tipo de impacto:")
+        for impact_type, group_impacts in by_type.items():
+            avg_conf = sum(i.confidence for i in group_impacts) / len(group_impacts)
+            type_name = impact_type.replace("_", " ").title()
+            print(
+                f"   {type_name}: {len(group_impacts)} referencias, promedio {avg_conf:.2f}"
+            )
+
+        # Show lowest confidence items for review
+        if low_conf:
+            print(f"\n⚠️  Referencias de baja confianza que requieren atención:")
+            sorted_low = sorted(low_conf, key=lambda x: x.confidence)
+            for impact in sorted_low[:5]:  # Show worst 5
+                print(
+                    f"   • {impact.model}: {impact.context or 'N/A'} ({impact.confidence:.2f})"
+                )
+
+        input("\nPresiona Enter para continuar...")
+
+    def _get_user_choice(self, options: list[str], valid_choices: list[str]) -> str:
+        """Get user choice with validation"""
+        print("\n   Opciones:")
+        for option in options:
+            print(f"     {option}")
+
+        while True:
+            response = input("\n   Selección: ").upper().strip()
+            if response in valid_choices:
+                return response
+            else:
+                print(f"   ❌ Opción inválida. Use: {'/'.join(valid_choices)}")
+
+    def _show_validation_summary(self, candidates: list[RenameCandidate]):
+        """Show final validation summary"""
+        total = len(candidates)
+        approved = len(
+            [
+                c
+                for c in candidates
+                if c.validation_status == ValidationStatus.APPROVED.value
+            ]
+        )
+        auto_approved = len(
+            [
+                c
+                for c in candidates
+                if c.validation_status == ValidationStatus.AUTO_APPROVED.value
+            ]
+        )
+        rejected = len(
+            [
+                c
+                for c in candidates
+                if c.validation_status == ValidationStatus.REJECTED.value
+            ]
+        )
+        pending = len(
+            [
+                c
+                for c in candidates
+                if c.validation_status == ValidationStatus.PENDING.value
+            ]
+        )
 
         print(
             f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                              📊 RESUMEN FINAL                                ║
+║                           📊 RESUMEN FINAL DE VALIDACIÓN                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-📈 Estadísticas:
-   • Total detectado: {stats['total_detected']}
-   • {self.colors['pass']}Auto-aprobados: {stats['auto_approved']}{self.colors['reset']} (≥{stats['thresholds']['auto_approve']:.0%} confianza)
-   • {self.colors['fail']}Aprobados manualmente: {stats['manually_approved']}{self.colors['reset']} 
-   • {self.colors['error']}Rechazados: {stats['auto_rejected']}{self.colors['reset']}
-   • {self.colors['bold']}TOTAL INCLUIDOS: {stats['total_approved']}{self.colors['reset']}
-
-💾 Archivo actualizado: {output_file}
+📈 Estadísticas completas:
+   • Total detectado: {total}
+   • Auto-aprobados: {auto_approved} (≥90% confianza)
+   • Aprobados manualmente: {approved}
+   • Rechazados: {rejected}
+   • Pendientes: {pending}
+   • TOTAL PARA APLICAR: {approved + auto_approved}
         """
         )
 
-        # Show breakdown by module
-        if approved_candidates:
-            module_stats = {}
-            for candidate in approved_candidates:
-                module = candidate.module
-                module_stats[module] = module_stats.get(module, 0) + 1
+        # Module statistics for approved
+        self._show_module_stats(candidates)
 
-            print("📂 Por módulo:")
+    def _show_module_stats(self, candidates: list[RenameCandidate]):
+        """Show module statistics for approved candidates"""
+        module_stats = defaultdict(int)
+        for candidate in candidates:
+            if candidate.validation_status in [
+                ValidationStatus.APPROVED.value,
+                ValidationStatus.AUTO_APPROVED.value,
+            ]:
+                module_stats[candidate.module] += 1
+
+        if module_stats:
+            print("📂 Por módulo (solo aprobados):")
             for module, count in sorted(module_stats.items()):
                 print(f"   • {module}: {count} cambios")
 
-        print()  # Final newline
+    def _create_progress_bar(self, current: int, total: int, width: int = 30) -> str:
+        """Create a visual progress bar"""
+        filled = int(width * current / total)
+        bar = "█" * filled + "░" * (width - filled)
+        percent = current / total * 100
+        return f"[{bar}] {percent:.1f}%"

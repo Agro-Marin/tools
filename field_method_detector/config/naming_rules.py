@@ -9,6 +9,7 @@ Based on AgroMarin coding guidelines for Odoo 18.0.
 """
 
 import re
+from config.settings import config
 
 # Field Naming Rules - All AgroMarin conventions
 FIELD_NAMING_RULES = [
@@ -35,20 +36,20 @@ FIELD_NAMING_RULES = [
         "examples": ["invoiced_qty → qty_invoiced", "ordered_qty → qty_ordered"],
         "weight": 0.8,
     },
-    # Quantity field variations
+    # HIGH CONFIDENCE Quantity field variations (AgroMarin standard)
     {
         "pattern": r"^qty_received$",
         "replacement": r"qty_transfered",
-        "description": "Quantity received to transferred",
+        "description": "Quantity received to transferred (AgroMarin standard)",
         "examples": ["qty_received → qty_transfered"],
-        "weight": 0.9,
+        "weight": 0.95,  # High confidence - AgroMarin standard transformation
     },
     {
         "pattern": r"^qty_delivered$",
         "replacement": r"qty_transfered",
-        "description": "Quantity delivered to transferred",
+        "description": "Quantity delivered to transferred (AgroMarin standard)",
         "examples": ["qty_delivered → qty_transfered"],
-        "weight": 0.9,
+        "weight": 0.95,  # High confidence - AgroMarin standard transformation
     },
     {
         "pattern": r"^product_qty$",
@@ -117,16 +118,25 @@ FIELD_NAMING_RULES = [
         "examples": ["total_amount → amount_total", "untaxed_amount → amount_untaxed"],
         "weight": 0.8,
     },
-    # Order line fields: *order_line* → *line_ids*
+    # HIGH CONFIDENCE Order line fields (AgroMarin standard)
     {
-        "pattern": r"^(.*)order_line(.*)$",
-        "replacement": r"\1line_ids\2",
-        "description": "Order line to line_ids pattern",
+        "pattern": r"^order_line$",
+        "replacement": r"line_ids",
+        "description": "Order line to line_ids (AgroMarin standard)",
+        "examples": ["order_line → line_ids"],
+        "field_types": ["One2many"],
+        "weight": 0.95,  # Very high confidence - standard Odoo pattern
+    },
+    {
+        "pattern": r"^(.+)_order_line$",
+        "replacement": r"\1_line_ids",
+        "description": "Prefixed order line to line_ids pattern",
         "examples": [
-            "order_line → line_ids",
             "purchase_order_line → purchase_line_ids",
+            "sale_order_line → sale_line_ids",
         ],
-        "weight": 0.9,
+        "field_types": ["One2many"],
+        "weight": 0.92,
     },
     # Tax inclusive suffixes: specific monetary fields only
     {
@@ -140,7 +150,8 @@ FIELD_NAMING_RULES = [
             "total_amount → total_amount_taxinc",
         ],
         "field_types": ["Monetary", "Float"],
-        "weight": 0.75,  # Slightly higher confidence due to specificity
+        "weight": config.confidence_threshold
+        + 0.25,  # Slightly higher confidence due to specificity
     },
     # Status/State field patterns
     {
@@ -263,19 +274,49 @@ FIELD_NAMING_RULES = [
         "field_types": ["Integer"],
         "weight": 0.95,  # Very specific pattern
     },
+    # Additional HIGH CONFIDENCE patterns for fields
+    {
+        "pattern": r"^(.+)_delivered$",
+        "replacement": r"\1_transfered",
+        "description": "General delivered to transferred pattern (fields)",
+        "examples": ["product_delivered → product_transfered"],
+        "weight": 0.90,
+    },
+    {
+        "pattern": r"^(.+)_received$",
+        "replacement": r"\1_transfered",
+        "description": "General received to transferred pattern (fields)",
+        "examples": ["product_received → product_transfered"],
+        "weight": 0.90,
+    },
 ]
 
 
 # Method Naming Rules - All AgroMarin conventions
 METHOD_NAMING_RULES = [
-    # Compute methods: compute_* → _compute_*
+    # HIGH CONFIDENCE Compute methods
     {
         "pattern": r"^compute_(.+)$",
         "replacement": r"_compute_\1",
         "description": "Compute method pattern",
         "examples": ["compute_total → _compute_total"],
         "decorators": ["@api.depends"],
-        "weight": 0.9,
+        "weight": 0.95,  # Very high confidence - standard Odoo pattern
+    },
+    # HIGH CONFIDENCE Quantity compute methods (AgroMarin standard)
+    {
+        "pattern": r"^_compute_qty_delivered$",
+        "replacement": r"_compute_qty_transfered",
+        "description": "Compute qty delivered to transferred (AgroMarin standard)",
+        "examples": ["_compute_qty_delivered → _compute_qty_transfered"],
+        "weight": 0.95,  # Very high confidence - matches field rename pattern
+    },
+    {
+        "pattern": r"^_compute_qty_received$",
+        "replacement": r"_compute_qty_transfered",
+        "description": "Compute qty received to transferred (AgroMarin standard)",
+        "examples": ["_compute_qty_received → _compute_qty_transfered"],
+        "weight": 0.95,  # Very high confidence - matches field rename pattern
     },
     # Inverse methods: inverse_* → _inverse_*
     {
@@ -301,14 +342,29 @@ METHOD_NAMING_RULES = [
         "examples": ["default_state → _default_state"],
         "weight": 0.9,
     },
-    # Onchange methods: onchange_* → _onchange_*
+    # HIGH CONFIDENCE Onchange methods
     {
         "pattern": r"^onchange_(.+)$",
         "replacement": r"_onchange_\1",
         "description": "Onchange method pattern",
         "examples": ["onchange_partner → _onchange_partner"],
         "decorators": ["@api.onchange"],
-        "weight": 0.9,
+        "weight": 0.95,  # Very high confidence - standard Odoo pattern
+    },
+    # HIGH CONFIDENCE Quantity onchange methods (AgroMarin standard)
+    {
+        "pattern": r"^_onchange_qty_delivered$",
+        "replacement": r"_onchange_qty_transfered",
+        "description": "Onchange qty delivered to transferred (AgroMarin standard)",
+        "examples": ["_onchange_qty_delivered → _onchange_qty_transfered"],
+        "weight": 0.95,
+    },
+    {
+        "pattern": r"^_onchange_qty_received$",
+        "replacement": r"_onchange_qty_transfered",
+        "description": "Onchange qty received to transferred (AgroMarin standard)",
+        "examples": ["_onchange_qty_received → _onchange_qty_transfered"],
+        "weight": 0.95,
     },
     # Constraint methods: check_* → _check_* OR validate_* → _check_*
     {
@@ -458,6 +514,35 @@ METHOD_NAMING_RULES = [
         "decorators": ["@api.depends"],
         "weight": 0.9,  # Very consistent pattern in CSV
     },
+    # Additional HIGH CONFIDENCE patterns for specific AgroMarin transformations
+    {
+        "pattern": r"^_compute_(.+)_delivered$",
+        "replacement": r"_compute_\1_transfered",
+        "description": "Compute delivered methods to transferred",
+        "examples": ["_compute_product_delivered → _compute_product_transfered"],
+        "weight": 0.93,
+    },
+    {
+        "pattern": r"^_compute_(.+)_received$",
+        "replacement": r"_compute_\1_transfered",
+        "description": "Compute received methods to transferred",
+        "examples": ["_compute_product_received → _compute_product_transfered"],
+        "weight": 0.93,
+    },
+    {
+        "pattern": r"^(.+)_delivered$",
+        "replacement": r"\1_transfered",
+        "description": "General delivered to transferred pattern (methods)",
+        "examples": ["product_delivered → product_transfered"],
+        "weight": 0.90,
+    },
+    {
+        "pattern": r"^(.+)_received$",
+        "replacement": r"\1_transfered",
+        "description": "General received to transferred pattern (methods)",
+        "examples": ["product_received → product_transfered"],
+        "weight": 0.90,
+    },
 ]
 
 
@@ -602,6 +687,30 @@ class NamingRuleEngine:
                 }
 
         return None
+
+    def is_transformation(self, old_name: str, new_name: str) -> bool:
+        """Check if old_name -> new_name follows a known naming rule transformation"""
+        # Check field rules
+        for rule in self.field_rules:
+            if rule.get("validation_only", False):
+                # Skip validation-only rules for transformation checking
+                continue
+            if re.match(rule["pattern"], old_name):
+                predicted_name = re.sub(rule["pattern"], rule["replacement"], old_name)
+                if predicted_name == new_name and rule["weight"] >= 0.9:
+                    return True
+
+        # Check method rules
+        for rule in self.method_rules:
+            if rule.get("validation_only", False):
+                # Skip validation-only rules for transformation checking
+                continue
+            if re.match(rule["pattern"], old_name):
+                predicted_name = re.sub(rule["pattern"], rule["replacement"], old_name)
+                if predicted_name == new_name and rule["weight"] >= 0.9:
+                    return True
+
+        return False
 
     def check_contextual_similarity(self, old_name: str, new_name: str) -> dict | None:
         """Check for contextual similarity patterns"""

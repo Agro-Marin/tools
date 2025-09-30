@@ -10,7 +10,7 @@ import csv
 import logging
 from pathlib import Path
 
-from analyzers.matching_engine import RenameCandidate
+from core.models import RenameCandidate
 from config.settings import CSV_ENCODING, CSV_HEADERS, VALID_ITEM_TYPES
 
 logger = logging.getLogger(__name__)
@@ -31,54 +31,6 @@ class CSVManager:
         self.encoding = CSV_ENCODING
         self.existing_records = []
         self.existing_record_keys = set()
-
-    def load_existing_csv(self) -> list[dict[str, str]]:
-        """
-        Load existing CSV records for deduplication.
-
-        Returns:
-            List of existing records as dictionaries
-        """
-        if not self.csv_file_path.exists():
-            logger.info(
-                f"CSV file {self.csv_file_path} does not exist, will create new one"
-            )
-            return []
-
-        try:
-            with open(
-                self.csv_file_path, "r", encoding=self.encoding, newline=""
-            ) as csvfile:
-                reader = csv.DictReader(csvfile)
-
-                # Validate headers
-                if reader.fieldnames != self.headers:
-                    logger.warning(
-                        f"CSV headers mismatch. Expected: {self.headers}, Found: {reader.fieldnames}"
-                    )
-
-                records = []
-                for row_num, row in enumerate(
-                    reader, start=2
-                ):  # Start at 2 because header is row 1
-                    # Clean and validate row
-                    cleaned_row = self._clean_csv_row(row)
-                    if self._validate_csv_row(cleaned_row, row_num):
-                        records.append(cleaned_row)
-                        # Create unique key for deduplication
-                        record_key = self._create_record_key(cleaned_row)
-                        self.existing_record_keys.add(record_key)
-
-                self.existing_records = records
-                logger.info(
-                    f"Loaded {len(records)} existing records from {self.csv_file_path}"
-                )
-
-                return records
-
-        except Exception as e:
-            logger.error(f"Error loading CSV file {self.csv_file_path}: {e}")
-            return []
 
     def _clean_csv_row(self, row: dict[str, str]) -> dict[str, str]:
         """Clean CSV row data"""
@@ -153,66 +105,6 @@ class CSVManager:
     def _create_record_key_from_candidate(self, candidate: RenameCandidate) -> str:
         """Create record key from rename candidate"""
         return f"{candidate.old_name}→{candidate.new_name}:{candidate.item_type}:{candidate.module}:{candidate.model}"
-
-    def add_candidates_to_csv(
-        self, candidates: list[RenameCandidate], backup_existing: bool = True
-    ) -> int:
-        """
-        Add new candidates to CSV file.
-
-        Args:
-            candidates: List of rename candidates to add
-            backup_existing: Whether to backup existing file
-
-        Returns:
-            Number of records added
-        """
-        if not candidates:
-            logger.info("No candidates to add to CSV")
-            return 0
-
-        # Create backup if requested and file exists
-        if backup_existing and self.csv_file_path.exists():
-            self._create_backup()
-
-        # Ensure directory exists
-        self.csv_file_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Convert candidates to CSV records
-        new_records = [
-            self._candidate_to_csv_record(candidate) for candidate in candidates
-        ]
-
-        # Combine with existing records
-        all_records = self.existing_records + new_records
-
-        try:
-            # Write all records to CSV
-            with open(
-                self.csv_file_path, "w", encoding=self.encoding, newline=""
-            ) as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=self.headers)
-                writer.writeheader()
-                writer.writerows(all_records)
-
-            logger.info(f"Added {len(new_records)} new records to {self.csv_file_path}")
-            logger.info(f"Total records in CSV: {len(all_records)}")
-
-            return len(new_records)
-
-        except Exception as e:
-            logger.error(f"Error writing to CSV file {self.csv_file_path}: {e}")
-            raise
-
-    def _candidate_to_csv_record(self, candidate: RenameCandidate) -> dict[str, str]:
-        """Convert rename candidate to CSV record"""
-        return {
-            "old_name": candidate.old_name,
-            "new_name": candidate.new_name,
-            "item_type": candidate.item_type,
-            "module": candidate.module,
-            "model": candidate.model,
-        }
 
     def _create_backup(self) -> Path | None:
         """Create backup of existing CSV file"""
@@ -388,3 +280,219 @@ class CSVManager:
             "file_path": str(self.csv_file_path),
             "file_exists": self.csv_file_path.exists(),
         }
+
+    # CSV methods for cross-reference support
+
+    CSV_HEADERS = [
+        "change_id",
+        "old_name",
+        "new_name",
+        "item_type",
+        "module",
+        "model",
+        "change_scope",
+        "impact_type",
+        "context",
+        "confidence",
+        "parent_change_id",
+        "validation_status",
+    ]
+
+    def write_csv(self, candidates: list[RenameCandidate], filename: str = None) -> int:
+        """
+        Write candidates with cross-reference structure.
+
+        Args:
+            candidates: List of RenameCandidate objects
+            filename: Optional filename override
+
+        Returns:
+            Number of records written
+        """
+        if not candidates:
+            logger.info("No candidates to write to enhanced CSV")
+            return 0
+
+        output_path = (
+            Path(filename)
+            if filename
+            else self.csv_file_path.with_suffix(".enhanced.csv")
+        )
+
+        # Group candidates by primary declaration and their impacts
+        grouped = self._group_by_declaration(candidates)
+
+        rows = []
+        for change_id, (primary_change, impacts) in grouped.items():
+            # Primary declaration first
+            rows.append(self._candidate_to_csv_row(primary_change))
+
+            # Impact changes sorted by confidence (highest first)
+            sorted_impacts = sorted(impacts, key=lambda x: x.confidence, reverse=True)
+            for impact in sorted_impacts:
+                rows.append(self._candidate_to_csv_row(impact))
+
+        try:
+            # Ensure directory exists
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Write CSV
+            with open(output_path, "w", newline="", encoding="utf-8") as file:
+                writer = csv.DictWriter(file, fieldnames=self.CSV_HEADERS)
+                writer.writeheader()
+                writer.writerows(rows)
+
+            logger.info(
+                f"CSV written: {len(rows)} total records ({len(grouped)} declarations, {len(rows) - len(grouped)} impacts)"
+            )
+
+            return len(rows)
+
+        except Exception as e:
+            logger.error(f"Error writing CSV to {output_path}: {e}")
+            raise
+
+    def _group_by_declaration(self, candidates: list[RenameCandidate]) -> dict:
+        """Group impact candidates by their primary declaration"""
+        grouped = {}
+
+        # Separar declaraciones primarias de impactos
+        primary_changes = [c for c in candidates if c.impact_type == "primary"]
+        impact_changes = [c for c in candidates if c.impact_type != "primary"]
+
+        # Crear grupos con declaraciones primarias
+        for primary in primary_changes:
+            impacts = [
+                i for i in impact_changes if i.parent_change_id == primary.change_id
+            ]
+            grouped[primary.change_id] = (primary, impacts)
+
+        # Manejar impactos huérfanos (sin declaración primaria)
+        for impact in impact_changes:
+            if impact.parent_change_id not in grouped:
+                # Crear entrada para impacto huérfano
+                grouped[impact.change_id] = (impact, [])
+
+        return grouped
+
+    def _candidate_to_csv_row(self, candidate: RenameCandidate) -> dict:
+        """Convert RenameCandidate to CSV row"""
+        return {
+            "change_id": candidate.change_id,
+            "old_name": candidate.old_name,
+            "new_name": candidate.new_name,
+            "item_type": candidate.item_type,
+            "module": candidate.module,
+            "model": candidate.model,
+            "change_scope": candidate.change_scope,
+            "impact_type": candidate.impact_type,
+            "context": candidate.context,
+            "confidence": f"{candidate.confidence:.3f}",
+            "parent_change_id": candidate.parent_change_id,
+            "validation_status": candidate.validation_status,
+        }
+
+    def write_candidates(self, candidates: list[RenameCandidate]) -> int:
+        """
+        Write candidates in enhanced format to the main CSV file.
+        This is now the primary method for writing CSV output.
+
+        Args:
+            candidates: List of RenameCandidate objects
+
+        Returns:
+            Number of records written
+        """
+        # Create backup of existing file if it exists
+        if self.csv_file_path.exists():
+            self._create_backup()
+
+        # Write directly to the main CSV file
+        count = self.write_csv(candidates, str(self.csv_file_path))
+
+        logger.info(f"CSV written: {count} records to {self.csv_file_path}")
+
+        return count
+
+    def read_csv(self, filename: str = None) -> list[RenameCandidate]:
+        """Read candidates from CSV format"""
+        csv_path = Path(filename) if filename else self.csv_file_path
+
+        if not csv_path.exists():
+            logger.warning(f"CSV file {csv_path} does not exist")
+            return []
+
+        candidates = []
+
+        try:
+            with open(csv_path, "r", encoding="utf-8", newline="") as file:
+                reader = csv.DictReader(file)
+
+                # Validate headers
+                if not reader.fieldnames or not all(
+                    header in reader.fieldnames for header in self.CSV_HEADERS
+                ):
+                    logger.warning(
+                        f"CSV headers don't match expected format. Expected: {self.CSV_HEADERS}"
+                    )
+                    logger.warning(f"Found: {reader.fieldnames}")
+
+                for row_num, row in enumerate(reader, start=2):
+                    try:
+                        candidate = self._csv_row_to_candidate(row)
+
+                        # Validate required fields
+                        if not candidate.old_name or not candidate.new_name:
+                            logger.warning(
+                                f"Row {row_num}: Missing required field (old_name or new_name), skipping"
+                            )
+                            continue
+
+                        if candidate.old_name == candidate.new_name:
+                            logger.warning(
+                                f"Row {row_num}: old_name and new_name are identical ({candidate.old_name}), skipping"
+                            )
+                            continue
+
+                        candidates.append(candidate)
+                    except Exception as e:
+                        logger.error(f"Error parsing row {row_num}: {e}")
+                        continue
+
+            logger.info(f"Read {len(candidates)} candidates from CSV {csv_path}")
+            return candidates
+
+        except Exception as e:
+            logger.error(f"Error reading CSV {csv_path}: {e}")
+            return []
+
+    def _csv_row_to_candidate(self, row: dict) -> RenameCandidate:
+        """Convert CSV row to RenameCandidate with robust type conversion"""
+        try:
+            # Safe confidence conversion
+            confidence_str = row.get("confidence", "0.0")
+            confidence = float(confidence_str) if confidence_str else 0.0
+
+            # Ensure confidence is within valid range
+            confidence = max(0.0, min(1.0, confidence))
+
+        except (ValueError, TypeError) as e:
+            logger.warning(
+                f"Invalid confidence value '{confidence_str}' in CSV row, using 0.0: {e}"
+            )
+            confidence = 0.0
+
+        return RenameCandidate(
+            change_id=row.get("change_id", "").strip(),
+            old_name=row.get("old_name", "").strip(),
+            new_name=row.get("new_name", "").strip(),
+            item_type=row.get("item_type", "").strip(),
+            module=row.get("module", "").strip(),
+            model=row.get("model", "").strip(),
+            change_scope=row.get("change_scope", "declaration").strip(),
+            impact_type=row.get("impact_type", "primary").strip(),
+            context=row.get("context", "").strip(),
+            confidence=confidence,
+            parent_change_id=row.get("parent_change_id", "").strip(),
+            validation_status=row.get("validation_status", "pending").strip(),
+        )

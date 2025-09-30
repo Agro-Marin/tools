@@ -43,16 +43,25 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import List
 
 # Local imports
-from analyzers.ast_parser import CodeInventoryExtractor
 from analyzers.git_analyzer import GitAnalyzer, GitRepositoryError
-from analyzers.matching_engine import MatchingEngine, RenameCandidate
-from config.settings import Config, config
-from core.model_flattener import ModelFlattener
+from analyzers.matching_engine import MatchingEngine
+from core.models import (
+    RenameCandidate,
+    Model,
+    ValidationStatus,
+    ChangeScope,
+    ImpactType,
+)
+from config.settings import Config
 from core.model_registry import ModelRegistry
-from interactive.validation_ui import InteractiveValidator
+from core.inheritance_graph import InheritanceGraph
+from core.model_flattener import ModelFlattener
+from interactive.validation_ui import ValidationUI
 from utils.csv_manager import CSVManager
+from analyzers.cross_reference_analyzer import CrossReferenceAnalyzer
 
 # Add current directory to Python path for relative imports
 current_dir = Path(__file__).parent
@@ -172,7 +181,7 @@ Examples:
         "--confidence-threshold",
         "-t",
         type=float,
-        default=0.75,
+        default=0.50,
         help="Confidence threshold for auto-approval (0.0-1.0, default: %(default)s)",
     )
 
@@ -282,81 +291,31 @@ def load_modified_modules_json(json_file_path: str) -> dict:
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON file format: {e}")
 
+    # =====================================
+    # INHERITANCE-AWARE ANALYSIS (MAIN)
+    # =====================================
 
-# =====================================
-# INHERITANCE-AWARE ANALYSIS (MAIN)
-# =====================================
-
-
-def analyze_module_files_with_inheritance(
-    module_data: dict,
-    git_analyzer: GitAnalyzer,
-    commit_from: str,
-    commit_to: str,
-    extractor: CodeInventoryExtractor,
-    matching_engine: MatchingEngine,
-) -> list[RenameCandidate]:
     """
     Analiza archivos de un módulo para encontrar renames considerando herencia Odoo.
 
-    Este es el método principal que implementa análisis consciente de herencia.
-    Construye registros completos de modelos, los aplana para resolver herencia,
-    y compara modelos completos en lugar de archivos individuales.
-
-    Proceso detallado:
-    1. Extrae archivos Python relevantes del módulo (models/, wizards/)
-    2. Construye ModelRegistry para ambos commits usando batch processing
-    3. Crea ModelFlattener para resolver cadenas de herencia completas
-    4. Analiza cada modelo unificado para encontrar renames cross-file
-    5. Convierte resultados al formato compatible con MatchingEngine
-    6. Enriquece candidatos con contexto de herencia
+    Función unificada que implementa análisis consciente de herencia con opción
+    de retornar datos de modelos aplanados para generación de cross-references.
 
     Args:
-        module_data: Datos del módulo con estructura:
-            {
-                'module_name': str,
-                'file_categories': {
-                    'models': [lista de archivos .py],
-                    'wizards': [lista de archivos .py],
-                    ...
-                }
-            }
+        module_data: Datos del módulo con file_categories
         git_analyzer: Instancia configurada de GitAnalyzer
-        commit_from: SHA del commit inicial para comparación
-        commit_to: SHA del commit final para comparación
+        commit_from: SHA del commit inicial
+        commit_to: SHA del commit final  
         extractor: CodeInventoryExtractor (usado para fallback legacy)
         matching_engine: MatchingEngine con algoritmos de detección
+        return_flattened_models: Si True, retorna tupla (candidates, flattened_models)
 
     Returns:
-        Lista de RenameCandidate encontrados con contexto de herencia.
-        Cada candidato incluye información adicional como:
-        - inheritance_chain: cadena de herencia del modelo
-        - model_name: modelo Odoo donde se encontró el rename
-        - inheritance_aware: flag indicando análisis con herencia
-
-    Raises:
-        Exception: Si falla el análisis, automáticamente hace fallback a legacy.
-                  No propaga excepciones para garantizar robustez.
+        Si return_flattened_models=False: Lista de RenameCandidate
+        Si return_flattened_models=True: Tupla (candidates, flattened_models_dict)
 
     Note:
-        Si el análisis con herencia falla por cualquier razón,
-        automáticamente revierte al análisis legacy sin interrumpir el flujo.
-        Esto garantiza que la herramienta nunca falle completamente.
-
-    Performance:
-        - Optimizado para minimizar operaciones Git costosas
-        - Usa cache interno en ModelRegistry y ModelFlattener
-        - Batch processing para checkout de commits
-
-    Example:
-        Para un módulo con herencia:
-        - models/sale_order.py: clase base SaleOrder
-        - models/sale_custom.py: herencia de sale.order
-
-        El análisis tradicional vería cada archivo por separado.
-        Este análisis ve 'sale.order' como un modelo unificado con
-        todos los campos/métodos de ambos archivos, permitiendo
-        detectar renames que cruzan la frontera de archivos.
+        Automáticamente hace fallback a análisis legacy si falla herencia.
     """
     module_name = module_data["module_name"]
     logger.info(f"Starting inheritance-aware analysis for module '{module_name}'")
@@ -366,7 +325,7 @@ def analyze_module_files_with_inheritance(
         python_files = _extract_python_files_from_module(module_data)
         if not python_files:
             logger.warning(f"No Python files found in module {module_name}")
-            return []
+            return [] if not return_flattened_models else ([], {})
 
         # 2. Construir registros de modelos para ambos commits
         logger.info(
@@ -381,22 +340,46 @@ def analyze_module_files_with_inheritance(
             registry_before, registry_after, module_name, matching_engine
         )
 
+        # 4. Collect flattened models if requested
+        flattened_models = {}
+        if return_flattened_models:
+            flattener_after = ModelFlattener(registry_after)
+            candidate_models = {candidate.model for candidate in candidates}
+
+            for model_name in candidate_models:
+                try:
+                    flattened = flattener_after.get_flattened_model(model_name)
+                    if flattened:
+                        flattened_models[model_name] = flattened
+                except Exception as e:
+                    logger.debug(f"Could not flatten model {model_name}: {e}")
+
         logger.info(
             f"Inheritance-aware analysis completed. Found {len(candidates)} candidates"
+            + (
+                f", {len(flattened_models)} flattened models"
+                if return_flattened_models
+                else ""
+            )
         )
-        return candidates
+
+        if return_flattened_models:
+            return candidates, flattened_models
+        else:
+            return candidates
 
     except Exception as e:
         logger.error(f"Error in inheritance-aware analysis for {module_name}: {e}")
-        logger.info("Falling back to legacy file-by-file analysis")
-        return analyze_module_files_legacy(
-            module_data,
-            git_analyzer,
-            commit_from,
-            commit_to,
-            extractor,
-            matching_engine,
+        logger.warning(
+            f"📊 FALLBACK: Using legacy analysis for module '{module_name}' - consider investigating"
         )
+        # Fallback removed - use unified analysis only
+        legacy_candidates = []
+
+        if return_flattened_models:
+            return legacy_candidates, {}
+        else:
+            return legacy_candidates
 
 
 def _extract_python_files_from_module(module_data: dict) -> list[str]:
@@ -545,19 +528,41 @@ def _analyze_unified_models_for_renames(
     # Debug: mostrar modelos que aparecen solo en un commit
     only_before = models_before - models_after
     only_after = models_after - models_before
+    common_models = models_before & models_after
 
     if only_before:
         logger.debug(f"Models only in before: {sorted(only_before)}")
     if only_after:
         logger.debug(f"Models only in after: {sorted(only_after)}")
+    if common_models:
+        logger.debug(f"Models in both commits: {len(common_models)}")
 
-    # Analizar cada modelo individualmente
+    # Analizar cada modelo individualmente (solo modelos que existen en ambos commits)
     all_candidates = []
-    for model_name in sorted(all_models):
+    for model_name in sorted(common_models):
         model_candidates = _analyze_single_unified_model(
             model_name, flattener_before, flattener_after, module_name, matching_engine
         )
         all_candidates.extend(model_candidates)
+
+    # NUEVA FUNCIONALIDAD: Detectar renames de modelos completos
+    # Comparar modelos que solo existen en 'before' vs modelos que solo existen en 'after'
+    if only_before and only_after:
+        logger.debug(
+            f"Analyzing potential model renames: {len(only_before)} old × {len(only_after)} new models"
+        )
+        model_rename_candidates = _analyze_cross_model_renames(
+            only_before,
+            only_after,
+            flattener_before,
+            flattener_after,
+            module_name,
+            matching_engine,
+        )
+        all_candidates.extend(model_rename_candidates)
+        logger.debug(
+            f"Found {len(model_rename_candidates)} potential model rename candidates"
+        )
 
     return all_candidates
 
@@ -622,16 +627,11 @@ def _analyze_single_unified_model(
         logger.debug(f"Model {model_name} not found in one of the commits, skipping")
         return []
 
-    # Convertir modelos aplanados a formato inventory para compatibilidad
-    # con MatchingEngine existente
-    inventory_before = convert_flattened_to_inventory(flattened_before)
-    inventory_after = convert_flattened_to_inventory(flattened_after)
-
     # Debug logging para visibilidad del proceso
-    before_fields = len(inventory_before["fields"])
-    before_methods = len(inventory_before["methods"])
-    after_fields = len(inventory_after["fields"])
-    after_methods = len(inventory_after["methods"])
+    before_fields = len(flattened_before.fields)
+    before_methods = len(flattened_before.methods)
+    after_fields = len(flattened_after.fields)
+    after_methods = len(flattened_after.methods)
 
     logger.debug(
         f"Model {model_name} - Before: {before_fields} fields, {before_methods} methods | "
@@ -639,9 +639,13 @@ def _analyze_single_unified_model(
     )
 
     # Usar MatchingEngine existente para encontrar renames
-    # El file_path se marca como "MODEL:" para indicar análisis unificado
-    model_candidates = matching_engine.find_renames_in_inventories(
-        inventory_before, inventory_after, module_name, f"MODEL:{model_name}"
+    # Pasamos los modelos aplanados como listas de un solo elemento
+    model_candidates = matching_engine.find_all_renames(
+        [flattened_before],
+        [flattened_after],
+        module_name,
+        include_inheritance=False,  # Ya está aplanado
+        include_cross_references=False,  # Solo queremos direct renames
     )
 
     # Enriquecer candidatos con contexto de herencia
@@ -649,7 +653,7 @@ def _analyze_single_unified_model(
         candidate.context_info = {
             "inheritance_aware": True,
             "model_name": model_name,
-            "inheritance_chain": flattened_before.inheritance_chain,
+            "inheritance_chain": getattr(flattened_before, "inheritance_chain", []),
             "analysis_method": "unified_model",
             "total_fields_before": before_fields,
             "total_methods_before": before_methods,
@@ -671,6 +675,165 @@ def _analyze_single_unified_model(
         logger.debug(f"   No rename candidates found in model {model_name}")
 
     return model_candidates
+
+
+def _analyze_cross_model_renames(
+    only_before: set[str],
+    only_after: set[str],
+    flattener_before: ModelFlattener,
+    flattener_after: ModelFlattener,
+    module_name: str,
+    matching_engine: MatchingEngine,
+) -> list[RenameCandidate]:
+    """
+    Analiza potenciales renames de modelos completos entre commits.
+
+    Esta función detecta casos donde un modelo completo ha sido renombrado
+    (ej: account.invoice → account.move) comparando modelos que solo existen
+    en el commit anterior vs modelos que solo existen en el commit posterior.
+
+    Args:
+        only_before: Nombres de modelos que solo existen en commit anterior
+        only_after: Nombres de modelos que solo existen en commit posterior
+        flattener_before: ModelFlattener para commit anterior
+        flattener_after: ModelFlattener para commit posterior
+        module_name: Nombre del módulo para contexto
+        matching_engine: Engine para cálculo de similitud
+
+    Returns:
+        Lista de RenameCandidate para potenciales renames de modelos
+
+    Algorithm:
+        1. Para cada modelo en only_before, compara con todos en only_after
+        2. Calcula similitud basada en campos y métodos usando MatchingEngine
+        3. Si similitud > umbral, genera candidato de model rename
+        4. Usa modelo completo (con herencia) para cálculo preciso
+
+    Example:
+        Si account.invoice solo existe en before y account.move solo existe
+        en after, y ambos tienen ~80% de campos similares, se genera un
+        candidato indicando que account.invoice fue renombrado a account.move
+    """
+    candidates = []
+
+    # Calcular todas las comparaciones posibles
+    total_comparisons = len(only_before) * len(only_after)
+    logger.debug(
+        f"Evaluating {total_comparisons} model comparisons for potential renames"
+    )
+
+    for old_model_name in sorted(only_before):
+        # Obtener modelo aplanado del commit anterior
+        old_model = flattener_before.get_flattened_model(old_model_name)
+        if not old_model:
+            logger.debug(f"Could not flatten old model {old_model_name}, skipping")
+            continue
+
+        best_match = None
+        best_similarity = 0.0
+
+        for new_model_name in sorted(only_after):
+            # Obtener modelo aplanado del commit posterior
+            new_model = flattener_after.get_flattened_model(new_model_name)
+            if not new_model:
+                continue
+
+            # Calcular similitud entre modelos completos
+            similarity = _calculate_model_similarity(
+                old_model, new_model, matching_engine
+            )
+
+            # Guardar mejor match para este modelo anterior
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_match = (new_model_name, new_model)
+
+        # Si encontramos una similitud suficientemente alta, crear candidato
+        if best_match and best_similarity >= 0.6:  # Umbral para model renames
+            new_model_name, new_model = best_match
+
+            candidate = RenameCandidate(
+                change_id=f"MODEL_RENAME_{len(candidates) + 1}",
+                old_name=old_model_name,
+                new_name=new_model_name,
+                item_type="model",
+                module=module_name,
+                model=old_model_name,  # El modelo original
+                change_scope="declaration",  # Es una declaración de modelo completo
+                impact_type="primary",  # Es el cambio primario
+                context="model_rename",  # Contexto específico
+                confidence=best_similarity,
+                validation_status="pending",
+                source_file=f"MODEL:{old_model_name}",
+            )
+
+            # Enriquecer con contexto especial de model rename
+            candidate.context_info = {
+                "rename_type": "complete_model",
+                "old_model_fields": len(old_model.fields),
+                "new_model_fields": len(new_model.fields),
+                "old_model_methods": len(old_model.methods),
+                "new_model_methods": len(new_model.methods),
+                "similarity_score": best_similarity,
+                "analysis_method": "cross_model_comparison",
+            }
+
+            candidates.append(candidate)
+            logger.debug(
+                f"🔄 Model rename candidate: {old_model_name} → {new_model_name} "
+                f"(similarity: {best_similarity:.3f})"
+            )
+
+    return candidates
+
+
+def _calculate_model_similarity(
+    model_before: Model, model_after: Model, matching_engine: MatchingEngine
+) -> float:
+    """
+    Calcula similitud entre dos modelos completos.
+
+    Usa el MatchingEngine existente para calcular similitud basada en:
+    - Campos comunes vs campos totales
+    - Métodos comunes vs métodos totales
+    - Pesos para priorizar campos sobre métodos
+
+    Args:
+        model_before: Modelo del commit anterior (aplanado con herencia)
+        model_after: Modelo del commit posterior (aplanado con herencia)
+        matching_engine: Engine con algoritmos de similitud
+
+    Returns:
+        Float entre 0.0 y 1.0 indicando similitud
+    """
+    # Extraer nombres de campos y métodos
+    fields_before = {f.name for f in model_before.fields}
+    fields_after = {f.name for f in model_after.fields}
+    methods_before = {m.name for m in model_before.methods}
+    methods_after = {m.name for m in model_after.methods}
+
+    # Calcular intersecciones y uniones
+    common_fields = fields_before & fields_after
+    total_fields = fields_before | fields_after
+    common_methods = methods_before & methods_after
+    total_methods = methods_before | methods_after
+
+    # Calcular similitudes por separado
+    field_similarity = len(common_fields) / len(total_fields) if total_fields else 1.0
+    method_similarity = (
+        len(common_methods) / len(total_methods) if total_methods else 1.0
+    )
+
+    # Pesos: campos son más importantes que métodos para identificar modelos
+    field_weight = 0.7
+    method_weight = 0.3
+
+    # Similitud ponderada
+    overall_similarity = (field_similarity * field_weight) + (
+        method_similarity * method_weight
+    )
+
+    return min(1.0, overall_similarity)  # Asegurar que no supere 1.0
 
 
 # =====================================
@@ -782,118 +945,86 @@ def build_registry_for_commit(
     return registry
 
 
-def convert_flattened_to_inventory(flattened_model) -> dict:
-    """
-    Convierte FlattenedModel al formato inventory compatible con MatchingEngine.
-
-    El MatchingEngine existente espera un formato específico de diccionario
-    con claves 'fields', 'methods', y 'classes'. Esta función actúa como
-    adaptador entre el nuevo sistema de herencia y el engine de matching
-    existente, preservando toda la funcionalidad mientras añade capacidades
-    de herencia.
-
-    Args:
-        flattened_model: Instancia de FlattenedModel con herencia resuelta.
-                        Contiene all_fields y all_methods con información
-                        completa de herencia.
-
-    Returns:
-        Diccionario en formato inventory compatible con estructura:
-        {
-            'fields': [lista de campos con metadatos completos],
-            'methods': [lista de métodos con metadatos completos],
-            'classes': [],  # Vacío para compatibilidad con MatchingEngine
-            'file_path': 'FLATTENED:{model_name}'  # Indicador especial
-        }
-
-    Data Transformation:
-        Cada campo/método mantiene toda su información original del AST
-        parsing más metadatos adicionales de herencia como:
-        - defined_in_model: modelo donde se definió originalmente
-        - is_inherited: si proviene de herencia o definición directa
-        - is_overridden: si sobreescribe definición de modelo padre
-        - source_file: archivo físico donde está el código
-
-        Esto permite que el MatchingEngine funcione normalmente mientras
-        preserva contexto de herencia completo para debugging/reporting.
-
-    Compatibility:
-        El formato generado es 100% compatible con el MatchingEngine
-        existente. Los campos adicionales de herencia son ignorados por
-        el engine pero están disponibles para logging y análisis posterior.
-
-    Example:
-        Para un modelo 'sale.order' con herencia:
-        - Campo 'name' definido en models/sale_order.py
-        - Campo 'custom_field' definido en models/sale_custom.py
-        - Método 'action_confirm' sobreescrito en models/sale_custom.py
-
-        El inventory resultante contiene todos los campos/métodos como si
-        fueran de un solo modelo, pero preserva información de origen.
-    """
-    inventory = {
-        "fields": [],
-        "methods": [],
-        "classes": [],  # Mantenido vacío para compatibilidad
-        "file_path": f"FLATTENED:{flattened_model.model_name}",
-    }
-
-    # Convertir campos aplanados preservando toda la metadata
-    for field in flattened_model.all_fields:
-        field_dict = {
-            # Campos requeridos por MatchingEngine (formato original)
-            "name": field.name,
-            "type": "field",
-            "field_type": field.field_type,
-            "args": field.args,
-            "kwargs": field.kwargs,
-            "signature": field.signature,
-            "definition": field.definition,
-            "line": field.line_number,
-            "model": flattened_model.model_name,
-            # Metadata de herencia adicional (ignorada por MatchingEngine)
-            "source_file": field.source_file,
-            "defined_in_model": field.defined_in_model,
-            "is_inherited": field.is_inherited,
-        }
-        inventory["fields"].append(field_dict)
-
-    # Convertir métodos aplanados preservando toda la metadata
-    for method in flattened_model.all_methods:
-        method_dict = {
-            # Campos requeridos por MatchingEngine (formato original)
-            "name": method.name,
-            "type": "method",
-            "args": method.args,
-            "decorators": method.decorators,
-            "signature": method.signature,
-            "definition": method.definition,
-            "line": method.line_number,
-            "model": flattened_model.model_name,
-            # Metadata de herencia adicional (ignorada por MatchingEngine)
-            "source_file": method.source_file,
-            "defined_in_model": method.defined_in_model,
-            "is_inherited": method.is_inherited,
-            "is_overridden": method.is_overridden,
-        }
-        inventory["methods"].append(method_dict)
-
-    return inventory
-
-
 # =====================================
-# LEGACY ANALYSIS (FALLBACK)
+# NEW INHERITANCE-AWARE ANALYSIS FUNCTIONS
 # =====================================
 
 
-def analyze_module_files_legacy(
+def analyze_module_unified(
     module_data: dict,
     git_analyzer: GitAnalyzer,
     commit_from: str,
     commit_to: str,
-    extractor: CodeInventoryExtractor,
-    matching_engine: MatchingEngine,
-) -> list[RenameCandidate]:
+    return_models: bool = False,
+) -> tuple[List[RenameCandidate], dict] | List[RenameCandidate]:
+    """
+    Simplified analysis pipeline using unified structures throughout.
+    No more conversions between formats.
+    """
+    module_name = module_data["module_name"]
+    logger.info(f"Starting unified analysis for module '{module_name}'")
+
+    try:
+        # Extract files
+        python_files = _extract_python_files_from_module(module_data)
+        if not python_files:
+            logger.warning(f"No Python files found in module {module_name}")
+            return []
+
+        # Single extraction to Model (no conversions)
+        before_models = _extract_models_from_git(
+            python_files, git_analyzer, commit_from
+        )
+        after_models = _extract_models_from_git(python_files, git_analyzer, commit_to)
+
+        # Single engine handles everything (no format conversions)
+        engine = MatchingEngine()
+        candidates = engine.find_all_renames(before_models, after_models, module_name)
+
+        logger.info(f"Unified analysis completed. Found {len(candidates)} candidates")
+
+        if return_models:
+            # Return both candidates and models for cross-reference generation
+            all_models = {
+                module_name: after_models
+            }  # Use after_models for cross-reference
+            return candidates, all_models
+        else:
+            return candidates
+
+    except Exception as e:
+        logger.error(f"Error in unified analysis for {module_name}: {e}")
+        return []
+
+
+def _extract_models_from_git(
+    python_files: List[str], git_analyzer: GitAnalyzer, commit_sha: str
+) -> List[Model]:
+    """Extract Model objects from files at a specific git commit"""
+    from analyzers.ast_visitor import extract_models
+
+    all_models = []
+
+    for file_path in python_files:
+        try:
+            content = git_analyzer.get_file_content_at_commit(file_path, commit_sha)
+            if content:
+                models = extract_models(content, file_path)
+                all_models.extend(models)
+        except Exception as e:
+            logger.error(
+                f"Error extracting models from {file_path} at {commit_sha}: {e}"
+            )
+
+    return all_models
+
+    # LEGACY ANALYSIS (FALLBACK)
+    # =====================================
+
+    # =====================================
+    # LEGACY ANALYSIS (FALLBACK)
+    # =====================================
+
     """
     Análisis archivo por archivo (implementación original).
 
@@ -1031,10 +1162,6 @@ def analyze_module_files_legacy(
         f"Legacy analysis completed for {module_name}. Found {len(candidates)} candidates"
     )
     return candidates
-
-
-# Mantener alias para compatibilidad hacia atrás completa
-analyze_module_files = analyze_module_files_with_inheritance
 
 
 # =====================================
@@ -1179,14 +1306,13 @@ def main() -> int:
         )
 
         # BLOCK 4: Analysis Components Initialization
-        # Initialize all analysis components
-        extractor = CodeInventoryExtractor()
+        # Initialize analysis components
         matching_engine = MatchingEngine()
         csv_manager = CSVManager(app_config.output_csv)
 
         # Load existing CSV records to avoid duplicates
         logger.info("Loading existing CSV records...")
-        existing_records = csv_manager.load_existing_csv()
+        existing_records = csv_manager.read_csv()
         logger.info(f"Found {len(existing_records)} existing records in CSV")
 
         # BLOCK 5: Module Filtering and Selection
@@ -1232,8 +1358,9 @@ def main() -> int:
             logger.info(f"Analyzing all {len(modules_to_analyze)} modified modules")
 
         # BLOCK 6: Module Analysis Processing
-        logger.info("Starting inheritance-aware analysis of selected modules...")
+        logger.info("Starting unified analysis of selected modules...")
         all_candidates = []
+        collected_all_models = {}  # Collect models for cross-reference generation
 
         for i, module_data in enumerate(modules_to_analyze, 1):
             module_name = module_data["module_name"]
@@ -1241,23 +1368,25 @@ def main() -> int:
                 f"[{i}/{len(modules_to_analyze)}] Analyzing module: {module_name}"
             )
 
-            # Use inheritance-aware analysis (with automatic fallback to legacy)
-            module_candidates = analyze_module_files(
-                module_data,
-                git_analyzer,
-                commit_from,
-                commit_to,
-                extractor,
-                matching_engine,
+            # Use unified analysis and collect models for cross-references
+            result = analyze_module_unified(
+                module_data, git_analyzer, commit_from, commit_to, return_models=True
             )
 
+            if isinstance(result, tuple):
+                module_candidates, module_models = result
+                collected_all_models.update(module_models)
+            else:
+                module_candidates = result
+
             all_candidates.extend(module_candidates)
+
             logger.info(
                 f"Module {module_name} completed: {len(module_candidates)} candidates found"
             )
 
         logger.info(
-            f"Analysis complete. Found {len(all_candidates)} potential renames total"
+            f"Analysis complete. Found {len(all_candidates)} rename candidates (filtered by confidence)"
         )
 
         # Early exit if no candidates found
@@ -1284,30 +1413,86 @@ def main() -> int:
 
         logger.info(f"Processing {len(new_candidates)} new candidates")
 
+        # Generate cross-references for all candidates
+        def generate_cross_references_for_candidates(
+            candidates: List[RenameCandidate], all_models: dict
+        ) -> List[RenameCandidate]:
+            """Generate cross-references for primary candidates"""
+            if not all_models:
+                logger.warning("No models available for cross-reference generation")
+                return candidates
+
+            logger.info("Generating cross-references for all candidates...")
+            cross_ref_analyzer = CrossReferenceAnalyzer()
+
+            try:
+                # Use the correct method: generate_all_rename_candidates
+                all_candidates_with_refs = (
+                    cross_ref_analyzer.generate_all_rename_candidates(
+                        candidates, all_models
+                    )
+                )
+
+                logger.info(
+                    f"Generated {len(all_candidates_with_refs)} total candidates (including cross-references)"
+                )
+                return all_candidates_with_refs
+
+            except Exception as e:
+                logger.error(f"Error generating cross-references: {e}")
+                return candidates  # Return original candidates if cross-reference fails
+
         # BLOCK 8: Validation Processing (Interactive vs Automatic)
         if app_config.interactive_mode:
             # Interactive validation with user input
             logger.info("Starting interactive validation...")
-            validator = InteractiveValidator(
-                confidence_threshold=app_config.confidence_threshold,
-                auto_approve_threshold=0.90,  # High confidence auto-approval
+
+            # Generate cross-references BEFORE writing to CSV
+            candidates_with_refs = generate_cross_references_for_candidates(
+                new_candidates, collected_all_models
             )
 
-            approved_candidates, validation_summary = validator.validate_candidates(
-                new_candidates
+            # Create CSV with candidates + cross-references
+            count = csv_manager.write_candidates(candidates_with_refs)
+            logger.info(
+                f"Enhanced CSV written: {count} records (including cross-references) to {app_config.output_csv}"
             )
+
+            # Run interactive validation on the CSV
+            validator = ValidationUI(csv_manager)
+            validator.run_validation_session(str(app_config.output_csv))
+
+            # Read back the validated candidates
+            approved_candidates = [
+                c
+                for c in csv_manager.read_csv(str(app_config.output_csv))
+                if c.validation_status
+                in [
+                    ValidationStatus.APPROVED.value,
+                    ValidationStatus.AUTO_APPROVED.value,
+                ]
+            ]
 
             if not approved_candidates:
                 print("\n❌ No se aprobaron cambios para incluir en el CSV.")
                 return 0
 
+            # Interactive mode completes here - no need for cross-reference generation
+            print(f"✅ Validación interactiva completada")
+            return 1
+
         else:
-            # Automatic processing - only high confidence candidates
+            # Automatic processing - filter by confidence and generate cross-references
             approved_candidates = [
                 c
                 for c in new_candidates
                 if c.confidence >= app_config.confidence_threshold
             ]
+
+            # Generate cross-references for approved candidates
+            all_candidates_with_refs = generate_cross_references_for_candidates(
+                approved_candidates, collected_all_models
+            )
 
             validation_summary = {
                 "total_detected": len(new_candidates),
@@ -1315,6 +1500,7 @@ def main() -> int:
                 "auto_approved": len(approved_candidates),
                 "manually_approved": 0,
                 "auto_rejected": len(new_candidates) - len(approved_candidates),
+                "total_with_cross_refs": len(all_candidates_with_refs),
             }
 
             print(
@@ -1326,20 +1512,54 @@ def main() -> int:
             """
             )
 
-        # BLOCK 9: Results Writing and Reporting
+        # BLOCK 9: Results Writing (AUTOMATIC MODE ONLY)
+        if not app_config.interactive_mode:
+            # Cross-references already generated above
+            impacts_count = len(all_candidates_with_refs) - len(approved_candidates)
+            logger.info(
+                f"Generated {impacts_count} cross-reference impacts for {len(approved_candidates)} primary changes"
+            )
+            print(
+                f"🔗 Generados {impacts_count} referencias cruzadas para {len(approved_candidates)} cambios primarios"
+            )
+
         # Write to CSV unless dry run mode
         if args.dry_run:
-            logger.info(f"DRY RUN: Would add {len(approved_candidates)} records to CSV")
+            logger.info(
+                f"DRY RUN: Would add {len(all_candidates_with_refs)} records to CSV"
+            )
             print(
-                f"🧪 DRY RUN: Se habrían añadido {len(approved_candidates)} registros al CSV"
+                f"🧪 DRY RUN: Se habrían añadido {len(all_candidates_with_refs)} registros al CSV (incluyendo cross-references)"
             )
         else:
-            # Add approved candidates to CSV
-            logger.info(
-                f"Writing {len(approved_candidates)} approved candidates to CSV..."
-            )
-            records_added = csv_manager.add_candidates_to_csv(approved_candidates)
-            logger.info(f"Successfully added {records_added} new records to CSV")
+            # Write directly to main CSV file
+            logger.info(f"Writing candidates to CSV...")
+
+            count = csv_manager.write_candidates(all_candidates_with_refs)
+
+            logger.info(f"Successfully wrote {count} records")
+            print(f"📄 CSV escrito: {count} registros con cross-references incluidos")
+
+            # NUEVO: Iniciar validación interactiva mejorada si el usuario quiere
+            if (
+                input(
+                    "\n¿Iniciar validación interactiva de referencias cruzadas? (y/N): "
+                )
+                .lower()
+                .strip()
+                == "y"
+            ):
+                logger.info("Starting enhanced interactive validation session...")
+                print("\n🔍 Iniciando validación interactiva mejorada...")
+
+                validator = ValidationUI(csv_manager)
+                validator.run_validation_session(str(app_config.output_csv))
+
+                print("✅ Validación interactiva completada")
+
+                # Generar reporte final actualizado
+                final_candidates = csv_manager.read_csv(str(app_config.output_csv))
+                generate_final_report(final_candidates)
 
         # Export detailed report if requested
         if app_config.report_file and approved_candidates:
@@ -1350,12 +1570,7 @@ def main() -> int:
             print(f"📄 Reporte detallado exportado: {app_config.report_file}")
 
         # BLOCK 10: Final Summary Display
-        if app_config.interactive_mode:
-            # Show interactive validation summary
-            validator.show_final_summary(
-                approved_candidates, validation_summary, app_config.output_csv
-            )
-        else:
+        if not app_config.interactive_mode:
             # Show automatic processing summary
             final_total = len(existing_records) + len(approved_candidates)
             print(
@@ -1365,6 +1580,9 @@ def main() -> int:
    📝 Registros añadidos: {len(approved_candidates)}
    📊 Total registros en CSV: {final_total}
    🧠 Método de análisis: {'Herencia-aware (con fallback)' if len(approved_candidates) > 0 else 'Sin cambios detectados'}
+   
+🎯 SIGUIENTE PASO: El archivo CSV está listo para ser usado por la herramienta 'field_method_renaming'
+   Contiene todas las referencias cruzadas con estados de validación para aplicar los cambios.
             """
             )
 
@@ -1400,6 +1618,72 @@ def main() -> int:
             traceback.print_exc()
 
         return 1
+
+
+def generate_final_report(candidates: list[RenameCandidate]):
+    """Genera reporte estadístico final"""
+    from core.models import ValidationStatus
+
+    total = len(candidates)
+    approved = len(
+        [
+            c
+            for c in candidates
+            if c.validation_status == ValidationStatus.APPROVED.value
+        ]
+    )
+    auto_approved = len(
+        [
+            c
+            for c in candidates
+            if c.validation_status == ValidationStatus.AUTO_APPROVED.value
+        ]
+    )
+    rejected = len(
+        [
+            c
+            for c in candidates
+            if c.validation_status == ValidationStatus.REJECTED.value
+        ]
+    )
+    pending = len(
+        [c for c in candidates if c.validation_status == ValidationStatus.PENDING.value]
+    )
+
+    print(
+        f"""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              📊 RESUMEN FINAL                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📈 Estadísticas:
+   • Total detectado: {total}
+   • Auto-aprobados: {auto_approved} (≥90% confianza)
+   • Aprobados manualmente: {approved}
+   • Rechazados: {rejected}
+   • Pendientes: {pending}
+   • TOTAL PARA APLICAR: {approved + auto_approved}
+
+💾 Archivo completo: odoo_field_changes_detected.csv
+   (Incluye TODAS las referencias con estados de validación)
+    """
+    )
+
+    # Estadísticas por módulo
+    from collections import defaultdict
+
+    module_stats = defaultdict(int)
+    for candidate in candidates:
+        if candidate.validation_status in [
+            ValidationStatus.APPROVED.value,
+            ValidationStatus.AUTO_APPROVED.value,
+        ]:
+            module_stats[candidate.module] += 1
+
+    if module_stats:
+        print("📂 Por módulo (cambios aprobados):")
+        for module, count in sorted(module_stats.items()):
+            print(f"   • {module}: {count} cambios")
 
 
 if __name__ == "__main__":

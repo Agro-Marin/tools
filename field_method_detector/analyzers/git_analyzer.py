@@ -131,9 +131,8 @@ class GitAnalyzer:
             raise GitRepositoryError(f"Cannot resolve commit reference: {commit_ref}")
 
     def _get_current_commit(self) -> str:
-        """Get current HEAD commit SHA"""
-        result = self._run_git_command(["rev-parse", "HEAD"])
-        return result.stdout.strip()
+        """Get current HEAD commit SHA (internal method)"""
+        return self.get_current_commit()
 
     def _get_previous_commit(self, commit_sha: str) -> str:
         """Get the previous commit SHA"""
@@ -161,6 +160,11 @@ class GitAnalyzer:
         Returns:
             File content as string, or None if file doesn't exist at commit
         """
+        # First check if file exists at commit to avoid noisy error logs
+        if not self.file_exists_at_commit(file_path, commit_sha):
+            logger.debug(f"File {file_path} not found at commit {commit_sha}")
+            return None
+
         try:
             result = self._run_git_command(["show", f"{commit_sha}:{file_path}"])
             return result.stdout
@@ -220,6 +224,43 @@ class GitAnalyzer:
             )
             return []
 
+    def get_changed_files_with_status(
+        self, commit_from: str, commit_to: str
+    ) -> list[tuple[str, str]]:
+        """
+        Get list of files changed between two commits with their status.
+
+        Args:
+            commit_from: Starting commit SHA
+            commit_to: Ending commit SHA
+
+        Returns:
+            List of tuples (status, file_path) where status is A/M/D/R
+        """
+        try:
+            result = self._run_git_command(
+                ["diff", "--name-status", f"{commit_from}..{commit_to}"]
+            )
+
+            changed_files = []
+            for line in result.stdout.split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+
+                parts = line.split("\t", 1)
+                if len(parts) >= 2:
+                    status = parts[0]
+                    file_path = parts[1]
+                    changed_files.append((status, file_path))
+
+            return changed_files
+        except GitRepositoryError:
+            logger.error(
+                f"Cannot get changed files with status between {commit_from} and {commit_to}"
+            )
+            return []
+
     def get_commit_info(self, commit_sha: str) -> dict[str, str]:
         """
         Get detailed information about a commit.
@@ -271,9 +312,13 @@ class GitAnalyzer:
             True if file exists at commit
         """
         try:
-            self._run_git_command(["cat-file", "-e", f"{commit_sha}:{file_path}"])
-            return True
-        except GitRepositoryError:
+            # Use subprocess directly for silent checking without logging errors
+            cmd = ["git", "cat-file", "-e", f"{commit_sha}:{file_path}"]
+            result = subprocess.run(
+                cmd, cwd=str(self.repo_path), capture_output=True, text=True
+            )
+            return result.returncode == 0
+        except Exception:
             return False
 
     def get_repository_info(self) -> dict[str, str]:
@@ -333,3 +378,24 @@ class GitAnalyzer:
             logger.error(f"Cannot extract commit from JSON: {e}")
 
         return None
+
+    def checkout_commit(self, commit_sha: str):
+        """
+        Checkout to a specific commit.
+
+        Args:
+            commit_sha: Commit SHA to checkout to
+
+        Raises:
+            GitRepositoryError: If checkout fails
+        """
+        try:
+            self._run_git_command(["checkout", commit_sha])
+            logger.debug(f"Successfully checked out to commit {commit_sha[:8]}")
+        except GitRepositoryError:
+            raise GitRepositoryError(f"Failed to checkout commit {commit_sha}")
+
+    def get_current_commit(self) -> str:
+        """Get current HEAD commit SHA"""
+        result = self._run_git_command(["rev-parse", "HEAD"])
+        return result.stdout.strip()

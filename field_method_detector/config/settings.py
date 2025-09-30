@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 
 # Default confidence thresholds
-DEFAULT_CONFIDENCE_THRESHOLD = 0.75
+DEFAULT_CONFIDENCE_THRESHOLD = 0.50
 AUTO_APPROVE_THRESHOLD = 0.90
 MINIMUM_REVIEW_THRESHOLD = 0.50
 

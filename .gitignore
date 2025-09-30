@@ -120,3 +120,10 @@ code_ordering/*.backup
 *.backup_*
 *.diff
 .backups/
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo

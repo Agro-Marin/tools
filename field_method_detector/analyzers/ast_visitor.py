@@ -139,6 +139,7 @@ class OdooASTVisitor(ast.NodeVisitor):
     def _extract_inheritance_info(self, node: ast.ClassDef) -> Optional[Dict[str, Any]]:
         """Extract inheritance information from class definition"""
         model_name = None
+        primary_model = None  # The _name value (primary model)
         inherit_models = []
         inheritance_type = InheritanceType.NAME
 
@@ -150,31 +151,43 @@ class OdooASTVisitor(ast.NodeVisitor):
                         if target.id == "_name" and isinstance(
                             child.value, ast.Constant
                         ):
-                            model_name = child.value.value
+                            primary_model = child.value.value
                             inheritance_type = InheritanceType.NAME
                         elif target.id == "_inherit":
-                            inheritance_type = InheritanceType.INHERIT
                             if isinstance(child.value, ast.Constant):
                                 inherit_models = [child.value.value]
-                                model_name = child.value.value
                             elif isinstance(child.value, ast.List):
                                 inherit_models = [
                                     elt.value
                                     for elt in child.value.elts
                                     if isinstance(elt, ast.Constant)
                                 ]
-                                model_name = (
-                                    inherit_models[0] if inherit_models else None
-                                )
+                            # Only set inheritance_type if no _name exists
+                            if not primary_model:
+                                inheritance_type = InheritanceType.INHERIT
 
-        # If no model name found, this might not be an Odoo model
-        if not model_name and not inherit_models:
+        # CRITICAL: Determine if this is truly a base module or an extension
+        # If a model has BOTH _name AND _inherit with the same model, it's an EXTENSION
+        # Example: _name='sale.order' + _inherit=['sale.order', ...] = EXTENSION of sale.order
+        if primary_model:
+            model_name = primary_model
+
+            # Check if inheriting from itself (extension pattern)
+            if primary_model in inherit_models:
+                # This is an extension: _name='X' + _inherit=['X', ...]
+                inheritance_type = InheritanceType.INHERIT
+        elif inherit_models:
+            # Fallback: single inheritance without _name
+            model_name = inherit_models[0]
+            inheritance_type = InheritanceType.INHERIT
+        else:
             return None
 
         return {
-            "model_name": model_name or (inherit_models[0] if inherit_models else ""),
+            "model_name": model_name,
             "inheritance_type": inheritance_type,
             "inherits_from": inherit_models,
+            "primary_model": primary_model,  # Track the actual primary model
         }
 
     def _is_odoo_model(self, node: ast.ClassDef) -> bool:

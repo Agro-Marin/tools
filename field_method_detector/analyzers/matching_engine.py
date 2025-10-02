@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from config.naming_rules import naming_engine
 from config.settings import SCORING_WEIGHTS, config
 from core.models import Model, Field, Method, Reference, RenameCandidate
+from analyzers.inheritance_graph import InheritanceGraph, build_inheritance_graph
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +31,9 @@ class MatchingEngine:
     # Global shared counter for unique change IDs across all instances
     _global_change_id_counter = 1
 
-    def __init__(self, start_id: int = None):
+    def __init__(self, start_id: int = None, inheritance_graph: InheritanceGraph = None):
         self.naming_engine = naming_engine
+        self.inheritance_graph = inheritance_graph
         if start_id is not None:
             MatchingEngine._global_change_id_counter = start_id
 
@@ -84,6 +86,94 @@ class MatchingEngine:
             all_candidates.extend(cross_ref_candidates)
 
         return all_candidates
+
+    def reclassify_inherited_changes(
+        self, all_candidates: List[RenameCandidate]
+    ) -> List[RenameCandidate]:
+        """
+        Post-process candidates to reclassify inherited changes.
+
+        When multiple modules have the same rename (e.g., _action_cancel -> action_cancel
+        in sale, sale_loyalty, sale_purchase), classify them properly:
+        - Base module: primary declaration
+        - Extension modules: inheritance super_call
+
+        Args:
+            all_candidates: All detected rename candidates
+
+        Returns:
+            Reclassified candidates with proper inheritance relationships
+        """
+        if not self.inheritance_graph:
+            logger.warning("No inheritance graph available, skipping reclassification")
+            return all_candidates
+
+        # Group candidates by (model, old_name, new_name, item_type)
+        from collections import defaultdict
+        change_groups = defaultdict(list)
+
+        for candidate in all_candidates:
+            key = (candidate.model, candidate.old_name, candidate.new_name, candidate.item_type)
+            change_groups[key].append(candidate)
+
+        reclassified = []
+
+        for key, candidates in change_groups.items():
+            model_name, old_name, new_name, item_type = key
+
+            # If only one candidate, keep as-is
+            if len(candidates) == 1:
+                reclassified.extend(candidates)
+                continue
+
+            # Multiple modules have the same change - need to classify
+            base_module = self.inheritance_graph.get_base_module(model_name)
+
+            logger.debug(
+                f"Reclassifying {len(candidates)} candidates for {model_name}.{old_name} -> {new_name}"
+            )
+            logger.debug(f"  Base module: {base_module}")
+            logger.debug(f"  Modules with this change: {[c.module for c in candidates]}")
+
+            # Find the primary candidate (from base module)
+            primary_candidate = None
+            extension_candidates = []
+
+            for candidate in candidates:
+                if candidate.module == base_module:
+                    primary_candidate = candidate
+                    logger.debug(f"  ✓ Found primary in base module: {candidate.module}")
+                else:
+                    extension_candidates.append(candidate)
+                    logger.debug(f"  → Extension module: {candidate.module}")
+
+            # If we found a primary candidate, reclassify extensions
+            if primary_candidate:
+                # Keep primary as-is
+                reclassified.append(primary_candidate)
+
+                # Reclassify extensions as inheritance declarations
+                # NOTE: The super_call will be detected separately by cross-reference analyzer
+                for ext_candidate in extension_candidates:
+                    ext_candidate.change_scope = "declaration"  # This is the method definition
+                    ext_candidate.impact_type = "inheritance"
+                    ext_candidate.parent_change_id = primary_candidate.change_id
+                    ext_candidate.context = ""  # No context needed for declarations
+
+                    logger.debug(
+                        f"Reclassified {ext_candidate.module}.{model_name}.{old_name} "
+                        f"as inheritance declaration (parent: {primary_candidate.module})"
+                    )
+
+                reclassified.extend(extension_candidates)
+            else:
+                # No clear base module - keep all as primary (conservative)
+                logger.warning(
+                    f"No base module found for {model_name}, keeping all changes as primary"
+                )
+                reclassified.extend(candidates)
+
+        return reclassified
 
     def _find_direct_renames(
         self, before_models: List[Model], after_models: List[Model], module_name: str
@@ -140,12 +230,21 @@ class MatchingEngine:
             before_list = before_fields[model_name]
             after_list = after_fields[model_name]
 
-            # Simple matching: look for missing fields in before and new fields in after
+            # STABILITY CHECK: Identify stable fields (exist in both versions)
             before_names = {f.name for f in before_list}
             after_names = {f.name for f in after_list}
 
-            missing_names = before_names - after_names
-            new_names = after_names - before_names
+            # Fields that exist in both are STABLE - ignore them
+            stable_names = before_names.intersection(after_names)
+
+            # Only consider actual changes
+            missing_names = before_names - after_names - stable_names
+            new_names = after_names - before_names - stable_names
+
+            logger.debug(
+                f"Model {model_name}: {len(stable_names)} stable fields, "
+                f"{len(missing_names)} missing, {len(new_names)} new"
+            )
 
             # Find optimal assignments to avoid cross-matching
             optimal_matches = self._find_optimal_matches(missing_names, new_names)
@@ -194,12 +293,21 @@ class MatchingEngine:
             before_list = before_methods[model_name]
             after_list = after_methods[model_name]
 
-            # Simple matching: look for missing methods in before and new methods in after
+            # STABILITY CHECK: Identify stable methods (exist in both versions)
             before_names = {m.name for m in before_list}
             after_names = {m.name for m in after_list}
 
-            missing_names = before_names - after_names
-            new_names = after_names - before_names
+            # Methods that exist in both are STABLE - ignore them
+            stable_names = before_names.intersection(after_names)
+
+            # Only consider actual changes
+            missing_names = before_names - after_names - stable_names
+            new_names = after_names - before_names - stable_names
+
+            logger.debug(
+                f"Model {model_name}: {len(stable_names)} stable methods, "
+                f"{len(missing_names)} missing, {len(new_names)} new"
+            )
 
             # Find optimal assignments to avoid cross-matching
             optimal_matches = self._find_optimal_matches(missing_names, new_names)

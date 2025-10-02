@@ -392,6 +392,50 @@ class CSVManager:
             "validation_status": candidate.validation_status,
         }
 
+    def _deduplicate_candidates(
+        self, candidates: list[RenameCandidate]
+    ) -> list[RenameCandidate]:
+        """
+        Remove duplicate candidates based on all fields except change_id.
+
+        When multiple candidates have identical values for all fields except change_id,
+        only keep the first one encountered.
+
+        Args:
+            candidates: List of RenameCandidate objects
+
+        Returns:
+            List of unique candidates
+        """
+        seen_keys = set()
+        unique_candidates = []
+
+        for candidate in candidates:
+            # Create a key from all fields except change_id
+            key = (
+                candidate.old_name,
+                candidate.new_name,
+                candidate.item_type,
+                candidate.module,
+                candidate.model,
+                candidate.change_scope,
+                candidate.impact_type,
+                candidate.context,
+                f"{candidate.confidence:.3f}",  # Format to match CSV output
+                candidate.parent_change_id,
+                candidate.validation_status,
+            )
+
+            if key not in seen_keys:
+                seen_keys.add(key)
+                unique_candidates.append(candidate)
+            else:
+                logger.debug(
+                    f"Skipping duplicate candidate: {candidate.module}.{candidate.model}.{candidate.old_name} -> {candidate.new_name}"
+                )
+
+        return unique_candidates
+
     def write_candidates(self, candidates: list[RenameCandidate]) -> int:
         """
         Write candidates in enhanced format to the main CSV file.
@@ -407,8 +451,17 @@ class CSVManager:
         if self.csv_file_path.exists():
             self._create_backup()
 
+        # Deduplicate candidates before writing
+        deduplicated = self._deduplicate_candidates(candidates)
+
+        if len(deduplicated) < len(candidates):
+            logger.info(
+                f"Deduplicated {len(candidates) - len(deduplicated)} duplicate candidates "
+                f"({len(deduplicated)} unique candidates remaining)"
+            )
+
         # Write directly to the main CSV file
-        count = self.write_csv(candidates, str(self.csv_file_path))
+        count = self.write_csv(deduplicated, str(self.csv_file_path))
 
         logger.info(f"CSV written: {count} records to {self.csv_file_path}")
 

@@ -984,11 +984,17 @@ def analyze_module_unified(
         logger.info(f"Unified analysis completed. Found {len(candidates)} candidates")
 
         if return_models:
-            # Return both candidates and models for cross-reference generation
-            all_models = {
-                module_name: after_models
-            }  # Use after_models for cross-reference
-            return candidates, all_models
+            # Return candidates and BOTH before/after models
+            # CRITICAL:
+            # - BEFORE models: for cross-reference (find references to OLD names)
+            # - AFTER models: for inheritance graph (current structure)
+            models_dict = {
+                module_name: {
+                    "before": before_models,
+                    "after": after_models,
+                }
+            }
+            return candidates, models_dict
         else:
             return candidates
 
@@ -1307,6 +1313,7 @@ def main() -> int:
 
         # BLOCK 4: Analysis Components Initialization
         # Initialize analysis components
+        # Note: inheritance_graph will be set later after collecting all models
         matching_engine = MatchingEngine()
         csv_manager = CSVManager(app_config.output_csv)
 
@@ -1360,7 +1367,8 @@ def main() -> int:
         # BLOCK 6: Module Analysis Processing
         logger.info("Starting unified analysis of selected modules...")
         all_candidates = []
-        collected_all_models = {}  # Collect models for cross-reference generation
+        collected_before_models = {}  # For cross-reference generation
+        collected_after_models = {}  # For inheritance graph
 
         for i, module_data in enumerate(modules_to_analyze, 1):
             module_name = module_data["module_name"]
@@ -1375,7 +1383,10 @@ def main() -> int:
 
             if isinstance(result, tuple):
                 module_candidates, module_models = result
-                collected_all_models.update(module_models)
+                # Separate before and after models
+                for mod_name, models_dict in module_models.items():
+                    collected_before_models[mod_name] = models_dict["before"]
+                    collected_after_models[mod_name] = models_dict["after"]
             else:
                 module_candidates = result
 
@@ -1413,6 +1424,35 @@ def main() -> int:
 
         logger.info(f"Processing {len(new_candidates)} new candidates")
 
+        # BLOCK 7.5: Build inheritance graph and reclassify inherited changes
+        logger.info("Building inheritance graph to detect module extensions...")
+        from analyzers.inheritance_graph import build_inheritance_graph
+
+        # CRITICAL: Use AFTER models for inheritance graph (current structure)
+        inheritance_graph = build_inheritance_graph(collected_after_models)
+        inheritance_graph.print_summary()
+
+        # Set inheritance graph in matching engine for reclassification
+        matching_engine.inheritance_graph = inheritance_graph
+
+        logger.info("Reclassifying inherited changes (base module vs extensions)...")
+        new_candidates = matching_engine.reclassify_inherited_changes(new_candidates)
+
+        # Log primary vs inherited counts AFTER reclassification
+        primary_count = sum(1 for c in new_candidates if c.impact_type == "primary")
+        inherited_count = sum(1 for c in new_candidates if c.impact_type == "inheritance")
+        logger.info(
+            f"Reclassification complete: {len(new_candidates)} total candidates "
+            f"({primary_count} primary, {inherited_count} inherited)"
+        )
+
+        # Log all primary candidates for debugging
+        if primary_count > 0:
+            logger.info("Primary candidates after reclassification:")
+            for c in new_candidates:
+                if c.impact_type == "primary":
+                    logger.info(f"  - {c.change_id}: {c.module}.{c.model}.{c.old_name} -> {c.new_name}")
+
         # Generate cross-references for all candidates
         def generate_cross_references_for_candidates(
             candidates: List[RenameCandidate], all_models: dict
@@ -1448,8 +1488,9 @@ def main() -> int:
             logger.info("Starting interactive validation...")
 
             # Generate cross-references BEFORE writing to CSV
+            # CRITICAL: Use BEFORE models to find references to OLD names
             candidates_with_refs = generate_cross_references_for_candidates(
-                new_candidates, collected_all_models
+                new_candidates, collected_before_models
             )
 
             # Create CSV with candidates + cross-references
@@ -1490,8 +1531,9 @@ def main() -> int:
             ]
 
             # Generate cross-references for approved candidates
+            # CRITICAL: Use BEFORE models to find references to OLD names
             all_candidates_with_refs = generate_cross_references_for_candidates(
-                approved_candidates, collected_all_models
+                approved_candidates, collected_before_models
             )
 
             validation_summary = {

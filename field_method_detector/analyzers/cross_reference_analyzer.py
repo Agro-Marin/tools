@@ -45,6 +45,19 @@ class CrossReferenceAnalyzer:
     to generate the complete set of impacts that need to be applied.
     """
 
+    # Mixins to ignore - these are inherited helpers, not primary models
+    MIXINS_TO_IGNORE = {
+        'mail.thread',
+        'mail.activity.mixin',
+        'mail.thread.cc',
+        'portal.mixin',
+        'rating.mixin',
+        'utm.mixin',
+        'image.mixin',
+        'avatar.mixin',
+        'phone.validation.mixin',
+    }
+
     def __init__(self):
         self.confidence_weights = {
             # Base confidence based on reference type
@@ -64,55 +77,65 @@ class CrossReferenceAnalyzer:
         """
         Convierte cambios primarios + todas sus referencias a RenameCandidate con IDs secuenciales.
 
-        Esta es la función principal que implementa el flujo del plan para generar
-        todas las 179+ referencias con IDs secuenciales simples.
+        CRITICAL: Only generate cross-references for TRUE PRIMARY changes (impact_type == "primary").
+        Do NOT generate cross-references for inherited changes (impact_type == "inheritance").
 
         Args:
-            primary_changes: Lista de cambios primarios detectados
+            primary_changes: Lista de TODOS los candidatos (primarios + herencias ya clasificados)
             all_models: Diccionario de todos los modelos organizados por módulo
 
         Returns:
-            Lista de todos los candidatos (primarios + impactos) con IDs secuenciales
+            Lista de todos los candidatos (primarios + herencias + cross-references)
         """
         from analyzers.matching_engine import MatchingEngine
 
         all_candidates = []
 
-        for primary_change in primary_changes:
-            logger.debug(
-                f"Processing primary change: {primary_change.old_name} -> {primary_change.new_name}"
-            )
+        for candidate in primary_changes:
+            # CRITICAL: Check if this is a TRUE primary change
+            is_true_primary = candidate.impact_type == ImpactType.PRIMARY.value
 
-            # 1. NO sobreescribir change_id - mantener el único que viene del MatchingEngine
-            # Solo configurar campos que no afecten el ID único
-            primary_change.change_scope = ChangeScope.DECLARATION.value
-            primary_change.impact_type = ImpactType.PRIMARY.value
-            primary_change.context = ""
-            primary_change.parent_change_id = ""
-            primary_change.validation_status = self._auto_validate_primary(
-                primary_change
-            )
-
-            all_candidates.append(primary_change)
-
-            # 2. Buscar todas las referencias cruzadas
-            cross_references = self._find_all_cross_references(
-                primary_change, all_models
-            )
-
-            # 3. Convertir cada referencia a RenameCandidate con ID único global
-            for reference in cross_references:
-                impact_candidate = self._reference_to_candidate(
-                    reference, primary_change, MatchingEngine.get_next_change_id()
+            if is_true_primary:
+                logger.debug(
+                    f"Processing TRUE primary change: {candidate.module}.{candidate.model}.{candidate.old_name} -> {candidate.new_name}"
                 )
-                all_candidates.append(impact_candidate)
 
-            logger.debug(
-                f"Generated {len(cross_references)} cross-references for {primary_change.old_name}"
-            )
+                # Only set validation status, do NOT overwrite other fields
+                # (they may have been set by reclassify_inherited_changes)
+                if not candidate.validation_status or candidate.validation_status == "pending":
+                    candidate.validation_status = self._auto_validate_primary(candidate)
+
+                all_candidates.append(candidate)
+
+                # Generate cross-references ONLY for true primary changes
+                cross_references = self._find_all_cross_references(
+                    candidate, all_models
+                )
+
+                # Convert each reference to RenameCandidate with unique global ID
+                for reference in cross_references:
+                    impact_candidate = self._reference_to_candidate(
+                        reference, candidate, MatchingEngine.get_next_change_id()
+                    )
+                    all_candidates.append(impact_candidate)
+
+                logger.debug(
+                    f"Generated {len(cross_references)} cross-references for {candidate.old_name}"
+                )
+            else:
+                # This is an inherited change - keep as-is, no cross-references
+                logger.debug(
+                    f"Skipping cross-reference generation for inherited change: {candidate.module}.{candidate.model}.{candidate.old_name}"
+                )
+                all_candidates.append(candidate)
+
+        primary_count = sum(1 for c in all_candidates if c.impact_type == ImpactType.PRIMARY.value)
+        inheritance_count = sum(1 for c in all_candidates if c.impact_type == "inheritance")
+        cross_ref_count = len(all_candidates) - primary_count - inheritance_count
 
         logger.info(
-            f"Total candidates generated: {len(all_candidates)} (including {len(primary_changes)} primary)"
+            f"Total candidates: {len(all_candidates)} "
+            f"({primary_count} primary, {inheritance_count} inherited, {cross_ref_count} cross-refs)"
         )
         return all_candidates
 
@@ -177,7 +200,15 @@ class CrossReferenceAnalyzer:
     def _reference_matches_rename(
         self, reference: Reference, primary: RenameCandidate
     ) -> bool:
-        """Check if a reference matches the primary rename"""
+        """
+        Check if a reference matches the primary rename.
+
+        CRITICAL: Cross-references should only match references to the SAME FIELD/METHOD
+        in the SAME MODEL, but in different contexts (different methods, different modules).
+
+        A field rename in account.move.line does NOT mean the same field name in
+        stock.move or res.partner should be renamed.
+        """
         # Must match the name and type
         if (
             reference.reference_name != primary.old_name
@@ -185,28 +216,72 @@ class CrossReferenceAnalyzer:
         ):
             return False
 
+        # MIXIN FILTERING: Ignore references from ignored mixins
+        if self._is_from_ignored_mixin(reference, primary):
+            logger.debug(
+                f"Skipping reference to '{reference.reference_name}' "
+                f"from ignored mixin '{reference.source_model}'"
+            )
+            return False
+
         # For self-references, must be in the same model
         if reference.call_type == CallType.SELF:
+            # SAME MODEL: self.purchase_line_id in account.move.line method
             return reference.source_model == primary.model
 
-        # For cross-model references, check target model
+        # For cross-model references, check target model STRICTLY
         if reference.call_type == CallType.CROSS_MODEL:
-            # If target model is specified, it must match
+            # Cross-model references MUST specify the target model AND it must match
             if reference.target_model:
-                return reference.target_model == primary.model
-            else:
-                # Target model not specified - this would need resolution
-                # For now, assume it could match
+                # Don't match if target is an ignored mixin
+                if reference.target_model in self.MIXINS_TO_IGNORE:
+                    return False
+
+                # CRITICAL: Only match if the target model is exactly the same
+                # as the primary change model
+                if reference.target_model != primary.model:
+                    logger.debug(
+                        f"Skipping cross-model reference: target model '{reference.target_model}' "
+                        f"!= primary model '{primary.model}' for field '{reference.reference_name}'"
+                    )
+                    return False
+
                 return True
+            else:
+                # Target model NOT specified - cannot determine if it matches
+                # Be CONSERVATIVE: don't assume it matches
+                logger.debug(
+                    f"Skipping cross-model reference without target model for '{reference.reference_name}'"
+                )
+                return False
 
         # For decorators, check if they're in the same model
         if reference.call_type == CallType.DECORATOR:
+            # SAME MODEL: @api.depends('purchase_line_id') in account.move.line
             return reference.source_model == primary.model
 
-        # For super calls, check inheritance relationships
+        # For super calls, must be in inheritance chain of the same model
         if reference.call_type == CallType.SUPER:
-            # This would need inheritance graph analysis
-            # For now, assume it could match if same item type
+            # Super calls should only match if calling super on the SAME model
+            # in an inherited/extending module
+            return reference.source_model == primary.model
+
+        return False
+
+    def _is_from_ignored_mixin(
+        self, reference: Reference, primary: RenameCandidate
+    ) -> bool:
+        """Check if reference originates from an ignored mixin"""
+        # If the primary change is in a mixin, don't filter
+        if primary.model in self.MIXINS_TO_IGNORE:
+            return False
+
+        # If the reference source is a mixin, filter it
+        if reference.source_model in self.MIXINS_TO_IGNORE:
+            return True
+
+        # If the reference target is a mixin, filter it
+        if reference.target_model and reference.target_model in self.MIXINS_TO_IGNORE:
             return True
 
         return False
@@ -395,12 +470,8 @@ class CrossReferenceAnalyzer:
         # Determinar contexto
         context = self._determine_context(reference, impact_type)
 
-        # Determinar módulo (extraer del source_model)
-        module = (
-            reference.source_model.split(".")[0]
-            if reference.source_model
-            else primary.module
-        )
+        # Determinar módulo (extraer del source_file path)
+        module = self._extract_module_from_path(reference.source_file)
 
         return RenameCandidate(
             change_id=change_id,
@@ -439,6 +510,45 @@ class CrossReferenceAnalyzer:
             return ValidationStatus.AUTO_APPROVED.value
         else:
             return ValidationStatus.PENDING.value
+
+    def _extract_module_from_path(self, file_path: str) -> str:
+        """
+        Extract module name from file path.
+
+        Examples:
+            /odoo/addons/sale/models/sale_order.py -> sale
+            /odoo/addons/delivery/models/sale_order.py -> delivery
+            /extra_addons/custom_module/models/model.py -> custom_module
+        """
+        from pathlib import Path
+
+        if not file_path:
+            return "unknown"
+
+        path = Path(file_path)
+        parts = path.parts
+
+        # Find 'addons' in path and take the next part as module name
+        try:
+            if 'addons' in parts:
+                addons_idx = parts.index('addons')
+                if addons_idx + 1 < len(parts):
+                    return parts[addons_idx + 1]
+        except (ValueError, IndexError):
+            pass
+
+        # Fallback: try to find module-like directory (before /models/)
+        try:
+            if 'models' in parts:
+                models_idx = parts.index('models')
+                if models_idx > 0:
+                    return parts[models_idx - 1]
+        except (ValueError, IndexError):
+            pass
+
+        # Last resort: return "unknown"
+        logger.warning(f"Could not extract module from path: {file_path}")
+        return "unknown"
 
 
 def analyze_cross_references(

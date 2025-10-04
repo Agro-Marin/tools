@@ -1,0 +1,9 @@
+# Archivos de configuración con credenciales
+config/db_credentials.json
+
+# Archivos de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python

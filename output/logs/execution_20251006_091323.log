@@ -1,0 +1,448 @@
+2025-10-06 09:13:23,094 - INFO - 📋 Cargando credenciales...
+2025-10-06 09:13:23,095 - INFO - 🔌 Conectando a base de datos...
+2025-10-06 09:13:23,116 - INFO - ✓ Conectado a: marin_testing @ localhost
+2025-10-06 09:13:23,116 - INFO - 📄 Cargando configuración de modelos...
+2025-10-06 09:13:23,118 - INFO - 📦 Total de modelos a procesar: 29
+
+2025-10-06 09:13:23,118 - INFO - ============================================================
+2025-10-06 09:13:23,118 - INFO - Modelo 1/29: res.company
+2025-10-06 09:13:23,118 - INFO - ============================================================
+2025-10-06 09:13:23,118 - INFO - 
+▶ Procesando: res.company (res_company)
+2025-10-06 09:13:23,126 - INFO -   ✓ Resecuenciado: 0 cambios (FKs actualizados por CASCADE)
+2025-10-06 09:13:23,132 - INFO -   ✓ Nombres actualizados: 7 registros (res_company_id)
+2025-10-06 09:13:23,138 - INFO -   ✓ Sin gaps detectados
+2025-10-06 09:13:23,138 - INFO -   ⊘ Sin DELETE rules
+2025-10-06 09:13:23,139 - INFO -   ✓ Completado: 7 registros finales
+2025-10-06 09:13:23,139 - INFO - ============================================================
+2025-10-06 09:13:23,139 - INFO - Modelo 2/29: res.partner
+2025-10-06 09:13:23,139 - INFO - ============================================================
+2025-10-06 09:13:23,139 - INFO - 
+▶ Procesando: res.partner (res_partner)
+2025-10-06 09:13:23,269 - WARNING -     ⚠️  Error en CASCADE account_move_partner_shipping_id_fkey: column "shipping_id" referenced in foreign key constraint does not exist
+
+2025-10-06 09:13:23,270 - WARNING -     ⚠️  Error en CASCADE account_move_partner_bank_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,270 - WARNING -     ⚠️  Error en CASCADE account_move_line_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,271 - WARNING -     ⚠️  Error en CASCADE account_payment_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,271 - WARNING -     ⚠️  Error en CASCADE account_payment_partner_bank_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,272 - WARNING -     ⚠️  Error en CASCADE account_reconcile_model_res_partner_rel_res_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,272 - WARNING -     ⚠️  Error en CASCADE account_reconcile_model_partner_mapping_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,273 - WARNING -     ⚠️  Error en CASCADE approval_request_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,273 - WARNING -     ⚠️  Error en CASCADE approval_product_line_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,274 - WARNING -     ⚠️  Error en CASCADE calendar_attendee_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,274 - WARNING -     ⚠️  Error en CASCADE calendar_event_res_partner_rel_res_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,275 - WARNING -     ⚠️  Error en CASCADE discuss_channel_member_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,275 - WARNING -     ⚠️  Error en CASCADE documents_document_issued_by_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,276 - WARNING -     ⚠️  Error en CASCADE documents_document_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,276 - WARNING -     ⚠️  Error en CASCADE documents_access_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,277 - WARNING -     ⚠️  Error en CASCADE fleet_vehicle_log_vendor_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,277 - WARNING -     ⚠️  Error en CASCADE gps_geofence_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,278 - WARNING -     ⚠️  Error en CASCADE hr_employee_address_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,278 - WARNING -     ⚠️  Error en CASCADE hr_employee_work_contact_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,279 - WARNING -     ⚠️  Error en CASCADE hr_employee_bank_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,279 - WARNING -     ⚠️  Error en CASCADE hr_job_address_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,280 - WARNING -     ⚠️  Error en CASCADE knowledge_article_member_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,280 - WARNING -     ⚠️  Error en CASCADE mail_followers_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,281 - WARNING -     ⚠️  Error en CASCADE mail_mail_res_partner_rel_res_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,281 - WARNING -     ⚠️  Error en CASCADE mail_message_author_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,281 - WARNING -     ⚠️  Error en CASCADE mail_message_res_partner_rel_res_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,282 - WARNING -     ⚠️  Error en CASCADE mail_notification_res_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,282 - WARNING -     ⚠️  Error en CASCADE mail_notification_author_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,283 - WARNING -     ⚠️  Error en CASCADE pos_order_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,283 - WARNING -     ⚠️  Error en CASCADE procurement_group_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,284 - WARNING -     ⚠️  Error en CASCADE product_supplierinfo_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,284 - WARNING -     ⚠️  Error en CASCADE product_product_manufacturer_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,285 - WARNING -     ⚠️  Error en CASCADE product_template_manufacturer_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,285 - WARNING -     ⚠️  Error en CASCADE project_project_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,286 - WARNING -     ⚠️  Error en CASCADE project_task_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,286 - WARNING -     ⚠️  Error en CASCADE purchase_order_dest_address_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,287 - WARNING -     ⚠️  Error en CASCADE purchase_order_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,287 - WARNING -     ⚠️  Error en CASCADE purchase_order_line_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,288 - WARNING -     ⚠️  Error en CASCADE res_company_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,288 - WARNING -     ⚠️  Error en CASCADE res_partner_commercial_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,289 - WARNING -     ⚠️  Error en CASCADE res_partner_parent_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,289 - WARNING -     ⚠️  Error en CASCADE res_partner_bank_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,290 - WARNING -     ⚠️  Error en CASCADE res_partner_category_parent_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,290 - WARNING -     ⚠️  Error en CASCADE res_partner_res_partner_category_rel_category_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,291 - WARNING -     ⚠️  Error en CASCADE res_partner_res_partner_category_rel_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,291 - WARNING -     ⚠️  Error en CASCADE res_users_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,292 - WARNING -     ⚠️  Error en CASCADE sale_order_commercial_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,292 - WARNING -     ⚠️  Error en CASCADE sale_order_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,293 - WARNING -     ⚠️  Error en CASCADE sale_order_partner_invoice_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,293 - WARNING -     ⚠️  Error en CASCADE sale_order_partner_shipping_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,294 - WARNING -     ⚠️  Error en CASCADE sale_order_line_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,294 - WARNING -     ⚠️  Error en CASCADE slide_slide_partner_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,295 - WARNING -     ⚠️  Error en CASCADE stock_move_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,295 - WARNING -     ⚠️  Error en CASCADE stock_move_restrict_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,296 - WARNING -     ⚠️  Error en CASCADE stock_picking_owner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,296 - WARNING -     ⚠️  Error en CASCADE stock_picking_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,297 - WARNING -     ⚠️  Error en CASCADE stock_rule_partner_address_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,297 - WARNING -     ⚠️  Error en CASCADE stock_warehouse_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,298 - WARNING -     ⚠️  Error en CASCADE stock_warehouse_orderpoint_product_supplier_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,298 - WARNING -     ⚠️  Error en CASCADE stock_warehouse_orderpoint_product_supplier_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,299 - WARNING -     ⚠️  Error en CASCADE syngenta_commercial_agreement_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,299 - WARNING -     ⚠️  Error en CASCADE survey_user_input_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,300 - WARNING -     ⚠️  Error en CASCADE telegram_chat_partner_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,300 - INFO -   ✓ CASCADE aplicado: 5/68 reglas
+2025-10-06 09:13:23,308 - ERROR -     ✗ Error actualizando ID 1 → 8590: duplicate key value violates unique constraint "res_partner_pkey"
+DETAIL:  Key (id)=(8590) already exists.
+
+2025-10-06 09:13:23,308 - ERROR -   ✗ Error: duplicate key value violates unique constraint "res_partner_pkey"
+DETAIL:  Key (id)=(8590) already exists.
+
+2025-10-06 09:13:23,309 - INFO - ============================================================
+2025-10-06 09:13:23,309 - INFO - Modelo 3/29: product.template
+2025-10-06 09:13:23,309 - INFO - ============================================================
+2025-10-06 09:13:23,309 - INFO - 
+▶ Procesando: product.template (product_template)
+2025-10-06 09:13:23,314 - ERROR -     ✗ Error actualizando ID 1 → 2000: duplicate key value violates unique constraint "product_template_pkey"
+DETAIL:  Key (id)=(2000) already exists.
+
+2025-10-06 09:13:23,314 - ERROR -   ✗ Error: duplicate key value violates unique constraint "product_template_pkey"
+DETAIL:  Key (id)=(2000) already exists.
+
+2025-10-06 09:13:23,314 - INFO - ============================================================
+2025-10-06 09:13:23,314 - INFO - Modelo 4/29: account.account
+2025-10-06 09:13:23,314 - INFO - ============================================================
+2025-10-06 09:13:23,314 - INFO - 
+▶ Procesando: account.account (account_account)
+2025-10-06 09:13:23,321 - WARNING -     ⚠️  Error en CASCADE account_account_account_asset_rel_account_account_id_fkey: column "account_id" referenced in foreign key constraint does not exist
+
+2025-10-06 09:13:23,322 - WARNING -     ⚠️  Error en CASCADE account_account_account_journal_rel_account_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,322 - WARNING -     ⚠️  Error en CASCADE account_account_account_tag_account_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,323 - WARNING -     ⚠️  Error en CASCADE account_account_res_company_rel_account_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,323 - WARNING -     ⚠️  Error en CASCADE account_account_tag_account_move_li_account_account_tag_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,324 - WARNING -     ⚠️  Error en CASCADE account_account_tag_account_tax_rep_account_account_tag_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,324 - WARNING -     ⚠️  Error en CASCADE account_analytic_line_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,325 - WARNING -     ⚠️  Error en CASCADE account_analytic_line_general_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,325 - WARNING -     ⚠️  Error en CASCADE account_asset_account_asset_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,326 - WARNING -     ⚠️  Error en CASCADE account_asset_account_depreciation_expense_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,326 - WARNING -     ⚠️  Error en CASCADE account_asset_account_depreciation_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,327 - WARNING -     ⚠️  Error en CASCADE account_journal_default_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,327 - WARNING -     ⚠️  Error en CASCADE account_journal_default_payable_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,328 - WARNING -     ⚠️  Error en CASCADE account_journal_default_receivable_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,328 - WARNING -     ⚠️  Error en CASCADE account_journal_default_refund_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,329 - WARNING -     ⚠️  Error en CASCADE account_journal_loss_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,329 - WARNING -     ⚠️  Error en CASCADE account_journal_profit_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,330 - WARNING -     ⚠️  Error en CASCADE account_journal_suspense_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,330 - WARNING -     ⚠️  Error en CASCADE account_journal_account_account_control_rel_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,331 - WARNING -     ⚠️  Error en CASCADE account_move_line_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,331 - WARNING -     ⚠️  Error en CASCADE account_payment_destination_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,332 - WARNING -     ⚠️  Error en CASCADE account_payment_outstanding_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,332 - WARNING -     ⚠️  Error en CASCADE account_payment_method_line_payment_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,333 - WARNING -     ⚠️  Error en CASCADE account_reconcile_model_line_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,333 - WARNING -     ⚠️  Error en CASCADE account_report_budget_item_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,334 - WARNING -     ⚠️  Error en CASCADE account_tax_cash_basis_transition_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,334 - WARNING -     ⚠️  Error en CASCADE account_tax_group_tax_payable_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,335 - WARNING -     ⚠️  Error en CASCADE account_tax_group_tax_receivable_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,335 - WARNING -     ⚠️  Error en CASCADE account_tax_repartition_line_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,336 - WARNING -     ⚠️  Error en CASCADE hr_expense_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,337 - WARNING -     ⚠️  Error en CASCADE pos_payment_method_receivable_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,337 - WARNING -     ⚠️  Error en CASCADE res_company_account_cash_basis_base_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,338 - WARNING -     ⚠️  Error en CASCADE res_company_account_default_pos_receivable_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,338 - WARNING -     ⚠️  Error en CASCADE res_company_account_journal_early_pay_discount_gain_accoun_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,339 - WARNING -     ⚠️  Error en CASCADE res_company_account_journal_early_pay_discount_loss_accoun_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,339 - WARNING -     ⚠️  Error en CASCADE res_company_account_journal_suspense_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,339 - WARNING -     ⚠️  Error en CASCADE res_company_default_cash_difference_expense_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,340 - WARNING -     ⚠️  Error en CASCADE res_company_default_cash_difference_income_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,341 - WARNING -     ⚠️  Error en CASCADE res_company_expense_accrual_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,341 - WARNING -     ⚠️  Error en CASCADE res_company_expense_currency_exchange_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,342 - WARNING -     ⚠️  Error en CASCADE res_company_gain_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,342 - WARNING -     ⚠️  Error en CASCADE res_company_income_currency_exchange_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,343 - WARNING -     ⚠️  Error en CASCADE res_company_loss_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,343 - WARNING -     ⚠️  Error en CASCADE res_company_revenue_accrual_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,343 - WARNING -     ⚠️  Error en CASCADE res_company_transfer_account_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,344 - INFO -   ✓ CASCADE aplicado: 0/45 reglas
+2025-10-06 09:13:23,679 - ERROR -     ✗ Error actualizando ID 20 → 4019: update or delete on table "account_account" violates foreign key constraint "res_company_deferred_expense_account_id_fkey" on table "res_company"
+DETAIL:  Key (id)=(20) is still referenced from table "res_company".
+
+2025-10-06 09:13:23,680 - ERROR -   ✗ Error: update or delete on table "account_account" violates foreign key constraint "res_company_deferred_expense_account_id_fkey" on table "res_company"
+DETAIL:  Key (id)=(20) is still referenced from table "res_company".
+
+2025-10-06 09:13:23,680 - INFO - ============================================================
+2025-10-06 09:13:23,680 - INFO - Modelo 5/29: account.journal
+2025-10-06 09:13:23,680 - INFO - ============================================================
+2025-10-06 09:13:23,680 - INFO - 
+▶ Procesando: account.journal (account_journal)
+2025-10-06 09:13:23,686 - WARNING -     ⚠️  Error en CASCADE account_account_account_journal_rel_account_journal_id_fkey: column "journal_id" referenced in foreign key constraint does not exist
+
+2025-10-06 09:13:23,686 - WARNING -     ⚠️  Error en CASCADE account_analytic_line_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,687 - WARNING -     ⚠️  Error en CASCADE account_asset_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,687 - WARNING -     ⚠️  Error en CASCADE account_bank_statement_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,688 - WARNING -     ⚠️  Error en CASCADE account_bank_statement_line_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,688 - WARNING -     ⚠️  Error en CASCADE account_journal_account_journal_group_r_account_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,689 - WARNING -     ⚠️  Error en CASCADE account_journal_account_journal_g_account_journal_group_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,689 - WARNING -     ⚠️  Error en CASCADE account_journal_account_reconcile_model_account_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,690 - WARNING -     ⚠️  Error en CASCADE account_move_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,690 - WARNING -     ⚠️  Error en CASCADE account_move_line_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,691 - WARNING -     ⚠️  Error en CASCADE account_payment_payment_method_line_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,691 - WARNING -     ⚠️  Error en CASCADE account_payment_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,692 - WARNING -     ⚠️  Error en CASCADE account_payment_method_line_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,692 - WARNING -     ⚠️  Error en CASCADE journal_account_control_rel_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,692 - WARNING -     ⚠️  Error en CASCADE pos_config_invoice_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,693 - WARNING -     ⚠️  Error en CASCADE pos_config_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,693 - WARNING -     ⚠️  Error en CASCADE pos_order_sale_journal_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,694 - WARNING -     ⚠️  Error en CASCADE pos_payment_method_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,694 - WARNING -     ⚠️  Error en CASCADE pos_session_cash_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,694 - WARNING -     ⚠️  Error en CASCADE res_company_account_tax_periodicity_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,695 - WARNING -     ⚠️  Error en CASCADE res_company_currency_exchange_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,695 - WARNING -     ⚠️  Error en CASCADE res_company_pos_cash_transfer_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,696 - WARNING -     ⚠️  Error en CASCADE res_company_tax_cash_basis_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,696 - WARNING -     ⚠️  Error en CASCADE sale_order_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,697 - WARNING -     ⚠️  Error en CASCADE hr_expense_sheet_journal_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:23,697 - INFO -   ✓ CASCADE aplicado: 0/25 reglas
+2025-10-06 09:13:23,781 - ERROR -     ✗ Error actualizando ID 2 → 5001: update or delete on table "account_journal" violates foreign key constraint "res_company_intercompany_purchase_journal_id_fkey" on table "res_company"
+DETAIL:  Key (id)=(2) is still referenced from table "res_company".
+
+2025-10-06 09:13:23,781 - ERROR -   ✗ Error: update or delete on table "account_journal" violates foreign key constraint "res_company_intercompany_purchase_journal_id_fkey" on table "res_company"
+DETAIL:  Key (id)=(2) is still referenced from table "res_company".
+
+2025-10-06 09:13:23,782 - INFO - ============================================================
+2025-10-06 09:13:23,782 - INFO - Modelo 6/29: account.tax
+2025-10-06 09:13:23,782 - INFO - ============================================================
+2025-10-06 09:13:23,782 - INFO - 
+▶ Procesando: account.tax (account_tax)
+2025-10-06 09:13:23,934 - ERROR -     ✗ Error actualizando ID 1 → 1000: update or delete on table "account_tax" violates foreign key constraint "account_tax_repartition_line_tax_id_fkey" on table "account_tax_repartition_line"
+DETAIL:  Key (id)=(1) is still referenced from table "account_tax_repartition_line".
+
+2025-10-06 09:13:23,934 - ERROR -   ✗ Error: update or delete on table "account_tax" violates foreign key constraint "account_tax_repartition_line_tax_id_fkey" on table "account_tax_repartition_line"
+DETAIL:  Key (id)=(1) is still referenced from table "account_tax_repartition_line".
+
+2025-10-06 09:13:23,934 - INFO - ============================================================
+2025-10-06 09:13:23,935 - INFO - Modelo 7/29: account.move
+2025-10-06 09:13:23,935 - INFO - ============================================================
+2025-10-06 09:13:23,935 - INFO - 
+▶ Procesando: account.move (account_move)
+2025-10-06 09:13:24,026 - WARNING -     ⚠️  Error en CASCADE account_full_reconcile_exchange_move_id_fkey: column "move_id" referenced in foreign key constraint does not exist
+
+2025-10-06 09:13:24,027 - WARNING -     ⚠️  Error en CASCADE account_move_auto_post_origin_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,028 - WARNING -     ⚠️  Error en CASCADE account_move_reversed_entry_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,028 - WARNING -     ⚠️  Error en CASCADE account_move_tax_cash_basis_origin_move_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,029 - WARNING -     ⚠️  Error en CASCADE account_move_tax_cash_basis_rec_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,029 - WARNING -     ⚠️  Error en CASCADE account_move_line_move_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,030 - WARNING -     ⚠️  Error en CASCADE account_move_purchase_order_rel_account_move_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,030 - WARNING -     ⚠️  Error en CASCADE account_move__account_payment_invoice_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,031 - WARNING -     ⚠️  Error en CASCADE account_payment_move_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,031 - WARNING -     ⚠️  Error en CASCADE approval_product_line_account_move_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,032 - WARNING -     ⚠️  Error en CASCADE hr_payslip_move_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,032 - WARNING -     ⚠️  Error en CASCADE l10n_mx_edi_document_move_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,033 - WARNING -     ⚠️  Error en CASCADE l10n_mx_edi_invoice_document_ids_rel_invoice_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,033 - WARNING -     ⚠️  Error en CASCADE pos_order_account_move_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,033 - WARNING -     ⚠️  Error en CASCADE pos_payment_account_move_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,034 - WARNING -     ⚠️  Error en CASCADE pos_session_move_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:24,034 - INFO -   ✓ CASCADE aplicado: 1/17 reglas
+2025-10-06 09:13:24,164 - ERROR -     ✗ Error actualizando ID 1001 → 10000: duplicate key value violates unique constraint "account_move_pkey"
+DETAIL:  Key (id)=(10000) already exists.
+
+2025-10-06 09:13:24,164 - ERROR -   ✗ Error: duplicate key value violates unique constraint "account_move_pkey"
+DETAIL:  Key (id)=(10000) already exists.
+
+2025-10-06 09:13:24,180 - INFO - ============================================================
+2025-10-06 09:13:24,180 - INFO - Modelo 8/29: stock.location
+2025-10-06 09:13:24,180 - INFO - ============================================================
+2025-10-06 09:13:24,180 - INFO - 
+▶ Procesando: stock.location (stock_location)
+2025-10-06 09:13:41,420 - ERROR -     ✗ Error actualizando ID 1018 → 7113: update or delete on table "stock_location" violates foreign key constraint "mrp_unbuild_location_dest_id_fkey" on table "mrp_unbuild"
+DETAIL:  Key (id)=(1018) is still referenced from table "mrp_unbuild".
+
+2025-10-06 09:13:41,420 - ERROR -   ✗ Error: update or delete on table "stock_location" violates foreign key constraint "mrp_unbuild_location_dest_id_fkey" on table "mrp_unbuild"
+DETAIL:  Key (id)=(1018) is still referenced from table "mrp_unbuild".
+
+2025-10-06 09:13:41,420 - INFO - ============================================================
+2025-10-06 09:13:41,421 - INFO - Modelo 9/29: stock.warehouse
+2025-10-06 09:13:41,421 - INFO - ============================================================
+2025-10-06 09:13:41,421 - INFO - 
+▶ Procesando: stock.warehouse (stock_warehouse)
+2025-10-06 09:13:41,435 - ERROR -     ✗ Error actualizando ID 1 → 6000: update or delete on table "stock_warehouse" violates foreign key constraint "stock_location_warehouse_id_fkey" on table "stock_location"
+DETAIL:  Key (id)=(1) is still referenced from table "stock_location".
+
+2025-10-06 09:13:41,435 - ERROR -   ✗ Error: update or delete on table "stock_warehouse" violates foreign key constraint "stock_location_warehouse_id_fkey" on table "stock_location"
+DETAIL:  Key (id)=(1) is still referenced from table "stock_location".
+
+2025-10-06 09:13:41,435 - INFO - ============================================================
+2025-10-06 09:13:41,435 - INFO - Modelo 10/29: Set partner to cash basis move lines V2
+2025-10-06 09:13:41,435 - INFO - ============================================================
+2025-10-06 09:13:41,435 - INFO - 
+▶ Procesando: Set partner to cash basis move lines V2 (Set partner to cash basis move lines V2)
+2025-10-06 09:13:41,436 - ERROR -   ✗ Error: syntax error at or near "to"
+LINE 1: SELECT id FROM Set partner to cash basis move lines V2 ORDER...
+                                   ^
+
+2025-10-06 09:13:41,436 - INFO - ============================================================
+2025-10-06 09:13:41,436 - INFO - Modelo 11/29: account.analytic
+2025-10-06 09:13:41,436 - INFO - ============================================================
+2025-10-06 09:13:41,436 - INFO - 
+▶ Procesando: account.analytic (account_analytic)
+2025-10-06 09:13:41,436 - ERROR -   ✗ Error: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:41,437 - INFO - ============================================================
+2025-10-06 09:13:41,437 - INFO - Modelo 12/29: account.asset
+2025-10-06 09:13:41,437 - INFO - ============================================================
+2025-10-06 09:13:41,437 - INFO - 
+▶ Procesando: account.asset (account_asset)
+2025-10-06 09:13:41,439 - WARNING -     ⚠️  Error en CASCADE account_account_asset_model_fkey: column "model" referenced in foreign key constraint does not exist
+
+2025-10-06 09:13:41,439 - WARNING -     ⚠️  Error en CASCADE account_asset_model_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:41,439 - WARNING -     ⚠️  Error en CASCADE account_move_asset_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:41,439 - WARNING -     ⚠️  Error en CASCADE asset_move_line_rel_asset_id_fkey: current transaction is aborted, commands ignored until end of transaction block
+
+2025-10-06 09:13:41,439 - INFO -   ✓ CASCADE aplicado: 0/4 reglas
+2025-10-06 09:13:41,441 - ERROR -     ✗ Error actualizando ID 1 → 1000: update or delete on table "account_asset" violates foreign key constraint "account_account_account_asset_rel_account_asset_id_fkey" on table "account_account_account_asset_rel"
+DETAIL:  Key (id)=(1) is still referenced from table "account_account_account_asset_rel".
+
+2025-10-06 09:13:41,441 - ERROR -   ✗ Error: update or delete on table "account_asset" violates foreign key constraint "account_account_account_asset_rel_account_asset_id_fkey" on table "account_account_account_asset_rel"
+DETAIL:  Key (id)=(1) is still referenced from table "account_account_account_asset_rel".
+
+2025-10-06 09:13:41,441 - INFO - ============================================================
+2025-10-06 09:13:41,441 - INFO - Modelo 13/29: account.bank_statement
+2025-10-06 09:13:41,441 - INFO - ============================================================
+2025-10-06 09:13:41,441 - INFO - 
+▶ Procesando: account.bank_statement (account_bank_statement)
+2025-10-06 09:13:41,503 - INFO -   ✓ CASCADE aplicado: 2/2 reglas

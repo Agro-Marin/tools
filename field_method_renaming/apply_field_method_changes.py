@@ -1,26 +1,22 @@
 #!/usr/bin/env python3
 """
-Odoo Field/Method Renaming Tool
-===============================
+Odoo Field/Method Renaming Tool - Enhanced CSV Version
+=======================================================
 
-Script principal para aplicar automáticamente cambios de nombres de campos y métodos
-en repositorios Odoo basado en archivos CSV generados por field_method_detector.
+Aplica automáticamente cambios de nombres de campos y métodos usando CSV enhanced
+con rollback automático en caso de error.
 
 Usage:
     python apply_field_method_changes.py --csv-file changes.csv --repo-path /path/to/odoo [options]
 
 Example:
-    # Aplicar todos los cambios con respaldos automáticos
-    python apply_field_method_changes.py --csv-file odoo_field_changes_detected.csv --repo-path /home/user/odoo
+    # Aplicar cambios aprobados desde CSV enhanced
+    python apply_field_method_changes.py --csv-file enhanced_changes.csv --repo-path /home/user/odoo
 
-    # Modo interactivo para revisar cada cambio
-    python apply_field_method_changes.py --csv-file changes.csv --repo-path /home/user/odoo --interactive
-
-    # Solo simular cambios sin aplicarlos
+    # Modo dry-run para simular cambios
     python apply_field_method_changes.py --csv-file changes.csv --repo-path /home/user/odoo --dry-run
 """
 import argparse
-import json
 import logging
 import sys
 from pathlib import Path
@@ -30,14 +26,13 @@ from typing import Optional
 current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
-from config.renaming_settings import FILE_TYPE_CATEGORIES, RenamingConfig
-from interactive.confirmation_ui import ConfirmationUI
 from processors.base_processor import ProcessingStatus, ProcessResult
 from processors.python_processor import PythonProcessor
 from processors.xml_processor import XMLProcessor
 from utils.backup_manager import BackupManager
-from utils.csv_reader import CSVReader, CSVValidationError, FieldChange
+from utils.csv_reader import CSVReader, CSVValidationError
 from utils.file_finder import FileFinder
+from utils.change_grouper import ChangeGroup, group_changes_hierarchically
 
 
 def setup_logging(verbose: bool = False):
@@ -59,34 +54,29 @@ def setup_logging(verbose: bool = False):
 def parse_arguments():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
-        description="Apply field and method name changes from CSV to Odoo repository",
+        description="Apply field and method name changes from enhanced CSV to Odoo repository",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s --csv-file changes.csv --repo-path /path/to/odoo
-  %(prog)s --csv-file changes.csv --repo-path /path/to/odoo --interactive
+  %(prog)s --csv-file enhanced_changes.csv --repo-path /path/to/odoo
   %(prog)s --csv-file changes.csv --repo-path /path/to/odoo --dry-run --verbose
-  %(prog)s --csv-file changes.csv --repo-path /path/to/odoo --module sale --file-types python views
         """,
     )
 
     # Required arguments
     parser.add_argument(
-        "--csv-file", required=True, help="Path to CSV file with field/method changes"
+        "--csv-file",
+        required=True,
+        help="Path to enhanced CSV file with approved changes"
     )
 
     parser.add_argument(
-        "--repo-path", required=True, help="Path to Odoo repository root"
+        "--repo-path",
+        required=True,
+        help="Path to Odoo repository root"
     )
 
     # Processing options
-    parser.add_argument(
-        "--interactive",
-        "-i",
-        action="store_true",
-        help="Enable interactive mode to confirm each change",
-    )
-
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -96,115 +86,92 @@ Examples:
     parser.add_argument(
         "--no-backup",
         action="store_true",
-        help="Disable backup creation (not recommended)",
-    )
-
-    parser.add_argument(
-        "--no-validation",
-        action="store_true",
-        help="Disable syntax validation after changes",
-    )
-
-    # Filtering options
-    parser.add_argument("--module", "-m", help="Process only specific module")
-
-    parser.add_argument(
-        "--modules",
-        nargs="+",
-        help="Process only specific modules (space-separated list)",
-    )
-
-    parser.add_argument(
-        "--file-types",
-        nargs="+",
-        choices=list(FILE_TYPE_CATEGORIES.keys()),
-        default=list(FILE_TYPE_CATEGORIES.keys()),
-        help="File types to process",
+        help="Disable backup creation (NOT RECOMMENDED - disables rollback capability)",
     )
 
     # Output options
-    parser.add_argument("--output-report", help="Path to output detailed report file")
-
     parser.add_argument(
-        "--backup-dir", help="Custom backup directory (default: .backups)"
+        "--backup-dir",
+        help="Custom backup directory (default: .backups)"
     )
 
     # Logging options
     parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Enable verbose logging"
-    )
-
-    parser.add_argument(
-        "--quiet", "-q", action="store_true", help="Suppress progress output"
+        "--verbose", "-v",
+        action="store_true",
+        help="Enable verbose logging"
     )
 
     return parser.parse_args()
 
 
-class FieldMethodRenamingTool:
-    """Main application class for field/method renaming"""
+class FieldMethodRenamer:
+    """Aplicador de cambios con rollback automático"""
 
-    def __init__(self, config: RenamingConfig):
+    def __init__(self, csv_file: str, repo_path: str, dry_run: bool = False,
+                 create_backups: bool = True, backup_dir: str = None, verbose: bool = False):
         """
         Initialize the renaming tool.
 
         Args:
-            config: Configuration object
+            csv_file: Path to enhanced CSV file
+            repo_path: Path to Odoo repository
+            dry_run: If True, only simulate changes
+            create_backups: If True, create backups (required for rollback)
+            backup_dir: Custom backup directory
+            verbose: Enable verbose logging
         """
-        self.config = config
+        self.csv_file = Path(csv_file)
+        self.repo_path = Path(repo_path)
+        self.dry_run = dry_run
+        self.create_backups = create_backups
+        self.backup_dir = backup_dir
+        self.verbose = verbose
         self.logger = logging.getLogger(__name__)
 
         # Initialize components
         self.csv_reader = None
         self.file_finder = None
         self.backup_manager = None
-        self.confirmation_ui = None
         self.processors = {}
 
         # Statistics
         self.stats = {
+            "total_groups": 0,
             "total_changes": 0,
-            "total_files_found": 0,
-            "total_files_processed": 0,
-            "successful_files": 0,
-            "failed_files": 0,
-            "skipped_files": 0,
-            "backup_session": None,
+            "applied_changes": 0,
+            "failed_changes": 0,
+            "rollback_files": 0
         }
 
     def initialize(self):
         """Initialize all components"""
         self.logger.info("Initializing Field/Method Renaming Tool...")
 
-        # Validate configuration
-        self.config.validate()
+        # Validate paths
+        if not self.repo_path.exists():
+            raise FileNotFoundError(f"Repository path not found: {self.repo_path}")
 
         # Initialize CSV reader
-        self.csv_reader = CSVReader(self.config.csv_file)
+        self.csv_reader = CSVReader(str(self.csv_file))
 
         # Initialize file finder
-        self.file_finder = FileFinder(self.config.repo_path)
+        self.file_finder = FileFinder(str(self.repo_path))
 
         # Initialize backup manager
-        if self.config.create_backups:
-            backup_config = self.config.get_backup_config()
-            self.backup_manager = BackupManager(**backup_config)
-
-        # Initialize confirmation UI
-        self.confirmation_ui = ConfirmationUI(
-            auto_approve_all=not self.config.interactive_mode
-        )
+        if self.create_backups:
+            backup_base_dir = self.backup_dir if self.backup_dir else str(self.repo_path / ".backups")
+            self.backup_manager = BackupManager(backup_base_dir=backup_base_dir)
 
         # Initialize processors
-        processor_config = self.config.get_processor_config()
         self.processors = {
             ".py": PythonProcessor(
-                create_backups=self.config.create_backups,
-                validate_syntax=self.config.validate_syntax,
+                create_backups=self.create_backups,
+                validate_syntax=True
             ),
             ".xml": XMLProcessor(
-                create_backups=self.config.create_backups,
-                validate_syntax=self.config.validate_syntax,
+                create_backups=self.create_backups,
+                validate_syntax=True
             ),
         }
 
@@ -217,334 +184,233 @@ class FieldMethodRenamingTool:
 
     def run(self) -> int:
         """
-        Run the main processing workflow.
+        Run the main processing workflow with hierarchical change grouping.
 
         Returns:
             Exit code (0 for success, non-zero for error)
         """
         try:
-            # Load changes from CSV
-            self.logger.info("Loading changes from CSV...")
-            changes = self.csv_reader.load_changes()
-            self.stats["total_changes"] = len(changes)
+            # 1. Load approved changes
+            self.logger.info("Loading approved changes from CSV...")
+            all_changes = self.csv_reader.load_changes()
 
-            if not changes:
-                print("✅ No changes found in CSV file.")
+            if not all_changes:
+                print("ℹ️  No approved changes found in CSV")
                 return 0
 
-            # Filter changes by modules if specified
-            if self.config.modules:
-                changes = self.csv_reader.filter_by_module(self.config.modules, changes)
-                if not changes:
-                    print(
-                        f"✅ No changes found for specified modules: {', '.join(self.config.modules)}"
-                    )
-                    return 0
+            # 2. Group by hierarchy
+            change_groups = group_changes_hierarchically(all_changes)
 
-            # Display initial statistics
-            self._display_initial_stats(changes)
+            self.stats["total_groups"] = len(change_groups)
+            self.stats["total_changes"] = len(all_changes)
 
-            # Group changes by module and model
-            changes_by_model = self.csv_reader.group_by_model(changes)
+            print(f"\n📊 Processing {len(change_groups)} change groups "
+                  f"with {len(all_changes)} total changes...")
 
-            # Find files for each model
-            self.logger.info("Discovering files...")
-            file_changes = self._discover_files(changes_by_model)
-
-            if not file_changes:
-                print("⚠️  No files found for the specified changes.")
+            # Display dry-run info if applicable
+            if self.dry_run:
+                print("\n🔍 DRY-RUN MODE - No changes will be applied\n")
+                self._display_dry_run_summary(change_groups)
                 return 0
 
-            self.stats["total_files_found"] = len(file_changes)
-
-            # Handle dry run mode
-            if self.config.dry_run:
-                self.confirmation_ui.display_dry_run_results(file_changes)
-                return 0
-
-            # Get user confirmation in interactive mode
-            if self.config.interactive_mode:
-                approved_files = self.confirmation_ui.confirm_batch_changes(
-                    file_changes
-                )
-                file_changes = {
-                    path: changes
-                    for path, changes in file_changes.items()
-                    if approved_files.get(path, False)
-                }
-
-                if not file_changes:
-                    print("❌ No files approved for processing.")
-                    return 0
-
-            # Start backup session
+            # 3. Start backup session
             if self.backup_manager:
                 session_dir = self.backup_manager.start_backup_session()
-                self.stats["backup_session"] = str(session_dir)
                 self.logger.info(f"Started backup session: {session_dir}")
 
-            # Process files
-            self.logger.info("Processing files...")
-            results = self._process_files(file_changes)
+            # 4. Process each group
+            all_results = []
+            for group_id, change_group in change_groups.items():
+                print(f"\n🔄 Processing group {group_id}: "
+                      f"{change_group.primary.old_name} → {change_group.primary.new_name}")
 
-            # Finalize backup session
+                group_results = self._process_change_group(change_group)
+                all_results.extend(group_results)
+
+            # 5. Finalize backup session
             if self.backup_manager:
                 self.backup_manager.finalize_session()
 
-            # Display results
-            self._display_results(results)
+            # 6. Display summary
+            self._display_summary(all_results)
 
-            # Generate report if requested
-            if self.config.output_report:
-                self._generate_report(results, changes)
-
-            # Determine exit code
-            failed_count = len(
-                [r for r in results if r.status == ProcessingStatus.ERROR]
-            )
-            return 1 if failed_count > 0 else 0
+            # Return exit code
+            return 0 if self.stats["failed_changes"] == 0 else 1
 
         except KeyboardInterrupt:
-            self.logger.info("Process interrupted by user")
-            print("\n🛑 Process interrupted by user.")
+            print("\n⚠️  Process interrupted by user")
             return 130
         except CSVValidationError as e:
             self.logger.error(f"CSV validation error: {e}")
             print(f"❌ CSV validation error: {e}")
             return 2
         except Exception as e:
-            self.logger.error(f"Unexpected error: {e}")
-            print(f"❌ Unexpected error: {e}")
-            if self.config.verbose:
+            self.logger.exception("Fatal error during processing")
+            print(f"\n❌ Fatal error: {e}")
+            if self.verbose:
                 import traceback
-
                 traceback.print_exc()
             return 1
 
-    def _display_initial_stats(self, changes: list[FieldChange]):
-        """Display initial statistics about changes"""
-        stats = self.csv_reader.get_statistics(changes)
+    def _display_dry_run_summary(self, change_groups: dict[str, ChangeGroup]):
+        """Display summary for dry-run mode"""
+        for group_id, group in change_groups.items():
+            print(f"\nGroup {group_id}:")
+            print(f"  Primary: {group.primary}")
+            if group.extension_declarations:
+                print(f"  Extensions: {len(group.extension_declarations)}")
+                for ext in group.extension_declarations:
+                    print(f"    - {ext}")
+            if group.references:
+                print(f"  References: {len(group.references)}")
 
-        print(
-            f"""
-🔍 Field/Method Renaming Tool - Processing Summary:
-   📂 Repository: {self.config.repo_path}
-   📄 CSV File: {self.config.csv_file}
-   
-   📊 Changes to process:
-      Total: {stats['total_changes']}
-      Fields: {stats['field_changes']}
-      Methods: {stats['method_changes']}
-      Modules: {stats['unique_modules']}
-      Models: {stats['unique_models']}
-   
-   ⚙️  Configuration:
-      Interactive Mode: {'Yes' if self.config.interactive_mode else 'No'}
-      Create Backups: {'Yes' if self.config.create_backups else 'No'}
-      Validate Syntax: {'Yes' if self.config.validate_syntax else 'No'}
-      File Types: {', '.join(self.config.file_types)}
-      Dry Run: {'Yes' if self.config.dry_run else 'No'}
+    def _process_change_group(self, change_group: ChangeGroup) -> list[ProcessResult]:
         """
-        )
-
-    def _discover_files(
-        self, changes_by_model: dict[str, list[FieldChange]]
-    ) -> dict[Path, list[FieldChange]]:
-        """
-        Discover files that need to be processed.
+        Process a change group with rollback if any file fails.
 
         Args:
-            changes_by_model: Changes grouped by model
+            change_group: Group of related changes
 
         Returns:
-            Dictionary mapping file paths to their changes
+            List of ProcessResult objects
         """
-        file_changes = {}
-
-        for model_key, model_changes in changes_by_model.items():
-            # Extract module and model from key
-            module, model = model_key.split(".", 1)
-
-            # Find files for this model
-            file_set = self.file_finder.find_files_for_model(module, model)
-
-            if file_set.is_empty():
-                self.logger.warning(f"No files found for model {model_key}")
-                continue
-
-            # Process each type of file
-            for file_list_name in [
-                "python_files",
-                "view_files",
-                "data_files",
-                "demo_files",
-                "template_files",
-                "report_files",
-                "security_files",
-            ]:
-                file_list = getattr(file_set, file_list_name)
-
-                # Check if this file type should be processed
-                file_type = file_list_name.replace("_files", "")
-                if file_type == "python":
-                    if not self.config.should_process_file_type("python"):
-                        continue
-                elif file_type == "view":
-                    if not self.config.should_process_file_type("views"):
-                        continue
-                elif file_type == "template":
-                    if not self.config.should_process_file_type("templates"):
-                        continue
-                elif file_type == "report":
-                    if not self.config.should_process_file_type("reports"):
-                        continue
-                else:
-                    if not self.config.should_process_file_type(file_type):
-                        continue
-
-                # Add files to processing list
-                for file_path in file_list:
-                    if file_path not in file_changes:
-                        file_changes[file_path] = []
-                    file_changes[file_path].extend(model_changes)
-
-        # Remove duplicates from each file's changes list
-        for file_path in file_changes:
-            unique_changes = []
-            seen = set()
-            for change in file_changes[file_path]:
-                change_key = (
-                    change.old_name,
-                    change.new_name,
-                    change.module,
-                    change.model,
-                )
-                if change_key not in seen:
-                    unique_changes.append(change)
-                    seen.add(change_key)
-            file_changes[file_path] = unique_changes
-
-        self.logger.info(f"Discovered {len(file_changes)} files to process")
-        return file_changes
-
-    def _process_files(
-        self, file_changes: dict[Path, list[FieldChange]]
-    ) -> list[ProcessResult]:
-        """
-        Process all files with their changes.
-
-        Args:
-            file_changes: Dictionary mapping file paths to their changes
-
-        Returns:
-            List of processing results
-        """
+        # Find affected files ordered by priority
+        affected_files = self._find_affected_files_ordered(change_group)
         results = []
-        total_files = len(file_changes)
+        group_has_error = False
 
-        for i, (file_path, changes) in enumerate(file_changes.items(), 1):
-            if not self.config.quiet:
-                print(f"🔄 [{i}/{total_files}] Processing {file_path}...")
-
-            # Get appropriate processor
-            processor = self._get_processor_for_file(file_path)
-            if not processor:
-                self.logger.warning(f"No processor available for file: {file_path}")
+        for file_path in affected_files:
+            # Get changes for this file
+            file_changes = change_group.get_changes_for_file(file_path)
+            if not file_changes:
                 continue
+
+            # Log extension declarations
+            for change in file_changes:
+                if change.is_extension_declaration():
+                    self.logger.info(f"Processing extension declaration in {change.module}: "
+                                   f"{change.old_name} → {change.new_name}")
 
             # Process file
-            try:
-                result = processor.process_file(file_path, changes)
+            processor = self._get_processor_for_file(file_path)
+            if processor:
+                result = processor.process_file(file_path, file_changes)
                 results.append(result)
 
-                # Update statistics
-                if result.is_success:
-                    self.stats["successful_files"] += 1
-                elif result.status == ProcessingStatus.ERROR:
-                    self.stats["failed_files"] += 1
-                elif result.status == ProcessingStatus.SKIPPED:
-                    self.stats["skipped_files"] += 1
+                # Check for errors
+                if result.status == ProcessingStatus.ERROR:
+                    group_has_error = True
+                    self.logger.error(f"Error in group {change_group.primary.change_id}: "
+                                   f"{result.error_message}")
 
-                # Log result
-                if not self.config.quiet:
-                    print(f"   {result}")
+                    # Rollback was already done in BaseProcessor
+                    if result.rollback_performed:
+                        self.stats["rollback_files"] += 1
 
-            except Exception as e:
-                self.logger.error(f"Error processing {file_path}: {e}")
-                if not self.config.quiet:
-                    print(f"   ❌ Error: {e}")
+                    # If base or extension fails, skip remaining files
+                    if change_group.primary in file_changes or \
+                       any(c.is_extension_declaration() for c in file_changes):
+                        self.logger.warning("Skipping remaining files due to base/extension failure")
+                        break
 
-        self.stats["total_files_processed"] = len(results)
+                # Update stats if successful
+                elif result.is_success:
+                    self.stats["applied_changes"] += result.changes_applied
+                    # Track applied changes in the group
+                    for change in file_changes:
+                        if change.applied:
+                            change_group.track_applied(file_path, change)
+
+        # If group had error, increment counter
+        if group_has_error:
+            self.stats["failed_changes"] += 1
+
         return results
+
+    def _find_affected_files_ordered(self, change_group: ChangeGroup) -> list[Path]:
+        """
+        Find all affected files in correct processing order.
+
+        Returns files in this order:
+        1. Primary module files (base)
+        2. Extension module files
+        3. Reference files
+        """
+        affected = []
+
+        # Get primary model info
+        module = change_group.primary.module
+        model = change_group.primary.model
+
+        # 1. Find primary module files
+        file_set = self.file_finder.find_files_for_model(module, model)
+        if not file_set.is_empty():
+            affected.extend(file_set.python_files)
+            affected.extend(file_set.view_files)
+            affected.extend(file_set.data_files)
+
+        # 2. Find extension module files
+        for ext_decl in change_group.extension_declarations:
+            ext_module = ext_decl.module
+            file_set = self.file_finder.find_files_for_model(ext_module, model)
+            if not file_set.is_empty():
+                affected.extend(file_set.python_files)
+                affected.extend(file_set.view_files)
+
+        # 3. Find reference files (cross-module)
+        for ref in change_group.references:
+            if ref.impact_type == 'cross_module':
+                ref_module = ref.module
+                file_set = self.file_finder.find_files_for_model(ref_module, ref.model)
+                if not file_set.is_empty():
+                    affected.extend(file_set.python_files)
+                    affected.extend(file_set.view_files)
+
+        # Remove duplicates while preserving order
+        seen = set()
+        ordered = []
+        for path in affected:
+            if path not in seen:
+                seen.add(path)
+                ordered.append(path)
+
+        return ordered
 
     def _get_processor_for_file(self, file_path: Path) -> Optional:
         """Get appropriate processor for a file"""
         extension = file_path.suffix.lower()
         return self.processors.get(extension)
 
-    def _display_results(self, results: list[ProcessResult]):
-        """Display final processing results"""
-        self.confirmation_ui.display_processing_results(results)
+    def _display_summary(self, results: list[ProcessResult]):
+        """Display final processing summary"""
+        successful = len([r for r in results if r.is_success])
+        failed = len([r for r in results if r.status == ProcessingStatus.ERROR])
+        rollbacks = len([r for r in results if r.rollback_performed])
 
-        # Additional backup information
-        if self.backup_manager and self.stats["backup_session"]:
-            print(f"\n💾 Backup Information:")
-            print(f"   Session: {self.stats['backup_session']}")
+        print(f"""
+╔══════════════════════════════════════════════════════════════════╗
+║                      Processing Summary                          ║
+╚══════════════════════════════════════════════════════════════════╝
 
-            backup_stats = self.backup_manager.get_backup_statistics()
-            print(
-                f"   Total backup size: {backup_stats.get('total_disk_usage', 0)} bytes"
-            )
+📊 Results:
+   ✅ Successful files: {successful}
+   ❌ Failed files: {failed}
+   🔄 Files rolled back: {rollbacks}
 
-    def _generate_report(
-        self, results: list[ProcessResult], changes: list[FieldChange]
-    ):
-        """Generate detailed report file"""
-        report_data = {
-            "summary": {
-                "timestamp": self.csv_reader.get_statistics(changes),
-                "configuration": {
-                    "repo_path": str(self.config.repo_path),
-                    "csv_file": str(self.config.csv_file),
-                    "interactive_mode": self.config.interactive_mode,
-                    "dry_run": self.config.dry_run,
-                    "create_backups": self.config.create_backups,
-                    "validate_syntax": self.config.validate_syntax,
-                    "file_types": self.config.file_types,
-                },
-                "statistics": self.stats,
-            },
-            "changes": [
-                {
-                    "old_name": change.old_name,
-                    "new_name": change.new_name,
-                    "module": change.module,
-                    "model": change.model,
-                    "change_type": change.change_type,
-                }
-                for change in changes
-            ],
-            "results": [
-                {
-                    "file_path": str(result.file_path),
-                    "status": result.status.value,
-                    "changes_applied": result.changes_applied,
-                    "changes_details": result.changes_details,
-                    "error_message": result.error_message,
-                    "backup_path": (
-                        str(result.backup_path) if result.backup_path else None
-                    ),
-                }
-                for result in results
-            ],
-        }
+   📝 Total changes applied: {self.stats['applied_changes']}
+   📝 Total changes failed: {self.stats['failed_changes']}
+        """)
 
-        try:
-            with open(self.config.output_report, "w") as f:
-                json.dump(report_data, f, indent=2)
-            print(f"📊 Detailed report saved to: {self.config.output_report}")
-        except Exception as e:
-            self.logger.error(f"Failed to generate report: {e}")
+        # If there were errors, show details
+        if failed > 0:
+            print("\n⚠️  Errors occurred during processing:")
+            for result in results:
+                if result.status == ProcessingStatus.ERROR:
+                    print(f"   ❌ {result.file_path}: {result.error_message}")
+                    if result.rollback_performed:
+                        print(f"      ↩️  Changes rolled back successfully")
+                    else:
+                        print(f"      ⚠️  ROLLBACK FAILED - manual intervention required!")
 
 
 def main():
@@ -554,35 +420,17 @@ def main():
     # Setup logging
     setup_logging(args.verbose)
 
-    # Create configuration
-    config = RenamingConfig()
-
-    # Override config with command line arguments
-    config.csv_file = args.csv_file
-    config.repo_path = args.repo_path
-    config.interactive_mode = args.interactive
-    config.dry_run = args.dry_run
-    config.create_backups = not args.no_backup
-    config.validate_syntax = not args.no_validation
-    config.verbose = args.verbose
-    config.quiet = args.quiet
-    config.file_types = args.file_types
-
-    if args.module:
-        config.modules = [args.module]
-    elif args.modules:
-        config.modules = args.modules
-
-    if args.output_report:
-        config.output_report = args.output_report
-
-    if args.backup_dir:
-        config.backup_dir = args.backup_dir
-
     # Create and run tool
-    tool = FieldMethodRenamingTool(config)
-    tool.initialize()
+    tool = FieldMethodRenamer(
+        csv_file=args.csv_file,
+        repo_path=args.repo_path,
+        dry_run=args.dry_run,
+        create_backups=not args.no_backup,
+        backup_dir=args.backup_dir,
+        verbose=args.verbose
+    )
 
+    tool.initialize()
     return tool.run()
 
 

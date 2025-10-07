@@ -40,6 +40,7 @@ class ProcessResult:
     backup_path: Path | None = None
     original_content: str | None = None
     modified_content: str | None = None
+    rollback_performed: bool = False
 
     @property
     def is_success(self) -> bool:
@@ -55,7 +56,10 @@ class ProcessResult:
         if self.status == ProcessingStatus.SUCCESS:
             return f"✅ {self.file_path}: {self.changes_applied} changes applied"
         elif self.status == ProcessingStatus.ERROR:
-            return f"❌ {self.file_path}: {self.error_message}"
+            msg = f"❌ {self.file_path}: {self.error_message}"
+            if self.rollback_performed:
+                msg += " (rolled back)"
+            return msg
         elif self.status == ProcessingStatus.SKIPPED:
             return f"⏭️  {self.file_path}: Skipped"
         else:
@@ -99,9 +103,7 @@ class BaseProcessor(ABC):
         self, file_path: Path, changes: list[FieldChange]
     ) -> ProcessResult:
         """
-        Process a file with the given changes.
-
-        This is the main template method that coordinates the processing workflow.
+        Process a file with automatic rollback on error.
 
         Args:
             file_path: Path to the file to process
@@ -110,100 +112,161 @@ class BaseProcessor(ABC):
         Returns:
             ProcessResult with details of the operation
         """
-        logger.debug(f"Processing file: {file_path}")
+        logger.debug(f"Processing {file_path} with {len(changes)} changes")
 
-        # Filter changes relevant to this file
-        relevant_changes = self._filter_relevant_changes(file_path, changes)
-
-        if not relevant_changes:
-            logger.debug(f"No relevant changes for file: {file_path}")
-            return ProcessResult(
-                file_path=file_path,
-                status=ProcessingStatus.NO_CHANGES,
-                changes_applied=0,
-                changes_details=[],
-            )
-
+        # Read original content
         try:
-            # Read original content
             original_content = self._read_file_content(file_path)
 
-            # Validate original syntax if required
-            if self.validate_syntax and not self._validate_original_syntax(
-                file_path, original_content
-            ):
+            if self.validate_syntax and not self._validate_original_syntax(file_path, original_content):
                 return ProcessResult(
                     file_path=file_path,
                     status=ProcessingStatus.SKIPPED,
                     changes_applied=0,
                     changes_details=[],
-                    error_message="Original file has syntax errors",
+                    error_message="Original file has syntax errors"
                 )
-
-            # Create backup if required
-            backup_path = None
-            if self.create_backups:
-                backup_path = self._create_backup(file_path, original_content)
-
-            # Apply changes (implemented by subclasses)
-            modified_content, applied_changes = self._apply_changes(
-                file_path, original_content, relevant_changes
-            )
-
-            # Check if any changes were actually made
-            if modified_content == original_content:
-                logger.debug(f"No actual changes made to file: {file_path}")
-                return ProcessResult(
-                    file_path=file_path,
-                    status=ProcessingStatus.NO_CHANGES,
-                    changes_applied=0,
-                    changes_details=[],
-                    backup_path=backup_path,
-                )
-
-            # Validate modified syntax if required
-            if self.validate_syntax and not self._validate_modified_syntax(
-                file_path, modified_content
-            ):
-                error_msg = "Modified file has syntax errors, changes not applied"
-                logger.error(f"{file_path}: {error_msg}")
-                return ProcessResult(
-                    file_path=file_path,
-                    status=ProcessingStatus.ERROR,
-                    changes_applied=0,
-                    changes_details=[],
-                    error_message=error_msg,
-                    backup_path=backup_path,
-                )
-
-            # Write modified content
-            self._write_file_content(file_path, modified_content)
-
-            logger.info(
-                f"Successfully processed {file_path}: {len(applied_changes)} changes applied"
-            )
-
-            return ProcessResult(
-                file_path=file_path,
-                status=ProcessingStatus.SUCCESS,
-                changes_applied=len(applied_changes),
-                changes_details=applied_changes,
-                backup_path=backup_path,
-                original_content=original_content,
-                modified_content=modified_content,
-            )
-
         except Exception as e:
-            error_msg = f"Error processing file: {str(e)}"
-            logger.error(f"{file_path}: {error_msg}")
-
             return ProcessResult(
                 file_path=file_path,
                 status=ProcessingStatus.ERROR,
                 changes_applied=0,
                 changes_details=[],
-                error_message=error_msg,
+                error_message=f"Cannot read file: {str(e)}"
             )
+
+        # Create backup ALWAYS (for rollback capability)
+        backup_path = self._create_backup(file_path, original_content)
+
+        # Apply changes with tracking
+        applied_changes = []
+        modified_content = original_content
+        error_occurred = False
+        error_message = None
+
+        for change in changes:
+            try:
+                # Apply single change
+                new_content, change_details = self._apply_single_change(
+                    file_path, modified_content, change
+                )
+
+                # Validate syntax immediately
+                if self.validate_syntax and not self._validate_syntax(file_path, new_content):
+                    raise SyntaxValidationError(
+                        f"Syntax error after applying {change.old_name} → {change.new_name}"
+                    )
+
+                modified_content = new_content
+                applied_changes.extend(change_details)
+                change.applied = True
+
+                logger.debug(f"Applied change {change.change_id}: {change}")
+
+            except Exception as e:
+                # Error occurred - activate rollback
+                error_occurred = True
+                error_message = (f"Failed to apply change {change.change_id} "
+                               f"({change.old_name} → {change.new_name}): {str(e)}")
+
+                logger.error(error_message)
+                change.error_message = str(e)
+
+                # Stop immediately
+                break
+
+        # If error occurred, perform rollback
+        if error_occurred:
+            logger.warning(f"Rolling back all changes in {file_path} due to error")
+
+            # Restore original content
+            try:
+                self._write_file_content(file_path, original_content)
+                logger.info(f"Rollback successful for {file_path}")
+
+                return ProcessResult(
+                    file_path=file_path,
+                    status=ProcessingStatus.ERROR,
+                    changes_applied=0,  # 0 because we rolled back
+                    changes_details=[],
+                    error_message=error_message,
+                    backup_path=backup_path,
+                    rollback_performed=True
+                )
+
+            except Exception as rollback_error:
+                # Critical: rollback failed
+                logger.error(f"CRITICAL: Rollback failed for {file_path}: {rollback_error}")
+                return ProcessResult(
+                    file_path=file_path,
+                    status=ProcessingStatus.ERROR,
+                    changes_applied=len(applied_changes),
+                    changes_details=applied_changes,
+                    error_message=f"Original error: {error_message}. Rollback failed: {rollback_error}",
+                    backup_path=backup_path,
+                    rollback_performed=False
+                )
+
+        # No errors - write changes if any were made
+        if applied_changes and modified_content != original_content:
+            try:
+                self._write_file_content(file_path, modified_content)
+            except Exception as e:
+                # Error writing - attempt rollback
+                logger.error(f"Failed to write changes: {e}. Attempting rollback...")
+
+                try:
+                    self._write_file_content(file_path, original_content)
+                    return ProcessResult(
+                        file_path=file_path,
+                        status=ProcessingStatus.ERROR,
+                        changes_applied=0,
+                        changes_details=[],
+                        error_message=f"Write failed: {e}",
+                        backup_path=backup_path,
+                        rollback_performed=True
+                    )
+                except:
+                    # Rollback failed - critical state
+                    return ProcessResult(
+                        file_path=file_path,
+                        status=ProcessingStatus.ERROR,
+                        changes_applied=0,
+                        changes_details=[],
+                        error_message=f"CRITICAL: Write and rollback failed: {e}",
+                        backup_path=backup_path,
+                        rollback_performed=False
+                    )
+
+        # Success
+        return ProcessResult(
+            file_path=file_path,
+            status=ProcessingStatus.SUCCESS if applied_changes else ProcessingStatus.NO_CHANGES,
+            changes_applied=len(applied_changes),
+            changes_details=applied_changes,
+            backup_path=backup_path,
+            original_content=original_content,
+            modified_content=modified_content if applied_changes else None
+        )
+
+    @abstractmethod
+    def _apply_single_change(
+        self, file_path: Path, content: str, change: FieldChange
+    ) -> tuple[str, list[str]]:
+        """
+        Apply a single change to file content considering its context.
+
+        This method must be implemented by subclasses.
+
+        Args:
+            file_path: Path to the file being processed
+            content: Current file content
+            change: Single change to apply
+
+        Returns:
+            Tuple of (modified_content, list_of_applied_changes_descriptions)
+        """
+        pass
 
     @abstractmethod
     def _apply_changes(
@@ -224,23 +287,18 @@ class BaseProcessor(ABC):
         """
         pass
 
-    def _filter_relevant_changes(
-        self, file_path: Path, changes: list[FieldChange]
-    ) -> list[FieldChange]:
+    def _validate_syntax(self, file_path: Path, content: str) -> bool:
         """
-        Filter changes that are relevant to the specific file.
-
-        Base implementation returns all changes. Subclasses can override
-        to implement more sophisticated filtering.
+        Validate syntax of content (alias for _validate_modified_syntax).
 
         Args:
-            file_path: Path to the file being processed
-            changes: All changes to consider
+            file_path: Path to the file
+            content: Content to validate
 
         Returns:
-            List of relevant changes
+            True if syntax is valid
         """
-        return changes
+        return self._validate_modified_syntax(file_path, content)
 
     def _read_file_content(self, file_path: Path) -> str:
         """
@@ -410,33 +468,3 @@ class BaseProcessor(ABC):
             backup_manager: BackupManager instance
         """
         self.backup_manager = backup_manager
-
-    def get_processing_stats(self, results: list[ProcessResult]) -> dict[str, any]:
-        """
-        Generate statistics from processing results.
-
-        Args:
-            results: List of ProcessResult objects
-
-        Returns:
-            Dictionary with processing statistics
-        """
-        total_files = len(results)
-        successful = len([r for r in results if r.is_success])
-        failed = len([r for r in results if r.status == ProcessingStatus.ERROR])
-        skipped = len([r for r in results if r.status == ProcessingStatus.SKIPPED])
-        no_changes = len(
-            [r for r in results if r.status == ProcessingStatus.NO_CHANGES]
-        )
-
-        total_changes = sum(r.changes_applied for r in results)
-
-        return {
-            "total_files": total_files,
-            "successful": successful,
-            "failed": failed,
-            "skipped": skipped,
-            "no_changes": no_changes,
-            "total_changes_applied": total_changes,
-            "success_rate": (successful / total_files * 100) if total_files > 0 else 0,
-        }

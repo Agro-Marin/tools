@@ -16,13 +16,45 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class FieldChange:
-    """Represents a field or method change to be applied"""
+    """Represents a field or method change with full context from CSV enhanced structure"""
 
+    # Core fields
     old_name: str
     new_name: str
     module: str
     model: str
-    change_type: str  # 'field' or 'method' - now explicitly provided from CSV
+    change_type: str  # 'field' or 'method'
+
+    # Enhanced CSV fields
+    change_id: str = ""
+    change_scope: str = "declaration"
+    impact_type: str = "primary"
+    context: str = ""
+    confidence: float = 0.0
+    parent_change_id: str = ""
+    validation_status: str = "pending"
+
+    # Internal tracking fields
+    applied: bool = False
+    error_message: str = ""
+
+    def can_be_applied(self) -> bool:
+        """Check if this change can be applied based on validation status"""
+        return (
+            self.validation_status in ["approved", "auto_approved"]
+            and not self.applied
+        )
+
+    def is_primary(self) -> bool:
+        """Check if this is a primary change (declaration in base module)"""
+        return self.impact_type == "primary"
+
+    def is_extension_declaration(self) -> bool:
+        """Check if this is a declaration in an extension module"""
+        return (
+            self.impact_type == "inheritance"
+            and self.change_scope == "declaration"
+        )
 
     @property
     def is_field(self) -> bool:
@@ -35,7 +67,10 @@ class FieldChange:
         return self.change_type == "method"
 
     def __str__(self):
-        return f"{self.old_name} → {self.new_name} ({self.module}.{self.model}) [{self.change_type}]"
+        base = f"{self.old_name} → {self.new_name} ({self.module}.{self.model})"
+        if self.context:
+            base += f" in {self.context}"
+        return f"[{self.change_id}] {base}" if self.change_id else base
 
 
 class CSVValidationError(Exception):
@@ -45,10 +80,20 @@ class CSVValidationError(Exception):
 
 
 class CSVReader:
-    """Reader for CSV files containing field/method changes"""
+    """Reader for CSV files with enhanced structure"""
 
-    # Required CSV headers
-    REQUIRED_HEADERS = ["old_name", "new_name", "item_type", "module", "model"]
+    # Required CSV headers for enhanced format
+    REQUIRED_HEADERS = [
+        "change_id", "old_name", "new_name", "item_type", "module", "model",
+        "change_scope", "impact_type", "context", "confidence",
+        "parent_change_id", "validation_status"
+    ]
+
+    # Fields that cannot be empty (others can be empty strings)
+    MANDATORY_FIELDS = [
+        "change_id", "old_name", "new_name", "item_type", "module", "model",
+        "change_scope", "impact_type", "validation_status"
+    ]
 
     def __init__(self, csv_file_path: str):
         """
@@ -63,10 +108,10 @@ class CSVReader:
 
     def load_changes(self) -> list[FieldChange]:
         """
-        Load and validate changes from CSV file.
+        Load only approved changes from CSV enhanced file.
 
         Returns:
-            List of FieldChange objects
+            List of approved FieldChange objects
 
         Raises:
             CSVValidationError: If CSV is invalid or malformed
@@ -92,18 +137,31 @@ class CSVReader:
                     cleaned_row = self._clean_csv_row(row)
                     self._validate_csv_row(cleaned_row, row_num)
 
-                    # Create FieldChange object
+                    # Create FieldChange object with enhanced fields
                     change = FieldChange(
+                        # Core fields
                         old_name=cleaned_row["old_name"],
                         new_name=cleaned_row["new_name"],
                         module=cleaned_row["module"],
                         model=cleaned_row["model"],
                         change_type=cleaned_row["item_type"],
+
+                        # Enhanced fields
+                        change_id=cleaned_row["change_id"],
+                        change_scope=cleaned_row["change_scope"],
+                        impact_type=cleaned_row["impact_type"],
+                        context=cleaned_row.get("context", ""),
+                        confidence=float(cleaned_row["confidence"]) if cleaned_row.get("confidence") else 0.0,
+                        parent_change_id=cleaned_row.get("parent_change_id", ""),
+                        validation_status=cleaned_row["validation_status"]
                     )
-                    changes.append(change)
+
+                    # Only add if can be applied
+                    if change.can_be_applied():
+                        changes.append(change)
 
                 self.changes = changes
-                logger.info(f"Loaded {len(changes)} changes from {self.csv_file_path}")
+                logger.info(f"Loaded {len(changes)} approved changes from {self.csv_file_path}")
 
                 return changes
 
@@ -147,11 +205,11 @@ class CSVReader:
         Raises:
             CSVValidationError: If row is invalid
         """
-        # Check required fields
-        for field in self.REQUIRED_HEADERS:
+        # Check mandatory fields (others can be empty)
+        for field in self.MANDATORY_FIELDS:
             if not row.get(field):
                 raise CSVValidationError(
-                    f"Row {row_num}: Missing or empty required field '{field}'"
+                    f"Row {row_num}: Missing or empty mandatory field '{field}'"
                 )
 
         # Check for identical old and new names
@@ -187,237 +245,3 @@ class CSVReader:
                     f"Row {row_num}: {name_type} contains double underscores: {name}"
                 )
 
-    def group_by_module(
-        self, changes: list[FieldChange] | None = None
-    ) -> dict[str, list[FieldChange]]:
-        """
-        Group changes by module for efficient processing.
-
-        Args:
-            changes: List of changes to group (uses loaded changes if None)
-
-        Returns:
-            Dictionary mapping module names to lists of changes
-        """
-        if changes is None:
-            changes = self.changes
-
-        grouped = {}
-        for change in changes:
-            module = change.module
-            if module not in grouped:
-                grouped[module] = []
-            grouped[module].append(change)
-
-        # Sort changes within each module
-        for module in grouped:
-            grouped[module].sort(key=lambda c: (c.model, c.old_name))
-
-        logger.debug(f"Grouped {len(changes)} changes into {len(grouped)} modules")
-
-        return grouped
-
-    def group_by_model(
-        self, changes: list[FieldChange] | None = None
-    ) -> dict[str, list[FieldChange]]:
-        """
-        Group changes by model for processing.
-
-        Args:
-            changes: List of changes to group (uses loaded changes if None)
-
-        Returns:
-            Dictionary mapping model names to lists of changes
-        """
-        if changes is None:
-            changes = self.changes
-
-        grouped = {}
-        for change in changes:
-            model_key = f"{change.module}.{change.model}"
-            if model_key not in grouped:
-                grouped[model_key] = []
-            grouped[model_key].append(change)
-
-        # Sort changes within each model
-        for model_key in grouped:
-            grouped[model_key].sort(key=lambda c: c.old_name)
-
-        logger.debug(f"Grouped {len(changes)} changes into {len(grouped)} models")
-
-        return grouped
-
-    def filter_by_module(
-        self, modules: list[str], changes: list[FieldChange] | None = None
-    ) -> list[FieldChange]:
-        """
-        Filter changes by specific modules.
-
-        Args:
-            modules: List of module names to include
-            changes: List of changes to filter (uses loaded changes if None)
-
-        Returns:
-            Filtered list of changes
-        """
-        if changes is None:
-            changes = self.changes
-
-        module_set = set(modules)
-        filtered = [change for change in changes if change.module in module_set]
-
-        logger.info(
-            f"Filtered to {len(filtered)} changes for modules: {', '.join(modules)}"
-        )
-
-        return filtered
-
-    def filter_by_change_type(
-        self, change_type: str, changes: list[FieldChange] | None = None
-    ) -> list[FieldChange]:
-        """
-        Filter changes by type (field or method).
-
-        Args:
-            change_type: 'field' or 'method'
-            changes: List of changes to filter (uses loaded changes if None)
-
-        Returns:
-            Filtered list of changes
-        """
-        if changes is None:
-            changes = self.changes
-
-        if change_type not in ["field", "method"]:
-            raise ValueError(
-                f"Invalid change_type: {change_type}. Must be 'field' or 'method'"
-            )
-
-        filtered = [change for change in changes if change.change_type == change_type]
-
-        logger.info(f"Filtered to {len(filtered)} {change_type} changes")
-
-        return filtered
-
-    def get_statistics(
-        self, changes: list[FieldChange] | None = None
-    ) -> dict[str, any]:
-        """
-        Get statistics about the loaded changes.
-
-        Args:
-            changes: List of changes to analyze (uses loaded changes if None)
-
-        Returns:
-            Dictionary with statistics
-        """
-        if changes is None:
-            changes = self.changes
-
-        if not changes:
-            return {
-                "total_changes": 0,
-                "field_changes": 0,
-                "method_changes": 0,
-                "modules": {},
-                "models": {},
-            }
-
-        modules = {}
-        models = {}
-        field_count = 0
-        method_count = 0
-
-        for change in changes:
-            # Count by type
-            if change.is_field:
-                field_count += 1
-            else:
-                method_count += 1
-
-            # Count by module
-            module = change.module
-            modules[module] = modules.get(module, 0) + 1
-
-            # Count by model
-            model_key = f"{change.module}.{change.model}"
-            models[model_key] = models.get(model_key, 0) + 1
-
-        return {
-            "total_changes": len(changes),
-            "field_changes": field_count,
-            "method_changes": method_count,
-            "unique_modules": len(modules),
-            "unique_models": len(models),
-            "modules": modules,
-            "models": models,
-            "csv_file": str(self.csv_file_path),
-        }
-
-    def validate_csv_integrity(self) -> dict[str, any]:
-        """
-        Perform comprehensive validation of the CSV file.
-
-        Returns:
-            Dictionary with validation results
-        """
-        if not self.csv_file_path.exists():
-            return {
-                "valid": False,
-                "error": f"File does not exist: {self.csv_file_path}",
-            }
-
-        try:
-            changes = self.load_changes()
-            stats = self.get_statistics(changes)
-
-            # Additional validations
-            issues = []
-
-            # Check for duplicate changes
-            seen_changes = set()
-            duplicates = []
-
-            for change in changes:
-                change_key = (
-                    change.old_name,
-                    change.new_name,
-                    change.module,
-                    change.model,
-                )
-                if change_key in seen_changes:
-                    duplicates.append(str(change))
-                else:
-                    seen_changes.add(change_key)
-
-            if duplicates:
-                issues.append(f"Duplicate changes found: {duplicates}")
-
-            # Check for circular renames (A→B and B→A)
-            rename_pairs = {}
-            circular_renames = []
-
-            for change in changes:
-                key = (change.module, change.model)
-                if key not in rename_pairs:
-                    rename_pairs[key] = {}
-
-                rename_pairs[key][change.old_name] = change.new_name
-
-            for key, renames in rename_pairs.items():
-                for old_name, new_name in renames.items():
-                    if new_name in renames and renames[new_name] == old_name:
-                        circular_renames.append(f"{key}: {old_name} ↔ {new_name}")
-
-            if circular_renames:
-                issues.append(f"Circular renames detected: {circular_renames}")
-
-            return {
-                "valid": len(issues) == 0,
-                "issues": issues,
-                "statistics": stats,
-                "file_size": self.csv_file_path.stat().st_size,
-            }
-
-        except Exception as e:
-            return {"valid": False, "error": str(e)}

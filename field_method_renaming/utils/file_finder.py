@@ -14,6 +14,22 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
+# Mapeo de relaciones modelo-hijo → modelo-padre
+# Cuando se buscan archivos para el hijo, también se buscan archivos del padre
+# Ejemplo: stock.move tiene campos en stock_picking_views.xml (via move_ids)
+# También usado para cross-module: stock.move fields en mrp.production (via move_raw_ids)
+MODEL_PARENT_RELATIONSHIPS = {
+    'stock.move': ['stock.picking', 'mrp.production'],  # move_ids in stock.picking, move_raw_ids in mrp.production
+    'stock.move.line': ['stock.picking'],      # move_line_ids en stock.picking views
+    'sale.order.line': ['sale.order'],         # order_line en sale.order views
+    'purchase.order.line': ['purchase.order'], # order_line en purchase.order views
+    'account.move.line': ['account.move'],     # line_ids en account.move views
+    'product.product': ['product.template'],   # product_variant_ids en product.template views
+    'mrp.bom.line': ['mrp.bom'],              # bom_line_ids en mrp.bom views
+    'stock.quant': ['stock.quant.package'],    # quant_ids en package views
+}
+
+
 @dataclass
 class FileSet:
     """Container for different types of files found for a model"""
@@ -66,7 +82,7 @@ class FileFinder:
     # OCA naming patterns
     OCA_DIRECTORIES = {
         "python": ["models", "controllers", "wizards", "wizard"],
-        "view": ["views"],
+        "view": ["views", "wizards", "wizard"],  # Wizards can contain XML views
         "data": ["data"],
         "demo": ["demo"],
         "template": ["templates"],
@@ -116,7 +132,31 @@ class FileFinder:
         # Search using OCA conventions
         file_set = self._search_oca_conventions(module_path, patterns)
 
-        # If no files found with standard naming, try recursive search
+        # If model has parent relationships, also search in parent model files
+        # Example: stock.move fields can appear in stock_picking_views.xml (via move_ids)
+        # Also: stock.move fields used in mrp_production.py decorators (cross-module)
+        if model in MODEL_PARENT_RELATIONSHIPS:
+            logger.debug(f"Model {model} has parent relationships: {MODEL_PARENT_RELATIONSHIPS[model]}")
+            for parent_model in MODEL_PARENT_RELATIONSHIPS[model]:
+                parent_patterns = self._build_file_patterns(parent_model)
+                parent_file_set = self._search_oca_conventions(module_path, parent_patterns)
+
+                # Add both XML and Python files from parent
+                # XML: for inline field edits in parent views
+                # Python: for cross-module references in @api.depends decorators
+                file_set.python_files.extend(parent_file_set.python_files)
+                file_set.view_files.extend(parent_file_set.view_files)
+                file_set.data_files.extend(parent_file_set.data_files)
+                file_set.demo_files.extend(parent_file_set.demo_files)
+                file_set.template_files.extend(parent_file_set.template_files)
+                file_set.report_files.extend(parent_file_set.report_files)
+
+                logger.debug(f"Added {len(parent_file_set.python_files)} python files and {len(parent_file_set.view_files)} view files from parent model {parent_model}")
+
+        # Remove duplicates and sort
+        self._deduplicate_and_sort_fileset(file_set)
+
+        # If still no files found, try recursive search
         if file_set.is_empty():
             logger.info(
                 f"No files found with OCA conventions for {model}, trying recursive search..."
@@ -160,17 +200,23 @@ class FileFinder:
             ],
             "xml": [
                 f"{base_name}_views.xml",
+                f"{base_name}_view.xml",  # singular variant
                 f"{base_name}_data.xml",
                 f"{base_name}_demo.xml",
                 f"{base_name}_templates.xml",
+                f"{base_name}_template.xml",  # singular variant
                 f"{base_name}_reports.xml",
+                f"{base_name}_report.xml",  # singular variant
                 f"{base_name}_security.xml",
                 f"{base_name}.xml",
                 *[f"{abbrev}_views.xml" for abbrev in abbreviated_patterns],
+                *[f"{abbrev}_view.xml" for abbrev in abbreviated_patterns],  # singular
                 *[f"{abbrev}_data.xml" for abbrev in abbreviated_patterns],
                 *[f"{abbrev}_demo.xml" for abbrev in abbreviated_patterns],
                 *[f"{abbrev}_templates.xml" for abbrev in abbreviated_patterns],
+                *[f"{abbrev}_template.xml" for abbrev in abbreviated_patterns],  # singular
                 *[f"{abbrev}_reports.xml" for abbrev in abbreviated_patterns],
+                *[f"{abbrev}_report.xml" for abbrev in abbreviated_patterns],  # singular
                 *[f"{abbrev}_security.xml" for abbrev in abbreviated_patterns],
                 *[f"{abbrev}.xml" for abbrev in abbreviated_patterns],
             ],
@@ -275,14 +321,16 @@ class FileFinder:
             True if pattern matches the file type
         """
         if file_type == "views":
-            return "_views.xml" in pattern or (
+            return "_views.xml" in pattern or "_view.xml" in pattern or (
                 not any(
                     suffix in pattern
                     for suffix in [
                         "_data.xml",
                         "_demo.xml",
                         "_templates.xml",
+                        "_template.xml",
                         "_reports.xml",
+                        "_report.xml",
                         "_security.xml",
                     ]
                 )
@@ -292,9 +340,9 @@ class FileFinder:
         elif file_type == "demo":
             return "_demo.xml" in pattern
         elif file_type == "templates":
-            return "_templates.xml" in pattern
+            return "_templates.xml" in pattern or "_template.xml" in pattern
         elif file_type == "reports":
-            return "_reports.xml" in pattern
+            return "_reports.xml" in pattern or "_report.xml" in pattern
         elif file_type == "security":
             return "_security.xml" in pattern
 
@@ -519,16 +567,16 @@ class FileFinder:
             file_set.report_files.append(xml_file)
         elif parent_dir == "security":
             file_set.security_files.append(xml_file)
-        # Categorize by file name patterns
-        elif "_views.xml" in file_name or "view" in file_name:
+        # Categorize by file name patterns (including singular variants)
+        elif "_views.xml" in file_name or "_view.xml" in file_name or "view" in file_name:
             file_set.view_files.append(xml_file)
         elif "_data.xml" in file_name or "data" in file_name:
             file_set.data_files.append(xml_file)
         elif "_demo.xml" in file_name or "demo" in file_name:
             file_set.demo_files.append(xml_file)
-        elif "_template" in file_name or "template" in file_name:
+        elif "_templates.xml" in file_name or "_template.xml" in file_name or "template" in file_name:
             file_set.template_files.append(xml_file)
-        elif "_report" in file_name or "report" in file_name:
+        elif "_reports.xml" in file_name or "_report.xml" in file_name or "report" in file_name:
             file_set.report_files.append(xml_file)
         elif "security" in file_name:
             file_set.security_files.append(xml_file)

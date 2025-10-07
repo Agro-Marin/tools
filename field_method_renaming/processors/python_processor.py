@@ -127,6 +127,8 @@ class ASTFieldMethodTransformer(ast.NodeTransformer):
             patterns = [
                 f"'{old_name}'",  # Single quotes
                 f'"{old_name}"',  # Double quotes
+                f"'{old_name}.",  # Related field path: related='field.path'
+                f'"{old_name}.',  # Related field path: related="field.path"
                 f" {old_name} ",  # Space-separated
                 f",{old_name},",  # Comma-separated
                 f"({old_name})",  # Parentheses
@@ -170,6 +172,24 @@ class PythonProcessor(BaseProcessor):
     def get_supported_extensions(self) -> list[str]:
         """Get supported file extensions"""
         return [".py"]
+
+    def _apply_single_change(
+        self, file_path: Path, content: str, change: FieldChange
+    ) -> tuple[str, list[str]]:
+        """
+        Apply a single change considering its context and scope.
+
+        Args:
+            file_path: Path to the file being processed
+            content: Current file content
+            change: Single change to apply
+
+        Returns:
+            Tuple of (modified_content, list_of_applied_changes_descriptions)
+        """
+        # Delegate to _apply_changes with a single-item list
+        # In the future, this can be extended with context-aware logic
+        return self._apply_changes(file_path, content, [change])
 
     def _apply_changes(
         self, file_path: Path, content: str, changes: list[FieldChange]

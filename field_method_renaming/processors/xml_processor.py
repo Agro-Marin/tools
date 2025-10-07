@@ -7,6 +7,7 @@ safe text replacement that preserves original formatting.
 """
 
 import logging
+import re
 from pathlib import Path
 
 from utils.csv_reader import FieldChange
@@ -32,6 +33,24 @@ class XMLProcessor(BaseProcessor):
     def get_supported_extensions(self) -> list[str]:
         """Get supported file extensions"""
         return [".xml"]
+
+    def _apply_single_change(
+        self, file_path: Path, content: str, change: FieldChange
+    ) -> tuple[str, list[str]]:
+        """
+        Apply a single change considering its context and scope.
+
+        Args:
+            file_path: Path to the file being processed
+            content: Current file content
+            change: Single change to apply
+
+        Returns:
+            Tuple of (modified_content, list_of_applied_changes_descriptions)
+        """
+        # Delegate to _apply_changes with a single-item list
+        # In the future, this can be extended with context-aware logic
+        return self._apply_changes(file_path, content, [change])
 
     def _apply_changes(
         self, file_path: Path, content: str, changes: list[FieldChange]
@@ -95,55 +114,83 @@ class XMLProcessor(BaseProcessor):
 
         # Apply field changes with safe patterns
         for old_name, new_name in field_changes.items():
-            # Only apply the most common and safe patterns
-            safe_field_patterns = [
-                # <field name="old_name" ... (double quotes)
+            total_replacements = 0
+
+            # Pattern 1: Field name attributes
+            field_name_patterns = [
                 (f'name="{old_name}"', f'name="{new_name}"'),
-                # <field name='old_name' ... (single quotes)
                 (f"name='{old_name}'", f"name='{new_name}'"),
             ]
 
-            for old_pattern, new_pattern in safe_field_patterns:
+            for old_pattern, new_pattern in field_name_patterns:
                 if old_pattern in modified_content:
                     count = modified_content.count(old_pattern)
-                    modified_content = modified_content.replace(
-                        old_pattern, new_pattern
-                    )
+                    modified_content = modified_content.replace(old_pattern, new_pattern)
+                    total_replacements += count
                     if count > 0:
-                        applied_changes.append(
-                            f"Field: {old_name} → {new_name} ({count} occurrences)"
-                        )
-                        logger.debug(
-                            f"Applied safe field replacement: {old_pattern} → {new_pattern}"
-                        )
+                        logger.debug(f"Applied field name replacement: {old_pattern} → {new_pattern} ({count}x)")
+
+            # Pattern 2: Field references in attribute values (invisible, readonly, context, etc.)
+            # Use word boundaries to avoid partial replacements
+            # This catches: invisible="product_count > 1", context="{'field': product_count}"
+
+            # Build regex pattern with word boundaries
+            # Matches field_name as a complete word (not part of another word)
+            field_pattern = re.compile(r'\b' + re.escape(old_name) + r'\b')
+
+            # Count matches and replace
+            matches = field_pattern.findall(modified_content)
+            if matches:
+                count = len(matches)
+                modified_content = field_pattern.sub(new_name, modified_content)
+                total_replacements += count
+                logger.debug(
+                    f"Applied field reference replacement in attributes: {old_name} → {new_name} ({count}x)"
+                )
+
+            if total_replacements > 0:
+                applied_changes.append(
+                    f"Field: {old_name} → {new_name} ({total_replacements} occurrences)"
+                )
 
         # Apply method changes with safe patterns
         for old_name, new_name in method_changes.items():
-            # Only apply the most common and safe patterns
-            safe_method_patterns = [
-                # <button name="old_method" ... (double quotes)
+            total_replacements = 0
+
+            # Pattern 1: Method name and action attributes
+            method_attribute_patterns = [
                 (f'name="{old_name}"', f'name="{new_name}"'),
-                # <button name='old_method' ... (single quotes)
                 (f"name='{old_name}'", f"name='{new_name}'"),
-                # action="old_method" ... (double quotes)
                 (f'action="{old_name}"', f'action="{new_name}"'),
-                # action='old_method' ... (single quotes)
                 (f"action='{old_name}'", f"action='{new_name}'"),
             ]
 
-            for old_pattern, new_pattern in safe_method_patterns:
+            for old_pattern, new_pattern in method_attribute_patterns:
                 if old_pattern in modified_content:
                     count = modified_content.count(old_pattern)
-                    modified_content = modified_content.replace(
-                        old_pattern, new_pattern
-                    )
+                    modified_content = modified_content.replace(old_pattern, new_pattern)
+                    total_replacements += count
                     if count > 0:
-                        applied_changes.append(
-                            f"Method: {old_name} → {new_name} ({count} occurrences)"
-                        )
-                        logger.debug(
-                            f"Applied safe method replacement: {old_pattern} → {new_pattern}"
-                        )
+                        logger.debug(f"Applied method attribute replacement: {old_pattern} → {new_pattern} ({count}x)")
+
+            # Pattern 2: Method references in attribute values (similar to fields)
+            # This catches: domain="[('id', 'in', method_name())]", etc.
+            method_pattern = re.compile(r'\b' + re.escape(old_name) + r'\b')
+
+            # Count matches and replace
+            matches = method_pattern.findall(modified_content)
+            if matches:
+                count = len(matches)
+                modified_content = method_pattern.sub(new_name, modified_content)
+                total_replacements += count
+                logger.debug(
+                    f"Applied method reference replacement in attributes: {old_name} → {new_name} ({count}x)"
+                )
+
+            if total_replacements > 0:
+                applied_changes.append(
+                    f"Method: {old_name} → {new_name} ({total_replacements} occurrences)"
+                )
 
         return modified_content, applied_changes
 

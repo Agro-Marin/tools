@@ -55,7 +55,6 @@ queries = [
     """ALTER TABLE account_tax_repartition_line DROP CONSTRAINT "account_tax_repartition_line_company_id_fkey";""",
     """ALTER TABLE account_tax_repartition_line  ADD CONSTRAINT "account_tax_repartition_line_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "public"."res_company" ("id") ON DELETE SET NULL ON UPDATE CASCADE;""",
 
- =
     """ALTER TABLE crm_team DROP CONSTRAINT "crm_team_company_id_fkey";""",
     """ALTER TABLE crm_team ADD  CONSTRAINT "crm_team_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "public"."res_company" ("id") ON DELETE SET NULL ON UPDATE CASCADE;""",
 

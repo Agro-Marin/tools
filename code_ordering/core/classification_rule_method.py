@@ -151,6 +151,16 @@ def get_default_method_rules() -> list[ClassificationRuleMethod]:
     # SPECIFIC PATTERNS (High Priority)
     # ============================================================
 
+    # CRUD methods
+    rules.append(
+        ClassificationRuleMethod(
+            category="CRUD",
+            priority=Priority.HIGH,
+            exact_matches=crud_method_names,
+            decorators={"model_create_multi", "ondelete"},
+        ),
+    )
+
     # Workflow methods
     rules.append(
         ClassificationRuleMethod(
@@ -171,15 +181,6 @@ def get_default_method_rules() -> list[ClassificationRuleMethod]:
         ),
     )
 
-    # CRUD methods
-    rules.append(
-        ClassificationRuleMethod(
-            category="CRUD",
-            priority=Priority.HIGH,
-            exact_matches=crud_method_names,
-            decorators={"model_create_multi", "ondelete"},
-        ),
-    )
 
     # Override methods
     rules.append(

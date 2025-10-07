@@ -897,7 +897,57 @@ class Ordering:
                 groups[category] = []
             groups[category].append(method)
 
+        # Sort methods within each category
+        for category in groups:
+            groups[category] = self._sort_methods_in_category(category, groups[category])
+
         return groups
+
+    def _sort_methods_in_category(
+        self,
+        category: str,
+        methods: list[ast.FunctionDef],
+    ) -> list[ast.FunctionDef]:
+        """Sort methods within a category using specific rules.
+
+        Args:
+            category: The category name
+            methods: List of methods in this category
+
+        Returns:
+            list[ast.FunctionDef]: Sorted methods
+        """
+        # Define specific order for CRUD methods
+        crud_order = {
+            "default_get": 0,
+            "create": 1,
+            "read": 2,
+            "write": 3,
+            "unlink": 4,
+            "copy": 5,
+            "copy_data": 6,
+            "name_create": 7,
+        }
+
+        # Define specific order for SEARCH methods
+        search_order = {
+            "name_search": 0,
+            "_name_search": 1,
+            "_search_display_name": 2,
+        }
+
+        def get_sort_key(method: ast.FunctionDef) -> tuple:
+            method_name = self.get_node_name(method)
+
+            if category == "CRUD" and method_name in crud_order:
+                return (0, crud_order[method_name])
+            elif category == "SEARCH" and method_name in search_order:
+                return (0, search_order[method_name])
+            else:
+                # For other methods, sort alphabetically
+                return (1, method_name.lower())
+
+        return sorted(methods, key=get_sort_key)
 
     # ============================================================
     # SORTING FUNCTIONS
@@ -1425,6 +1475,81 @@ class Ordering:
             logger.debug(f"Failed to unparse node: {e}")
             return f"{indent}# [unparseable node]"
 
+    def _sort_decorator_arguments(self, decorator: ast.expr) -> ast.expr:
+        """Sort arguments in @api.depends and similar decorators alphabetically.
+
+        Args:
+            decorator: AST decorator expression
+
+        Returns:
+            ast.expr: Decorator with sorted arguments
+        """
+        # Check if it's a Call node (decorator with arguments)
+        if not isinstance(decorator, ast.Call):
+            return decorator
+
+        # Get decorator name
+        decorator_name = self.get_decorator_name(decorator)
+
+        # Only sort for specific decorators
+        sortable_decorators = {"depends", "depends_context", "constrains", "onchange"}
+
+        if decorator_name not in sortable_decorators:
+            return decorator
+
+        # Sort positional string arguments alphabetically
+        if decorator.args:
+            sorted_args = []
+            for arg in decorator.args:
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    sorted_args.append(arg)
+                else:
+                    sorted_args.append(arg)
+
+            # Sort only the string constants
+            string_args = [arg for arg in sorted_args if isinstance(arg, ast.Constant) and isinstance(arg.value, str)]
+            other_args = [arg for arg in sorted_args if not (isinstance(arg, ast.Constant) and isinstance(arg.value, str))]
+
+            string_args.sort(key=lambda x: x.value.lower())
+
+            # Create new Call node with sorted arguments
+            new_decorator = ast.Call(
+                func=decorator.func,
+                args=string_args + other_args,
+                keywords=decorator.keywords
+            )
+            ast.copy_location(new_decorator, decorator)
+            return new_decorator
+
+        return decorator
+
+    def _sort_method_decorators(self, method: ast.FunctionDef) -> ast.FunctionDef:
+        """Sort decorator arguments for a method.
+
+        Args:
+            method: AST FunctionDef node
+
+        Returns:
+            ast.FunctionDef: Method with sorted decorator arguments
+        """
+        # Process each decorator
+        sorted_decorators = []
+        for decorator in method.decorator_list:
+            sorted_decorator = self._sort_decorator_arguments(decorator)
+            sorted_decorators.append(sorted_decorator)
+
+        # Create new method with sorted decorators
+        new_method = ast.FunctionDef(
+            name=method.name,
+            args=method.args,
+            body=method.body,
+            decorator_list=sorted_decorators,
+            returns=method.returns,
+            type_comment=getattr(method, 'type_comment', None)
+        )
+        ast.copy_location(new_method, method)
+        return new_method
+
     def reorganize_class(self, class_node: ast.ClassDef) -> list[str]:
         """Reorganize a class definition into properly ordered sections.
 
@@ -1523,8 +1648,10 @@ class Ordering:
                         lines.extend(self.format_section_header(f"{category} METHODS"))
 
                     for method in elements["methods"][category]:
-                        # Decorators are included in the method unparsing, no need to add separately
-                        lines.append(self.unparse_node(method, indent="    "))
+                        # Sort decorator arguments before unparsing
+                        sorted_method = self._sort_method_decorators(method)
+                        # Decorators are included in the method unparsing
+                        lines.append(self.unparse_node(sorted_method, indent="    "))
                         lines.append("")
 
         return lines

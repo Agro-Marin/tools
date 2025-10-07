@@ -107,7 +107,7 @@ class ClassificationRuleField:
                 self.check_related,
             ],
         ):
-            return self.custom_check(field_name, field_info)
+            return self.custom_check(field_name, field_info.get("field_type"), field_info)
 
         return False
 

@@ -1,0 +1,10 @@
+# ══════════════════════════════════════════════════════════
+#  requirements.txt - Odoo DB Sanitizer v3.7
+# ══════════════════════════════════════════════════════════
+
+# PostgreSQL adapter for Python
+# Requerido para conexión a base de datos PostgreSQL
+psycopg2-binary>=2.9.0
+
+# Nota: Todas las demás librerías usadas son built-in de Python 3.8+
+# (os, sys, json, re, ast, logging, time, datetime, pathlib, traceback)

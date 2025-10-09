@@ -1102,10 +1102,14 @@ def process_model(conn, model_name, model_config, progress=None):
 
         # PASO 4 (legacy): ELIMINAR GAPS (disabled for v4.0 - handled by strategies)
         if not operations.get('id_compact', {}).get('enabled'):
-            if progress:
-                progress.log_step("Eliminando gaps...")
-            gaps = eliminate_gaps(conn, table_name)
-            result['changes'].append(f"{gaps} gaps eliminados")
+            # v4.1: Verificar si skip_gap_elimination está activo
+            if operations.get('skip_gap_elimination', False):
+                logging.info(f"  ⊘ Gap elimination desactivado por configuración")
+            else:
+                if progress:
+                    progress.log_step("Eliminando gaps...")
+                gaps = eliminate_gaps(conn, table_name)
+                result['changes'].append(f"{gaps} gaps eliminados")
 
         # v4.0: PASO 5: XMLID_REBUILD
         if operations.get('xmlid_rebuild', {}).get('enabled'):

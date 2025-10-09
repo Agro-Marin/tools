@@ -593,12 +593,17 @@
             "DELETE FROM ir_model_data WHERE module='marin' AND model='account.tax.group'"
           ]
         },
+        "id_shift": {
+          "enabled": true,
+          "offset": 10000,
+          "condition": "id >= 1"
+        },
         "id_compact": {
           "enabled": true,
           "strategy": "sequential",
           "start_id": 1096,
           "order_by": "company_id, name->>'en_US'",
-          "condition": "id >= 1096"
+          "condition": "id >= 10000"
         },
         "xmlid_rebuild": {
           "enabled": true,
@@ -775,12 +780,18 @@
             }
           ]
         },
+        "id_shift": {
+          "enabled": true,
+          "offset": 10000000,
+          "condition": "id >= 1"
+        },
         "id_compact": {
           "enabled": true,
           "strategy": "sequential",
           "start_id": 1001,
-          "order_by": "date, company_id, journal_type_order, journal_code_order, commercial_partner_id, payment_reference, id",
-          "description": "Complex ordering: date → company → journal type → journal code → partner → ref → id"
+          "order_by": "date, company_id, journal_id, commercial_partner_id, payment_reference, id",
+          "condition": "id >= 10000000",
+          "description": "Ordering: date → company → journal → partner → ref → id"
         }
       }
     },
@@ -824,11 +835,17 @@
             }
           ]
         },
+        "id_shift": {
+          "enabled": true,
+          "offset": 10000000,
+          "condition": "id >= 1"
+        },
         "id_compact": {
           "enabled": true,
           "strategy": "sequential",
           "start_id": 1001,
           "order_by": "move_id, ARRAY_POSITION(ARRAY['product', 'tax', 'payment_term', 'line_note'], display_type), sequence, id",
+          "condition": "id >= 10000000",
           "description": "Order by move, then display_type, then sequence"
         }
       }
@@ -1075,7 +1092,8 @@
         "fk_rewrite": {
           "enabled": true,
           "constraints": []
-        }
+        },
+        "skip_gap_elimination": true
       }
     },
     "stock.quant": {
@@ -1086,7 +1104,8 @@
         "fk_rewrite": {
           "enabled": true,
           "constraints": []
-        }
+        },
+        "skip_gap_elimination": true
       }
     },
     "mrp.bom": {
@@ -1181,7 +1200,8 @@
         "fk_rewrite": {
           "enabled": true,
           "constraints": []
-        }
+        },
+        "skip_gap_elimination": true
       }
     },
     "project.project": {

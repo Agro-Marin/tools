@@ -2,12 +2,11 @@
 """
 Run.py
 Script principal de procesamiento de base de datos
-Versión 3.7 - Corrección de Integridad Referencial:
-- DISABLE TRIGGER USER (mantiene CASCADE activo)
-- Integridad referencial 100% garantizada
-- Batch size dinámico (100-2000)
-- UPDATE con CASE optimizado
-- Rendimiento excelente con integridad completa
+Versión 4.0 - Soporte para Estrategias Específicas de ID:
+- Estrategias: consolidation, sequential, custom
+- Respeta start_id específico de cada modelo
+- Phase-based execution support
+- Mantiene integridad referencial 100%
 """
 
 import psycopg2
@@ -284,13 +283,80 @@ def load_models_config():
         return json.load(f)
 
 # ══════════════════════════════════════════════════════════════
-#                    PASO 1: CASCADE
+#                    PASO 1: CASCADE (v4.0)
 # ══════════════════════════════════════════════════════════════
 
 def apply_cascade(conn, model_config, model_name):
     """
-    v3.5: Aplica CASCADE a foreign keys con validación y ROLLBACK individual
+    v4.0: Lee CASCADE desde operations.fk_rewrite
+    Compatible con v3.7 (cascade_rules) para backward compatibility
     """
+    # v4.0: Intentar leer desde operations.fk_rewrite primero
+    operations = model_config.get('operations', {})
+    fk_rewrite = operations.get('fk_rewrite', {})
+
+    if fk_rewrite.get('enabled'):
+        constraints = fk_rewrite.get('constraints', [])
+
+        if not constraints:
+            logging.info(f"  ⊘ FK rewrite desactivado o sin constraints")
+            return
+
+        applied_count = 0
+        skipped_count = 0
+
+        for constraint_info in constraints:
+            table = constraint_info.get('table')
+            column = constraint_info.get('column')
+            action = constraint_info.get('action', 'CASCADE')
+
+            # Generar nombre de constraint si no está especificado
+            constraint_name = constraint_info.get('constraint')
+            if not constraint_name:
+                constraint_name = f"{table}_{column}_fkey"
+
+            if not table_exists(conn, table):
+                logging.warning(f"    ⚠️  SKIP: tabla '{table}' no existe")
+                skipped_count += 1
+                continue
+
+            if not column_exists(conn, table, column):
+                logging.warning(f"    ⚠️  SKIP: columna '{table}.{column}' no existe")
+                skipped_count += 1
+                continue
+
+            cur = conn.cursor()
+            try:
+                # Drop existing
+                cur.execute(f'ALTER TABLE {table} DROP CONSTRAINT IF EXISTS "{constraint_name}";')
+
+                # Recreate with CASCADE
+                table_name = model_config.get('table', model_config.get('table_name'))
+
+                cur.execute(f"""
+                    ALTER TABLE {table}
+                    ADD CONSTRAINT "{constraint_name}"
+                    FOREIGN KEY ({column})
+                    REFERENCES {table_name}(id)
+                    ON DELETE {action}
+                    ON UPDATE CASCADE;
+                """)
+
+                conn.commit()
+                applied_count += 1
+                logging.debug(f"    + {table}.{column} → {table_name} (ON DELETE {action})")
+
+            except psycopg2.Error as e:
+                conn.rollback()
+                skipped_count += 1
+                logging.debug(f"    ⚠️  Error: {str(e).split(chr(10))[0]}")
+            finally:
+                cur.close()
+
+        logging.info(f"  ✓ CASCADE: {applied_count} aplicados, {skipped_count} omitidos")
+        return
+
+    # v3.7: Fallback a cascade_rules para backward compatibility
     cascade_rules = model_config.get('cascade_rules', [])
 
     if not cascade_rules:
@@ -369,8 +435,239 @@ def apply_cascade(conn, model_config, model_name):
     logging.info(f"  ✓ CASCADE: {applied_count} aplicados, {skipped_count} omitidos ({total} total)")
 
 # ══════════════════════════════════════════════════════════════
-#                    PASO 2: RESECUENCIAR IDs
+#          PASO 2: RESECUENCIAR IDs (v4.0 ESTRATEGIAS)
 # ══════════════════════════════════════════════════════════════
+
+def apply_consolidation_strategy(conn, table_name, config, progress=None):
+    """
+    v4.0: Consolidación - Mapeo directo de IDs
+    Ejemplo: res_company id=8 → id=7
+    """
+    mapping = config.get('mapping', {})
+
+    if not mapping:
+        logging.info(f"  ⊘ Sin mapping para consolidación")
+        return {}
+
+    logging.info(f"  🔄 Aplicando consolidación con {len(mapping)} mapeos...")
+
+    cur = conn.cursor()
+
+    try:
+        # Desactivar triggers USER
+        cur.execute(f"ALTER TABLE {table_name} DISABLE TRIGGER USER;")
+        conn.commit()
+
+        applied_mappings = {}
+
+        for old_id, new_id in mapping.items():
+            try:
+                cur.execute(f"""
+                    UPDATE {table_name}
+                    SET id = {new_id}
+                    WHERE id = {old_id};
+                """)
+
+                if cur.rowcount > 0:
+                    applied_mappings[int(old_id)] = int(new_id)
+                    logging.info(f"    ✓ {old_id} → {new_id}")
+                    conn.commit()
+
+            except psycopg2.Error as e:
+                conn.rollback()
+                logging.warning(f"    ⚠️  Error en mapeo {old_id}→{new_id}: {e}")
+
+        # Reactivar triggers
+        cur.execute(f"ALTER TABLE {table_name} ENABLE TRIGGER USER;")
+        conn.commit()
+
+        logging.info(f"  ✓ Consolidación completa: {len(applied_mappings)} cambios")
+        return applied_mappings
+
+    except Exception as e:
+        try:
+            cur.execute(f"ALTER TABLE {table_name} ENABLE TRIGGER USER;")
+            conn.commit()
+        except:
+            pass
+        raise
+    finally:
+        cur.close()
+
+def apply_sequential_strategy(conn, table_name, config, progress=None):
+    """
+    v4.0: Renumeración secuencial con start_id y order_by específicos
+    """
+    start_id = config.get('start_id')
+    order_by = config.get('order_by', 'id')
+    condition = config.get('condition', '1=1')
+
+    if not start_id:
+        logging.warning(f"  ⚠️  Sin start_id definido - SKIP")
+        return {}
+
+    cur = conn.cursor()
+
+    # Contar registros que cumplen la condición
+    cur.execute(f"SELECT COUNT(*) FROM {table_name} WHERE {condition};")
+    total_records = cur.fetchone()[0]
+
+    if total_records == 0:
+        logging.info(f"  ⊘ Sin registros que cumplan condición: {condition}")
+        cur.close()
+        return {}
+
+    logging.info(f"  🔢 Renumeración secuencial desde {start_id} ({total_records} registros)...")
+
+    # Crear mapping con ORDER BY específico
+    cur.execute(f"""
+        SELECT id
+        FROM {table_name}
+        WHERE {condition}
+        ORDER BY {order_by};
+    """)
+
+    records = cur.fetchall()
+
+    id_mapping = {}
+    new_id = start_id
+
+    for (old_id,) in records:
+        if old_id != new_id:
+            id_mapping[old_id] = new_id
+        new_id += 1
+
+    if not id_mapping:
+        logging.info(f"  ✓ IDs ya secuenciales desde {start_id}")
+        cur.close()
+        return {}
+
+    # Usar la función de resecuenciación existente con el mapping creado
+    batch_size = calculate_batch_size(len(id_mapping))
+    total_changes = len(id_mapping)
+    mapping_items = list(id_mapping.items())
+    total_batches = (total_changes + batch_size - 1) // batch_size
+
+    logging.info(f"  💡 Resecuenciando {total_changes} registros en {total_batches} lotes...")
+
+    try:
+        cur.execute(f"ALTER TABLE {table_name} DISABLE TRIGGER USER;")
+        conn.commit()
+
+        for batch_num in range(total_batches):
+            start_idx = batch_num * batch_size
+            end_idx = min(start_idx + batch_size, total_changes)
+            batch = mapping_items[start_idx:end_idx]
+
+            when_clauses = []
+            old_ids = []
+
+            for old_id, new_id in batch:
+                when_clauses.append(f"WHEN {old_id} THEN {new_id}")
+                old_ids.append(str(old_id))
+
+            case_statement = " ".join(when_clauses)
+            ids_list = ", ".join(old_ids)
+
+            update_query = f"""
+                UPDATE {table_name}
+                SET id = CASE id
+                    {case_statement}
+                END
+                WHERE id IN ({ids_list});
+            """
+
+            cur.execute(update_query)
+            conn.commit()
+
+            if progress:
+                progress.log_batch(batch_num + 1, total_batches, end_idx, total_changes)
+
+        cur.execute(f"ALTER TABLE {table_name} ENABLE TRIGGER USER;")
+        conn.commit()
+
+        logging.info(f"  ✓ Resecuenciado completo desde {start_id}")
+        return id_mapping
+
+    except Exception as e:
+        try:
+            cur.execute(f"ALTER TABLE {table_name} ENABLE TRIGGER USER;")
+            conn.commit()
+        except:
+            pass
+        raise
+    finally:
+        cur.close()
+
+def apply_custom_strategy(conn, table_name, config, progress=None):
+    """
+    v4.0: Estrategia personalizada
+    Actualmente: product.product.id = product_tmpl_id
+    """
+    description = config.get('description', '')
+
+    logging.info(f"  🔧 Estrategia personalizada: {description}")
+
+    if 'product_tmpl_id' in description.lower():
+        # Caso especial: product.product
+        cur = conn.cursor()
+
+        try:
+            cur.execute(f"ALTER TABLE {table_name} DISABLE TRIGGER USER;")
+            conn.commit()
+
+            # Set product.id = product_tmpl_id para productos single-variant
+            cur.execute(f"""
+                UPDATE {table_name}
+                SET id = product_tmpl_id
+                WHERE product_tmpl_id IS NOT NULL;
+            """)
+
+            updated = cur.rowcount
+            conn.commit()
+
+            cur.execute(f"ALTER TABLE {table_name} ENABLE TRIGGER USER;")
+            conn.commit()
+
+            logging.info(f"  ✓ Estrategia custom aplicada: {updated} registros")
+
+            cur.close()
+            return {}
+
+        except Exception as e:
+            try:
+                cur.execute(f"ALTER TABLE {table_name} ENABLE TRIGGER USER;")
+                conn.commit()
+            except:
+                pass
+            cur.close()
+            raise
+    else:
+        logging.warning(f"  ⚠️  Estrategia custom no implementada para: {table_name}")
+        return {}
+
+def resequence_ids_with_strategy(conn, table_name, id_compact_config, progress=None):
+    """
+    v4.0: Resecuenciación con estrategias específicas
+    Estrategias: consolidation, sequential, custom
+    """
+    if not id_compact_config or not id_compact_config.get('enabled'):
+        return {}
+
+    strategy = id_compact_config.get('strategy', 'sequential')
+
+    if strategy == 'consolidation':
+        # Mapping directo (ej: res.company 8→7)
+        return apply_consolidation_strategy(conn, table_name, id_compact_config, progress)
+    elif strategy == 'sequential':
+        # Renumeración secuencial con start_id específico
+        return apply_sequential_strategy(conn, table_name, id_compact_config, progress)
+    elif strategy == 'custom':
+        # Lógica personalizada (ej: product.product = product_tmpl_id)
+        return apply_custom_strategy(conn, table_name, id_compact_config, progress)
+    else:
+        logging.warning(f"  ⚠️  Estrategia desconocida: {strategy}")
+        return {}
 
 def resequence_ids(conn, table_name, start_id, batch_size=None, progress=None):
     """
@@ -657,13 +954,13 @@ def safe_delete(conn, table_name, cleanup_rules):
     return deleted_total
 
 # ══════════════════════════════════════════════════════════════
-#                    PROCESAMIENTO POR MODELO
+#                    PROCESAMIENTO POR MODELO (v4.0)
 # ══════════════════════════════════════════════════════════════
 
 def process_model(conn, model_name, model_config, progress=None):
-    """v3.5: Procesa un modelo con validaciones, mejoras y progreso visual"""
+    """v4.0: Procesa un modelo con soporte para estrategias y nuevo formato"""
 
-    table_name = model_config['table_name']
+    table_name = model_config.get('table', model_config.get('table_name'))
 
     logging.info(f"\n▶ Procesando: {model_name} ({table_name})")
 
@@ -693,10 +990,14 @@ def process_model(conn, model_name, model_config, progress=None):
     cur.close()
 
     try:
-        # PASO 1: CASCADE (desde archivos .py)
-        if 'cascade_rules' in model_config and model_config['cascade_rules']:
+        # v4.0: Leer operations desde v4.0 format
+        operations = model_config.get('operations', {})
+
+        # PASO 1: CASCADE (fk_rewrite o cascade_rules legacy)
+        if operations.get('fk_rewrite', {}).get('enabled') or model_config.get('cascade_rules'):
             if progress:
-                progress.log_step("Aplicando CASCADE", len(model_config['cascade_rules']), len(model_config['cascade_rules']))
+                fk_count = len(operations.get('fk_rewrite', {}).get('constraints', [])) or len(model_config.get('cascade_rules', []))
+                progress.log_step("Aplicando CASCADE", fk_count, fk_count)
             apply_cascade(conn, model_config, model_name)
             result['changes'].append("CASCADE aplicado")
 
@@ -707,8 +1008,50 @@ def process_model(conn, model_name, model_config, progress=None):
         if inverse_count > 0:
             result['changes'].append(f"Referencias inversas CASCADE: {inverse_count}")
 
-        # v3.4: PASO 2: RESECUENCIAR IDs (con start_id dinámico)
-        if 'resequence_rules' in model_config and model_config['resequence_rules']:
+        # v4.0: PASO 2: ID_SHIFT (temporal offset si existe)
+        if operations.get('id_shift', {}).get('enabled'):
+            id_shift_config = operations['id_shift']
+            offset = id_shift_config.get('offset')
+            condition = id_shift_config.get('condition', '1=1')
+
+            if progress:
+                progress.log_step(f"ID Shift (offset={offset})")
+
+            logging.info(f"  ⬆️  ID Shift: offset={offset}, condition={condition}")
+
+            cur = conn.cursor()
+            try:
+                cur.execute(f"""
+                    UPDATE {table_name}
+                    SET id = id + {offset}
+                    WHERE {condition};
+                """)
+                shifted = cur.rowcount
+                conn.commit()
+                logging.info(f"  ✓ ID Shift: {shifted} registros desplazados")
+                result['changes'].append(f"ID shift: {shifted} registros")
+            except psycopg2.Error as e:
+                conn.rollback()
+                logging.warning(f"  ⚠️  Error en ID shift: {e}")
+            finally:
+                cur.close()
+
+        # v4.0: PASO 3: ID_COMPACT (estrategia específica)
+        if operations.get('id_compact', {}).get('enabled'):
+            if progress:
+                progress.log_step("ID Compact con estrategia...")
+
+            id_mapping = resequence_ids_with_strategy(
+                conn, table_name,
+                operations['id_compact'],
+                progress=progress
+            )
+
+            if id_mapping:
+                result['changes'].append(f"IDs compactados: {len(id_mapping)} cambios")
+
+        # v3.7 Legacy: PASO 3 (fallback): RESECUENCIAR IDs (legacy resequence_rules)
+        elif 'resequence_rules' in model_config and model_config['resequence_rules']:
             # Calcular start_id dinámicamente
             start_id = calculate_start_id(conn, table_name, buffer_size=1000)
             logging.info(f"  💡 start_id dinámico: {start_id}")
@@ -716,25 +1059,96 @@ def process_model(conn, model_name, model_config, progress=None):
             id_mapping = resequence_ids(conn, table_name, start_id, progress=progress)
             result['changes'].append(f"IDs resecuenciados desde {start_id}")
 
-        # PASO 3: ACTUALIZAR NOMBRES (con validación JSONB)
+        # v4.0: PASO 4: CLEANUP (DELETE operations)
+        if operations.get('cleanup', {}).get('enabled'):
+            cleanup_ops = operations['cleanup'].get('operations', [])
+
+            if cleanup_ops and progress:
+                progress.log_step(f"Cleanup", len(cleanup_ops), len(cleanup_ops))
+
+            deleted_total = 0
+
+            for delete_sql in cleanup_ops:
+                cur = conn.cursor()
+                try:
+                    cur.execute(delete_sql)
+                    deleted = cur.rowcount
+                    deleted_total += deleted
+                    conn.commit()
+                    logging.info(f"    ✓ DELETE: {deleted} registros - {delete_sql[:60]}...")
+                except psycopg2.Error as e:
+                    conn.rollback()
+                    logging.warning(f"    ⚠️  Error en DELETE: {e}")
+                finally:
+                    cur.close()
+
+            if deleted_total > 0:
+                result['changes'].append(f"Cleanup: {deleted_total} registros eliminados")
+                logging.info(f"  ✓ Cleanup completo: {deleted_total} registros")
+
+        # v3.7 Legacy: PASO 4 (fallback): DELETE SEGURO (legacy cleanup_rules)
+        elif 'cleanup_rules' in model_config:
+            if progress:
+                progress.log_step("Ejecutando deletes seguros...")
+            deleted = safe_delete(conn, table_name, model_config['cleanup_rules'])
+            result['changes'].append(f"{deleted} registros eliminados")
+
+        # PASO 3 (legacy): ACTUALIZAR NOMBRES (con validación JSONB)
         if 'naming_rules' in model_config and model_config['naming_rules']:
             if progress:
                 progress.log_step("Actualizando nombres...")
             update_names(conn, model_name, table_name, model_config['naming_rules'])
             result['changes'].append("Nombres actualizados")
 
-        # PASO 4: ELIMINAR GAPS
-        if progress:
-            progress.log_step("Eliminando gaps...")
-        gaps = eliminate_gaps(conn, table_name)
-        result['changes'].append(f"{gaps} gaps eliminados")
+        # PASO 4 (legacy): ELIMINAR GAPS (disabled for v4.0 - handled by strategies)
+        if not operations.get('id_compact', {}).get('enabled'):
+            # v4.1: Verificar si skip_gap_elimination está activo
+            if operations.get('skip_gap_elimination', False):
+                logging.info(f"  ⊘ Gap elimination desactivado por configuración")
+            else:
+                if progress:
+                    progress.log_step("Eliminando gaps...")
+                gaps = eliminate_gaps(conn, table_name)
+                result['changes'].append(f"{gaps} gaps eliminados")
 
-        # PASO 5: DELETE SEGURO
-        if 'cleanup_rules' in model_config:
+        # v4.0: PASO 5: XMLID_REBUILD
+        if operations.get('xmlid_rebuild', {}).get('enabled'):
+            xmlid_config = operations['xmlid_rebuild']
+            module = xmlid_config.get('module', 'marin')
+            condition = xmlid_config.get('condition', '1=1')
+            name_pattern = xmlid_config.get('name_pattern', f"{model_name.replace('.', '_')}_{{id}}")
+
             if progress:
-                progress.log_step("Ejecutando deletes seguros...")
-            deleted = safe_delete(conn, table_name, model_config['cleanup_rules'])
-            result['changes'].append(f"{deleted} registros eliminados")
+                progress.log_step("Reconstruyendo XML IDs...")
+
+            logging.info(f"  📝 Reconstruyendo XML IDs (módulo: {module})...")
+
+            # Implementation placeholder for now
+            logging.info(f"  ⊘ XMLID rebuild: implementación pendiente")
+
+        # v4.0: PASO 6: SEQUENCE_SYNC
+        if operations.get('sequence_sync', {}).get('enabled'):
+            sequence_name = operations['sequence_sync'].get('sequence', f"{table_name}_id_seq")
+
+            if progress:
+                progress.log_step("Sincronizando secuencia...")
+
+            cur = conn.cursor()
+            try:
+                cur.execute(f"SELECT MAX(id) FROM {table_name};")
+                max_id = cur.fetchone()[0] or 0
+
+                cur.execute(f"""
+                    SELECT setval('{sequence_name}', {max_id}, true);
+                """)
+                conn.commit()
+                logging.info(f"  ✓ Secuencia sincronizada: {sequence_name} → {max_id}")
+                result['changes'].append(f"Secuencia: {max_id}")
+            except psycopg2.Error as e:
+                conn.rollback()
+                logging.warning(f"  ⚠️  Error sincronizando secuencia: {e}")
+            finally:
+                cur.close()
 
         # Contar registros finales
         cur = conn.cursor()
@@ -808,7 +1222,7 @@ def main():
 
     print("╔══════════════════════════════════════════════════════════╗")
     print("║  Sistema de Limpieza y Resecuenciación BDD Odoo         ║")
-    print("║  Versión 3.7 - Integridad Referencial Garantizada       ║")
+    print("║  Versión 4.0 - Estrategias Específicas por Modelo       ║")
     print("╚══════════════════════════════════════════════════════════╝\n")
 
     try:
